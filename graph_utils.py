@@ -3,6 +3,7 @@ from typing import List
 
 from langchain_community.graphs import Neo4jGraph
 from langchain_community.graphs.graph_document import GraphDocument
+from pydantic import BaseModel, Field
 
 BASE_ENTITY_LABEL = "__Entity__"
 EXCLUDED_LABELS = ["_Bloom_Perspective_", "_Bloom_Scene_"]
@@ -18,6 +19,15 @@ include_docs_query = (
     "SET d += $document.metadata "
     "WITH d "
 )
+
+
+def escape_json(s):
+    _s = ""
+    for ss in s:
+        _s += ss
+        if ss in ["{", "}"]:
+            _s += ss
+    return _s
 
 
 def _remove_backticks(text: str) -> str:

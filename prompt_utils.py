@@ -17,13 +17,15 @@ def create_unstructured_prompt(
     base_string_parts,
     examples,
     template,
+    schema,
     node_labels: Optional[List[str]] = None,
     rel_types: Optional[List[str]] = None,
+    previous_examples=None,
 ) -> ChatPromptTemplate:
     system_prompt = "\n".join(filter(None, base_string_parts))
 
     system_message = SystemMessage(content=system_prompt)
-    parser = JsonOutputParser(pydantic_object=UnstructuredRelation)
+    parser = JsonOutputParser(pydantic_object=schema)
 
     human_prompt = PromptTemplate(
         template=template,
@@ -33,6 +35,7 @@ def create_unstructured_prompt(
             "node_labels": node_labels,
             "rel_types": rel_types,
             "examples": examples,
+            "previous_examples": previous_examples,
         },
     )
 

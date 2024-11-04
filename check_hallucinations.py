@@ -11,16 +11,14 @@ samples = True
 task = "tf"
 old = True
 
-# simple = False
-simple = True
+simple = False
+# simple = True
 
 # parser = "marker"
 parser = "llama_parse"
 
 # model = "llama3.1:70b"
 model = "llama3.1:8b"
-
-task_dict = {"ppi": "linda-llm", "tf": "linda-llm-dev"}
 
 if old:
     _task = "tf"
