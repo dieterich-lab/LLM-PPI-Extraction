@@ -10,7 +10,6 @@ from langchain_core.prompts import (
     PromptTemplate,
 )
 from langchain_core.prompts.prompt import PromptTemplate
-from langchain_experimental.graph_transformers.llm import UnstructuredRelation
 
 
 def create_unstructured_prompt(

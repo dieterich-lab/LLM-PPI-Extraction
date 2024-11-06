@@ -5,8 +5,5 @@
 #SBATCH --partition=long
 #SBATCH --mem=100G
 
-python -u generate_graph.py --model 70b --simple --parser llama_parse --curated --task both
-
-
-# python -u graphdocs2json.py --model 70b  --parser llama_parse --curated --task both
+python -u generate_graph.py --simple --curated --style 2 --model 70b --target both
 

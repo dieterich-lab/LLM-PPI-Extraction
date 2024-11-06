@@ -11,14 +11,11 @@ parser.add_argument(
 )
 parser.add_argument(
     "--style",
-    nargs="?",
-    const="1",
-    type=str,
-    default="1",
-    choices=list(map(str, (range(6)))),
+    type=int,
+    choices=list(range(6)),
 )
-parser.add_argument("--port", type=int, choices=[34, 35, 36])
-parser.add_argument("--gpu", type=int, choices=["g2", "g3", "g4", "g5"])
+parser.add_argument("--port", type=int, choices=[34, 35, 36], default=34)
+parser.add_argument("--gpu", type=str, choices=["g2", "g3", "g4", "g5"], default="g4")
 parser.add_argument(
     "--parser",
     nargs="?",
@@ -40,6 +37,6 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
-    "--model", choices=["8b", "70b", "405b", "mixtral", "biollm"], default="8b"
+    "--model", choices=["8b", "70b", "405b", "mixtral", "biollm", "nemo"], default="8b"
 )
 args = parser.parse_args()

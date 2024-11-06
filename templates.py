@@ -1,5 +1,6 @@
 TEMPLATE = """Based on the following example, extract entities and 
-relations from the provided text.\n\n
+relations from the provided text.
+
 Use the following entity types, don't use other entity that is not defined below:
 # ENTITY TYPES:
 {node_labels}
@@ -11,14 +12,17 @@ Use the following relation types, don't use any other relation that is not defin
 Below are a number of examples of text and their extracted entities and relationships.
 {examples}
 
-For the following text, extract entities and relations as in the provided example.
-{format_instructions}\nText: {input}
+For the following text, extract entities and relations as in the provided example:
+
+{format_instructions}
+
+Text: {input}
 
 """
 # Text: {input}
 
 TEMPLATE_SIMPLE = """Based on the following example, extract entities and 
-relations from the provided text.\n\n
+relations from the provided text.
 
 Use the following relation types, don't use any other relation that is not defined below:
 # RELATION TYPES:
@@ -27,15 +31,12 @@ Use the following relation types, don't use any other relation that is not defin
 Below are a number of examples of text and their extracted entities and relationships.
 {examples}
 
-For the following text, extract entities and relations as in the provided example.
-
 Text: {input}
 
 """
-# {format_instructions}\nText: {input}
 
 TF_TEMPLATE = """Based on the following example, extract entities and 
-relations from the provided text.\n\n
+relations from the provided text.
 Use the following entity types, don't use other entity that is not defined below:
 # ENTITY TYPES:
 {node_labels}
@@ -51,12 +52,16 @@ Next you see already extracted triples from the text that are protein-protein in
 {previous_examples}
 
 For the following text, extract entities and relations as in the provided example.
-{format_instructions}\nText: {input}
+{format_instructions}
+
+Text: 
+
+{input}
 
 """
 
 TF_TEMPLATE_SIMPLE = """Based on the following example, extract entities and 
-relations from the provided text.\n\n
+relations from the provided text.
 
 Use the following relation types, don't use any other relation that is not defined below:
 # RELATION TYPES:
@@ -68,9 +73,8 @@ Below are a number of examples of text and their extracted entities and relation
 Next you see already extracted triples from the text that are protein-protein interactions and should NOT be again extracted from you:
 {previous_examples}
 
-For the following text, extract entities and relations as in the provided example.
-
-Text: {input}
+Text: 
+{input}
 
 """
 
@@ -98,7 +102,7 @@ PPI_BASESTRINGPARTS = [
     "that entity. The knowledge graph should be coherent and easily "
     "understandable, so maintaining consistency in entity references is "
     "crucial.",
-    "IMPORTANT NOTES:\n- Don't add any explanation and text.",
+    "IMPORTANT NOTES: Don't add any explanation and text.",
 ]
 
 PPI_EXAMPLES = [
@@ -175,7 +179,7 @@ TF_BASESTRINGPARTS = [
     "The knowledge graph should be coherent and easy "
     "understandable, so maintaining consistency in entity references is "
     "crucial.",
-    "IMPORTANT NOTES:\n- Don't add any explanation and text.",
+    "IMPORTANT NOTES: Don't add any explanation and text.",
 ]
 
 TF_EXAMPLES = [
@@ -268,7 +272,7 @@ PPI_BASESTRINGPARTS_SIMPLE = [
     'The "head" and "tail" key must contain the name or denominator of the extracted  proteins / genes. '
     "The objects should be coherent and easy understandable, so maintaining consistency in entity references is "
     "crucial.",
-    "IMPORTANT NOTES:\n- Only extract objects for entities that appear in the input and ",
+    "IMPORTANT NOTES: Only extract objects for entities that appear in the input and ",
     "don't add any explanation!",
 ]
 
@@ -280,7 +284,7 @@ TF_BASESTRINGPARTS_SIMPLE = [
     'The "head" and "tail" key must contain the name or denominator of the extracted transcription factors and genes. '
     "The objects should be coherent and easy understandable, so maintaining consistency in entity references is "
     "crucial.",
-    "IMPORTANT NOTES:\n- Only extract objects for entities that appear in the input and ",
+    "IMPORTANT NOTES: Only extract objects for entities that appear in the input and ",
     "don't add any explanation!",
 ]
 
