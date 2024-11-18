@@ -16,6 +16,12 @@ class PPI_Triple(BaseModel):
     )
 
 
+class LR_Triple_SIMPLE(BaseModel):
+    head: str = Field(description="Head ligand entity.")
+    relation: Literal["INTERACTS_WITH"] = Field(description="Protein-protein relation.")
+    tail: str = Field(description="Tail receptor entity.")
+
+
 class TF_Triple(BaseModel):
     head: str = Field(description="Head gene entity")
     head_type: Literal["transcription_factor"] = Field(
@@ -56,6 +62,16 @@ class TF_Triples(BaseModel):
     """
 
     triples: List[TF_Triple] = Field(description="List of all extracted Triples.")
+
+
+class LR_Triples_Simple(BaseModel):
+    """
+    A class that contains a list of ligand-receptor relations in the form of triples.
+    """
+
+    triples: List[LR_Triple_SIMPLE] = Field(
+        description="List of all extracted Triples."
+    )
 
 
 class Triple(BaseModel):

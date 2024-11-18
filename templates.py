@@ -19,7 +19,6 @@ For the following text, extract entities and relations as in the provided exampl
 Text: {input}
 
 """
-# Text: {input}
 
 TEMPLATE_SIMPLE = """Based on the following example, extract entities and 
 relations from the provided text.
@@ -32,49 +31,6 @@ Below are a number of examples of text and their extracted entities and relation
 {examples}
 
 Text: {input}
-
-"""
-
-TF_TEMPLATE = """Based on the following example, extract entities and 
-relations from the provided text.
-Use the following entity types, don't use other entity that is not defined below:
-# ENTITY TYPES:
-{node_labels}
-
-Use the following relation types, don't use any other relation that is not defined below:
-# RELATION TYPES:
-{rel_types}
-
-Below are a number of examples of text and their extracted entities and relationships.
-{examples}
-
-Next you see already extracted triples from the text that are protein-protein interactions and should NOT be again extracted from you:
-{previous_examples}
-
-For the following text, extract entities and relations as in the provided example.
-{format_instructions}
-
-Text: 
-
-{input}
-
-"""
-
-TF_TEMPLATE_SIMPLE = """Based on the following example, extract entities and 
-relations from the provided text.
-
-Use the following relation types, don't use any other relation that is not defined below:
-# RELATION TYPES:
-{rel_types}
-
-Below are a number of examples of text and their extracted entities and relationships.
-{examples}
-
-Next you see already extracted triples from the text that are protein-protein interactions and should NOT be again extracted from you:
-{previous_examples}
-
-Text: 
-{input}
 
 """
 
@@ -394,18 +350,70 @@ TF_EXAMPLES_SIMPLE = [
     },
 ]
 
+LR_EXAMPLES_SIMPLE = [
+    {
+        "text": (
+            "We have applied the multiscale framework to the interaction between ligand TNFα and its receptor TNFR1 as a test model."
+        ),
+        "head": "TNFα",
+        "relation": "INTERACTS_WITH",
+        "tail": "TNFR1",
+    },
+    {
+        "text": (
+            "INS binds to the insulin receptor (IR) on the plasma membrane (PM) and triggers the activation of signaling cascades to regulate metabolism and cell growth."
+        ),
+        "head": "INS",
+        "relation": "INTERACTS_WITH",
+        "tail": "IR",
+    },
+    {
+        "text": (
+            "The binding of the epidermal growth factor (EGF) to its receptor (EGFR) triggers a large set of downstream processes, ultimately causing cell growth, differentiation and proliferation"
+        ),
+        "head": "EGF",
+        "relation": "INTERACTS_WITH",
+        "tail": "EGFR",
+    },
+    {
+        "text": (
+            "TGFBR1 is the key component in passing extracellular stimulation to the downstream TGF-β signaling pathway."
+        ),
+        "head": "TGF-β",
+        "relation": "INTERACTS_WITH",
+        "tail": "TGFBR1",
+    },
+    {
+        "text": (
+            "TGFBR2 is the receptor that TGF-β binds directly, and thus it serves as a gatekeeper for the activation of downstream signaling."
+        ),
+        "head": "TGF-β",
+        "relation": "INTERACTS_WITH",
+        "tail": "TGFBR2",
+    },
+    {
+        "text": (
+            "PDGFRA can bind to and dimerize the PDGF ligands"
+            "which in-turn are thought to abrogate the inflammatory response by transcriptionally repressing "
+            "proinflammatory cytokine genes such as IL-1, IL-6, IL-12, and TNF-α."
+        ),
+        "head": "PDGF",
+        "relation": "INTERACTS_WITH",
+        "tail": "PDGFRA",
+    },
+    {
+        "text": (
+            "Gq-dependent pathway- Ang II as a ligand (L) binds to AT1R (GPCR), activates Gq protein subunits which recruit the GRKs to the receptor."
+        ),
+        "head": "Ang II",
+        "relation": "INTERACTS_WITH",
+        "tail": "AT1R",
+    },
+]
+
 PPI_NODE_LABELS = ["protein"]
+LR_NODE_LABELS = ["ligand", "receptor"]
 PPI_INTERACTIONS = ["INTERACTS_WITH"]
+LR_INTERACTIONS = ["INTERACTS_WITH"]
 TF_NODE_LABELS = ["transcription_factor", "gene"]
 TF_INTERACTIONS = ["REGULATES"]
-
-ppi_path = "/prj/LINDA_LLM/resources/ppi_members.txt"
-ppis = open(ppi_path, "r").read().replace("\t", " ").replace("\n", " \n ")
-PPI_EXTRACTION_SYSTEM = """
-From the following paper, please extract sentences that contain information about protein-protein-interactions.
-Only extract sentences that contain genes from the following list:
-
-{ppis}
-""".format(
-    ppis=ppis
-)

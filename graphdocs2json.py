@@ -73,6 +73,10 @@ for path in graphdoc_pkl_paths:
     else:
         triple_path = Path(triple_path).parent / "100samples" / triple_filename
 
+    if args.doclevel:
+        triple_path = Path(triple_path).parent / "docs" / triple_filename
+    else:
+        triple_path = Path(triple_path).parent / "chunks" / triple_filename
     if args.style:
         triple_path = Path(triple_path).parent / f"style{args.style}" / triple_filename
     if args.simple:
