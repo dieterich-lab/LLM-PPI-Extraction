@@ -174,7 +174,7 @@ class MyNeo4jGraph(Neo4jGraph):
             )
 
 
-def parse_msg(message):
+def parse_msg2triples(message):
     # if not message.content:
     if "message" in message.response_metadata:
         output = message.response_metadata["message"]["tool_calls"][0]["function"][

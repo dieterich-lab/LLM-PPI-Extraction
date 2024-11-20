@@ -3,7 +3,7 @@ from parser import args
 
 from const import LOOKUP
 from get_documents import documents, paper_dict, whole_documents
-from graph_utils import parse_msg
+from graph_utils import parse_msg2triples
 from langchain_community.graphs.graph_document import GraphDocument, Node, Relationship
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
@@ -202,7 +202,7 @@ for i, (doc, id) in enumerate(target_docs[args.startfromdoc :], args.startfromdo
     files = [f] if args.target != "both" else [ppi_f, tf_f]
 
     for final_message, file in zip(final_messages, files):
-        triples = parse_msg(final_message)
+        triples = parse_msg2triples(final_message)
         for triple in triples:
             n1 = triple["head"]
             n2 = triple["tail"]
