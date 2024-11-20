@@ -1,6 +1,9 @@
+import json
 from hashlib import md5
+from parser import args
 from typing import List
 
+from json_repair import repair_json
 from langchain_community.graphs import Neo4jGraph
 from langchain_community.graphs.graph_document import GraphDocument
 from pydantic import BaseModel, Field
@@ -169,3 +172,41 @@ class MyNeo4jGraph(Neo4jGraph):
                     ],
                 },
             )
+
+
+def parse_msg(message):
+    # if not message.content:
+    if "message" in message.response_metadata:
+        output = message.response_metadata["message"]["tool_calls"][0]["function"][
+            "arguments"
+        ]["triples"]
+        if isinstance(output, str):
+            output = repair_json(output, return_objects=True)
+    else:
+        output = repair_json(
+            message.additional_kwargs["tool_calls"][0]["function"]["arguments"],
+            return_objects=True,
+        )["triples"]
+    if not output:
+        return output
+    if isinstance(output, list) and isinstance(output[0], str):
+        output = [output]
+    triples = list()
+    for triple in output:
+        if isinstance(triple, dict):
+            triple = repair_json(json.dumps(triple), return_objects=True)
+            triples.append(triple)
+        elif isinstance(triple, str):
+            triple = json.loads(repair_json(triple))
+            triples.append(triple)
+        elif isinstance(triple, list):
+            if len(triple) % 3 if args.simple else 5:
+                continue
+            for i in range(0, len(triple), 3 if args.simple else 5):
+                _triple = {
+                    "head": triple[i],
+                    "relation": triple[i + 1],
+                    "tail": triple[i + 2],
+                }
+                triples.append(_triple)
+    return triples

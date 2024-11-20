@@ -6,8 +6,7 @@ parser.add_argument(
     nargs="?",
     const="tf",
     type=str,
-    default="tf",
-    choices=["tf", "ppi", "both", "ppi_eval", "tf_eval", "lr"],
+    choices=["tf", "ppi", "both", "ppi_eval", "tf_eval", "lr_eval"],
 )
 parser.add_argument(
     "--style",
@@ -23,6 +22,13 @@ parser.add_argument(
     type=str,
     default="marker",
     choices=["llama_parse", "marker"],
+)
+parser.add_argument(
+    "--startfromdoc",
+    nargs="?",
+    const=0,
+    type=int,
+    default=0,
 )
 parser.add_argument(
     "--simple",

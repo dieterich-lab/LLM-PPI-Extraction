@@ -29,7 +29,7 @@ ip_dict = {
     "g5": "10.250.135.156",
 }
 
-if not args.nebius:
+if not args.nebius and args.model != "405b":
     llm = ChatOllama(
         model=model,
         temperature=0,
@@ -41,8 +41,8 @@ if not args.nebius:
 else:
     llm = ChatOpenAI(
         base_url="https://api.studio.nebius.ai/v1/",
-        api_key=os.getenv("NEBIUS_API_KEY"),
+        api_key=os.getenv("NEBIUS_API_KEY_ENIO"),
         model=model,
         temperature=0,
-        max_tokens=256,
+        max_tokens=512,
     )

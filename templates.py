@@ -138,6 +138,70 @@ TF_BASESTRINGPARTS = [
     "IMPORTANT NOTES: Don't add any explanation and text.",
 ]
 
+PPI_BASESTRINGPARTS_SIMPLE = [
+    "You are a top-tier molecular biologist specialized in the field of cardiology. "
+    "Your task is to identify pairs of proteins which are known to be interacting with "
+    " each other. "
+    "You must generate the output in a JSON format containing a list with JSON objects. "
+    'Each object should have the keys: "head", "relation" and "tail". '
+    'The "head" and "tail" key must contain the name or denominator of the extracted  proteins / genes. '
+    "The objects should be coherent and easy understandable, so maintaining consistency in entity references is "
+    "crucial.",
+    "IMPORTANT NOTES: Only extract objects for entities that appear in the input and ",
+    "don't add any explanation!",
+]
+
+TF_BASESTRINGPARTS_SIMPLE = [
+    "You are a top-tier molecular biologist specialized in the field of cardiology. "
+    "Your task is to identify pairs of regulatory interactions between transcription factors and their target genes."
+    "You must generate the output in a JSON format containing a list with JSON objects. "
+    'Each object should have the keys: "head", "relation" and "tail". '
+    'The "head" and "tail" key must contain the name or denominator of the extracted transcription factors and genes. '
+    "The objects should be coherent and easy understandable, so maintaining consistency in entity references is "
+    "crucial.",
+    "IMPORTANT NOTES: Only extract objects for entities that appear in the input and ",
+    "don't add any explanation!",
+]
+
+PPI_EXAMPLES_SIMPLE = [
+    {
+        "text": ("BNIP-2 Interacts with LATS1 to Promote YAP Cytosolic Localization"),
+        "head": "BNIP-2",
+        "relation": "INTERACTS_WITH",
+        "tail": "LATS1",
+    },
+    {
+        "text": (
+            "CBY1 interacts with DZIP1 and "
+            "localizes to the basal body in developing mitral valves."
+        ),
+        "head": "CBY1",
+        "relation": "INTERACTS_WITH",
+        "tail": "DZIP1",
+    },
+    {
+        "text": (
+            "CAMK2 kinase induces cardiac hypertrophy and "
+            "activates MEF2 transcription factor in vivo."
+        ),
+        "head": "CAMK2",
+        "relation": "INTERACTS_WITH",
+        "tail": "MEF2",
+    },
+    {
+        "text": "The reduced 14-3-3 co-immunoprecipitation experiments suggest that PKA inhibits HDAC4 activity.",
+        "head": "PKA",
+        "relation": "INTERACTS_WITH",
+        "tail": "HDAC4",
+    },
+    {
+        "text": "TEL2 binds to TTI1 and both TEL2 and TTI1 are necessary and sufficient to stabilize and activate both mTORC1 and mTORC2 signalling pathways.",
+        "head": "TEL2",
+        "relation": "INTERACTS_WITH",
+        "tail": "TTI1",
+    },
+]
+
 TF_EXAMPLES = [
     {
         "text": (
@@ -232,56 +296,7 @@ PPI_BASESTRINGPARTS_SIMPLE = [
     "don't add any explanation!",
 ]
 
-TF_BASESTRINGPARTS_SIMPLE = [
-    "You are a top-tier molecular biologist specialized in the field of cardiology. "
-    "Your task is to identify pairs of regulatory interactions between transcription factors and their target genes."
-    "You must generate the output in a JSON format containing a list with JSON objects. "
-    'Each object should have the keys: "head", "relation" and "tail". '
-    'The "head" and "tail" key must contain the name or denominator of the extracted transcription factors and genes. '
-    "The objects should be coherent and easy understandable, so maintaining consistency in entity references is "
-    "crucial.",
-    "IMPORTANT NOTES: Only extract objects for entities that appear in the input and ",
-    "don't add any explanation!",
-]
 
-PPI_EXAMPLES_SIMPLE = [
-    {
-        "text": ("BNIP-2 Interacts with LATS1 to Promote YAP Cytosolic Localization"),
-        "head": "BNIP-2",
-        "relation": "INTERACTS_WITH",
-        "tail": "LATS1",
-    },
-    {
-        "text": (
-            "CBY1 interacts with DZIP1 and "
-            "localizes to the basal body in developing mitral valves."
-        ),
-        "head": "CBY1",
-        "relation": "INTERACTS_WITH",
-        "tail": "DZIP1",
-    },
-    {
-        "text": (
-            "CAMK2 kinase induces cardiac hypertrophy and "
-            "activates MEF2 transcription factor in vivo."
-        ),
-        "head": "CAMK2",
-        "relation": "INTERACTS_WITH",
-        "tail": "MEF2",
-    },
-    {
-        "text": "The reduced 14-3-3 co-immunoprecipitation experiments suggest that PKA inhibits HDAC4 activity.",
-        "head": "PKA",
-        "relation": "INTERACTS_WITH",
-        "tail": "HDAC4",
-    },
-    {
-        "text": "TEL2 binds to TTI1 and both TEL2 and TTI1 are necessary and sufficient to stabilize and activate both mTORC1 and mTORC2 signalling pathways.",
-        "head": "TEL2",
-        "relation": "INTERACTS_WITH",
-        "tail": "TTI1",
-    },
-]
 TF_EXAMPLES_SIMPLE = [
     {
         "text": (

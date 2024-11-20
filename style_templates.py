@@ -1,6 +1,19 @@
 style_dict = {
     1: {
         "simple": {
+            "ppi_eval": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways.",
+                "Now review your extracted protein-protein interactions (PPI's) to determine if "
+                "they are specific to signaling pathways. Retain only signalling pathway interactions "
+                "and remove the rest.",
+                "Review one more time the protein-protein interactions (PPI's) to  "
+                "determine whether there are in the list regulations that are of a transcriptional or gene  "
+                "regulatory nature. Retain those interactions that are only specific to PPI's in cell  "
+                "signalling and remove those relations that represent relations betweentranscription factors "
+                "to their gene targets.",
+            ],
             "ppi": [
                 "You are a top-tier molecular biologist specialized in the field of "
                 "cardiology and molecular biology. Your task is to identify all protein-protein "
