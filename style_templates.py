@@ -1,19 +1,6 @@
 style_dict = {
     1: {
         "simple": {
-            "ppi_eval": [
-                "You are a top-tier molecular biologist specialized in the field of "
-                "molecular biology. Your task is to identify all protein-protein "
-                "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways.",
-                "Now review your extracted protein-protein interactions (PPI's) to determine if "
-                "they are specific to signaling pathways. Retain only signalling pathway interactions "
-                "and remove the rest.",
-                "Review one more time the protein-protein interactions (PPI's) to  "
-                "determine whether there are in the list regulations that are of a transcriptional or gene  "
-                "regulatory nature. Retain those interactions that are only specific to PPI's in cell  "
-                "signalling and remove those relations that represent relations betweentranscription factors "
-                "to their gene targets.",
-            ],
             "ppi": [
                 "You are a top-tier molecular biologist specialized in the field of "
                 "cardiology and molecular biology. Your task is to identify all protein-protein "
@@ -494,6 +481,39 @@ style_dict = {
                 "transcription of a target gene, leading to decreased expression of that gene.",
             ],
         },
+        "nerrel": {
+            "ppi": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) involved in signalling as well as relations between transcription  "
+                "factors (TF) and their target genes of a gene regulatory network. ",
+                "To start off, first extract a list of all named proteins that are mentioned in the text.",
+                "Now, review the extracted proteins. Please report those interactions "
+                "whose protein members bind and interact to each other or form protein complexes.",
+                "Review the interactions again. Please report those interactions in "
+                "which one source protein is reported to activate or enhance the activity ofits target protein.",
+                "Review the interactions again. Please report those interactions in "
+                "which one source protein is reported to inhibit or reduce the activity of its target protein.",
+                "Review the interactions a last time. Please report those interactions in "
+                "which one source protein is reported to either phosphorylate or dephosphorylate its target protein.",
+            ],
+            "tf": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) involved in signalling as well as relations between transcription  "
+                "factors (TF) and their target genes of a gene regulatory network. "
+                "To start off, first extract a list of all named proteins that are mentioned in the text.",
+                "Now, review the extracted proteins. Please report those relations in which a "
+                "transcription factor (TF) orchestrates the activation, regulation or expression of a gene. In this "
+                "case an activation happens when a TF promotes the transcription of a target gene, leading "
+                "to increased expression of that gene.",
+                "Review the relations again. Please report those relations in which a "
+                "transcription factor (TF) orchestrates the inactivation, down-regulation or supression of a gene. "
+                "In this case an activation happens when a TF promotes the transcription of a target gene, leading "
+                "to increased expression of that gene. In this case, an inactivation happens when a TF suppresses the "
+                "transcription of a target gene, leading to decreased expression of that gene.",
+            ],
+        },
         "complex": {
             "ppi": [
                 "You are a top-tier molecular biologist specialized in the field of "
@@ -559,3 +579,8 @@ style_dict = {
         },
     },
 }
+
+# "You are a top-tier molecular biologist specialized in the field of  "
+# "cardiology and molecular biology. Your task is to identify all protein-protein  "
+# "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways. "
+# "To start off, extract a list of all named proteins that are mentioned in the text.",

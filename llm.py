@@ -33,10 +33,11 @@ if not args.nebius and args.model != "405b":
     llm = ChatOllama(
         model=model,
         temperature=0,
-        keep_alive="24h",
+        keep_alive="240h",
         base_url=f"http://{ip_dict[args.gpu]}:114{args.port}",
         num_ctx=32_000 if args.doclevel else 4_000,
         num_predict=-1,
+        seed=0,
     )
 else:
     llm = ChatOpenAI(
@@ -44,5 +45,6 @@ else:
         api_key=os.getenv("NEBIUS_API_KEY_ENIO"),
         model=model,
         temperature=0,
-        max_tokens=512,
+        max_tokens=256,
+        seed=0,
     )

@@ -1,4 +1,4 @@
-TEMPLATE = """Based on the following example, extract entities and 
+INTERACT_TEMPLATE = """Based on the following example, extract entities and 
 relations from the provided text.
 
 Use the following entity types, don't use other entity that is not defined below:
@@ -20,7 +20,7 @@ Text: {input}
 
 """
 
-TEMPLATE_SIMPLE = """Based on the following example, extract entities and 
+INTERACT_TEMPLATE_SIMPLE = """Based on the following example, extract entities and 
 relations from the provided text.
 
 Use the following relation types, don't use any other relation that is not defined below:
@@ -30,7 +30,29 @@ Use the following relation types, don't use any other relation that is not defin
 Below are a number of examples of text and their extracted entities and relationships.
 {examples}
 
-Text: {input}
+Use the following JSON format:
+
+{format_instructions}
+
+### Text: 
+
+{input}
+
+"""
+
+NER_TEMPLATE_SIMPLE = """Based on the following example, extract all proteins
+from the provided text.
+
+Below are a number of examples of text passages and corresponding extracted proteins.
+{examples}
+
+Use the following JSON format:
+
+{format_instructions}
+
+### Text: 
+ 
+{input}
 
 """
 
@@ -432,3 +454,86 @@ PPI_INTERACTIONS = ["INTERACTS_WITH"]
 LR_INTERACTIONS = ["INTERACTS_WITH"]
 TF_NODE_LABELS = ["transcription_factor", "gene"]
 TF_INTERACTIONS = ["REGULATES"]
+
+PPI_NER_EXAMPLES_SIMPLE = [
+    {
+        "text": ("BNIP-2 Interacts with LATS1 to Promote YAP Cytosolic Localization"),
+        "proteins": ["BNIP-2", "LATS1"],
+    },
+    {
+        "text": (
+            "CBY1 interacts with DZIP1 and "
+            "localizes to the basal body in developing mitral valves."
+        ),
+        "proteins": ["CBY1", "DZIP1"],
+    },
+    {
+        "text": (
+            "CAMK2 kinase induces cardiac hypertrophy and "
+            "activates MEF2 transcription factor in vivo."
+        ),
+        "proteins": ["CAMK2", "MEF2"],
+    },
+    {
+        "text": "The reduced 14-3-3 co-immunoprecipitation experiments suggest that PKA inhibits HDAC4 activity.",
+        "proteins": ["PKA", "HDAC4"],
+    },
+    {
+        "text": "TEL2 binds to TTI1 and both TEL2 and TTI1 are necessary and sufficient to stabilize and activate both mTORC1 and mTORC2 signalling pathways.",
+        "proteins": ["TEL2", "TTI1"],
+    },
+]
+
+TF_NER_EXAMPLES_SIMPLE = [
+    {
+        "text": (
+            "MEF2A transcriptionally upregulates the expression of ZEB2 and CTNNB1"
+        ),
+        "protiens": ["MEF2A", "ZEB2"],
+    },
+    {
+        "text": (
+            "MEF2A transcriptionally upregulates the expression of ZEB2 and CTNNB1"
+        ),
+        "proteins": ["MEF2A", "CTNNB1"],
+    },
+    {
+        "text": (
+            "CREM regulate the circadian expression of CYP51 and "
+            "other cholesterogenic genes in the human heart."
+        ),
+        "proteins": ["CREM", "CYP51"],
+    },
+    {
+        "text": (
+            "STAT3 then travels to the nucleus where it stimulates the transcription of specific genes, "
+            "which in-turn are thought to abrogate the inflammatory response by transcriptionally repressing "
+            "proinflammatory cytokine genes such as IL-1, IL-6, IL-12, and TNF-α."
+        ),
+        "proteins": ["STAT3", "IL-1"],
+    },
+    {
+        "text": (
+            "STAT3 then travels to the nucleus where it stimulates the transcription of specific genes, "
+            "which in-turn are thought to abrogate the inflammatory response by transcriptionally repressing "
+            "proinflammatory cytokine genes such as IL-1, IL-6, IL-12, and TNF-α."
+        ),
+        "proteins": ["STAT3", "IL-6"],
+    },
+    {
+        "text": (
+            "STAT3 then travels to the nucleus where it stimulates the transcription of specific genes, "
+            "which in-turn are thought to abrogate the inflammatory response by transcriptionally repressing "
+            "proinflammatory cytokine genes such as IL-1, IL-6, IL-12, and TNF-α."
+        ),
+        "proteins": ["STAT3", "IL-12"],
+    },
+    {
+        "text": (
+            "STAT3 then travels to the nucleus where it stimulates the transcription of specific genes, "
+            "which in-turn are thought to abrogate the inflammatory response by transcriptionally repressing "
+            "proinflammatory cytokine genes such as IL-1, IL-6, IL-12, and TNF-α."
+        ),
+        "proteins": ["STAT3", "TNF-α"],
+    },
+]

@@ -5,6 +5,8 @@ from pathlib import Path
 from llm import model
 
 graph_doc_filename = "graph_documents.pkl"
+if args.saveinbetweenoutputs:
+    graph_doc_filename = "graph_documents_+_in_between.pkl"
 
 graphdoc_pkl_path = f"/beegfs/prj/LINDA_LLM/outputs/graph_docs/{args.target}/{args.parser}/{model}/graph_documents.pkl"
 

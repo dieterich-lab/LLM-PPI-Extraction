@@ -22,14 +22,14 @@ from structured_classes import (
     TF_Triples_Simple,
 )
 from templates import (
+    INTERACT_TEMPLATE,
+    INTERACT_TEMPLATE_SIMPLE,
     PPI_BASESTRINGPARTS,
     PPI_BASESTRINGPARTS_SIMPLE,
     PPI_EXAMPLES,
     PPI_EXAMPLES_SIMPLE,
     PPI_INTERACTIONS,
     PPI_NODE_LABELS,
-    TEMPLATE,
-    TEMPLATE_SIMPLE,
     TF_BASESTRINGPARTS,
     TF_BASESTRINGPARTS_SIMPLE,
     TF_EXAMPLES,
@@ -193,7 +193,7 @@ system_prompt = "\n".join(
 )
 
 human_prompt = (
-    TEMPLATE.format(
+    INTERACT_TEMPLATE.format(
         node_labels=nodelabels_dict[args.task],
         rel_types=interactions_dict[args.task],
         examples=escape_json(json.dumps(example_dict[args.task])),
@@ -201,7 +201,7 @@ human_prompt = (
         input="{input}",
     )
     if not args.simple
-    else TEMPLATE_SIMPLE.format(
+    else INTERACT_TEMPLATE_SIMPLE.format(
         rel_types=interactions_dict[args.task],
         examples=escape_json(json.dumps(example_dict[args.task])),
         input="{input}",

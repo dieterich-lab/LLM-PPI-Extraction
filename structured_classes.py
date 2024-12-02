@@ -130,3 +130,11 @@ class TF_Triples_Simple(BaseModel):
     triples: List[TF_Triple_Simple] = Field(
         description="List of all extracted Triples."
     )
+
+
+class Proteins(BaseModel):
+    """
+    A class that contains a list of proteins.
+    """
+
+    proteins: List[str] = Field(description="List of all extracted proteins.")

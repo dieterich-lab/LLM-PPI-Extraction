@@ -6,12 +6,13 @@ parser.add_argument(
     nargs="?",
     const="tf",
     type=str,
-    choices=["tf", "ppi", "both", "ppi_eval", "tf_eval", "lr_eval"],
+    choices=["tf", "ppi", "both", "ppi_eval", "tf_eval", "lr_eval", "biored"],
 )
 parser.add_argument(
     "--style",
     type=int,
     choices=list(range(1, 7)),
+    # choices=list(range(1, 7)) + ["nerrel"],
 )
 parser.add_argument("--port", type=int, choices=[34, 35, 36], default=34)
 parser.add_argument("--gpu", type=str, choices=["g2", "g3", "g4", "g5"], default="g4")
@@ -31,7 +32,22 @@ parser.add_argument(
     default=0,
 )
 parser.add_argument(
+    "--untildoc",
+    nargs="?",
+    const=0,
+    type=int,
+    default=0,
+)
+parser.add_argument(
     "--simple",
+    action="store_true",
+)
+parser.add_argument(
+    "--nerrel",
+    action="store_true",
+)
+parser.add_argument(
+    "--printpaperpaths",
     action="store_true",
 )
 parser.add_argument(
@@ -48,6 +64,10 @@ parser.add_argument(
 )
 parser.add_argument(
     "--dev",
+    action="store_true",
+)
+parser.add_argument(
+    "--saveinbetweenoutputs",
     action="store_true",
 )
 parser.add_argument(

@@ -3,9 +3,10 @@ from hashlib import md5
 from parser import args
 from typing import List
 
+from get_documents import paper_dict
 from json_repair import repair_json
 from langchain_community.graphs import Neo4jGraph
-from langchain_community.graphs.graph_document import GraphDocument
+from langchain_community.graphs.graph_document import GraphDocument, Node, Relationship
 from pydantic import BaseModel, Field
 
 BASE_ENTITY_LABEL = "__Entity__"
@@ -175,13 +176,25 @@ class MyNeo4jGraph(Neo4jGraph):
 
 
 def parse_msg2triples(message):
-    # if not message.content:
-    if "message" in message.response_metadata:
-        output = message.response_metadata["message"]["tool_calls"][0]["function"][
-            "arguments"
-        ]["triples"]
+    if "parsed" in message.additional_kwargs and message.additional_kwargs["parsed"]:
+        output = message.additional_kwargs["parsed"].model_dump()["triples"]
+    elif (
+        "raw" in message.additional_kwargs
+        and "message" in message.additional_kwargs["raw"].response_metadata
+    ):
+        output = message.additional_kwargs["raw"].response_metadata["message"][
+            "tool_calls"
+        ][0]["function"]["arguments"]["triples"]
         if isinstance(output, str):
             output = repair_json(output, return_objects=True)
+    if (
+        "message" in message.response_metadata
+        and "tool_calls" in message.response_metadata["message"]
+    ):
+        obj = message.response_metadata["message"]["tool_calls"][0]["function"][
+            "arguments"
+        ]["triples"]
+        output = repair_json(obj, return_objects=True)
     else:
         output = repair_json(
             message.additional_kwargs["tool_calls"][0]["function"]["arguments"],
@@ -195,9 +208,13 @@ def parse_msg2triples(message):
     for triple in output:
         if isinstance(triple, dict):
             triple = repair_json(json.dumps(triple), return_objects=True)
+            if not all([x in triple for x in ["head", "tail", "relation"]]):
+                continue
             triples.append(triple)
         elif isinstance(triple, str):
             triple = json.loads(repair_json(triple))
+            if not all([x in triple for x in ["head", "tail", "relation"]]):
+                continue
             triples.append(triple)
         elif isinstance(triple, list):
             if len(triple) % 3 if args.simple else 5:
@@ -210,3 +227,24 @@ def parse_msg2triples(message):
                 }
                 triples.append(_triple)
     return triples
+
+
+def build_graphdoc(triples, doc, id):
+    nodes_set = set()
+    rels = list()
+    for triple in triples:
+        n1 = triple["head"]
+        n2 = triple["tail"]
+        nodes_set.add(n1)
+        nodes_set.add(n2)
+        rels.append(
+            Relationship(
+                source=Node(id=n1), target=Node(id=n2), type=triple["relation"]
+            )
+        )
+    nodes = [Node(id=el) for el in list(nodes_set)]
+    graph_doc = GraphDocument(nodes=nodes, relationships=rels, source=doc)
+    # print(len(graph_doc.relationships))
+    graph_doc.source.metadata["source"] = paper_dict[id]
+    graph_doc.source.metadata["id"] = str(id)
+    return graph_doc

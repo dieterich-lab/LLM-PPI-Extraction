@@ -4,7 +4,7 @@ import pickle
 from parser import args
 from pathlib import Path
 
-from const import PAPERS
+from const import PAPER_PATH
 from langchain_core.documents.base import Document
 from langchain_text_splitters import MarkdownTextSplitter
 
@@ -18,22 +18,28 @@ text_splitter = MarkdownTextSplitter(
 )
 paper_dict = dict()
 
-_paper_paths = Path(
-    f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/{PAPERS}/{args.parser}"
-)
-if args.curated:
-    _paper_paths = _paper_paths / "5curated"
+if args.target != "biored":
+    _paper_paths = Path(
+        f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/{PAPER_PATH}/{args.parser}"
+    )
+    if args.curated:
+        _paper_paths = _paper_paths / "5curated"
+    paper_paths = list(_paper_paths.glob(f"*.{ending_dict[args.parser]}"))
+else:
+    _paper_paths = Path(
+        "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/biored_26_11_2024/src/corpus"
+    )
+    paper_paths = list(_paper_paths.glob(f"*"))
 
-paper_paths = list(_paper_paths.glob(f"*.{ending_dict[args.parser]}"))
 
 paper_pkl_path = Path(
-    f"/beegfs/prj/LINDA_LLM/outputs/paper_chunks/{PAPERS}/{args.parser}/paper_chunks.pkl"
+    f"/beegfs/prj/LINDA_LLM/outputs/paper_chunks/{PAPER_PATH}/{args.parser}/paper_chunks.pkl"
 )
 if args.curated:
     paper_pkl_path = paper_pkl_path.parent / "5curated" / "paper_chunks.pkl"
 
 paper_dict_path = Path(
-    f"/beegfs/prj/LINDA_LLM/outputs/paper_dicts/{PAPERS}/{args.parser}/paper_dict.pkl"
+    f"/beegfs/prj/LINDA_LLM/outputs/paper_dicts/{PAPER_PATH}/{args.parser}/paper_dict.pkl"
 )
 if args.curated:
     paper_dict_path = paper_dict_path.parent / "5curated" / "paper_chunks.pkl"
@@ -46,7 +52,8 @@ os.makedirs(whole_paper_pkl_path.parent, exist_ok=True)
 f = open(paper_pkl_path, "wb")
 wf = open(whole_paper_pkl_path, "wb")
 for i, x in enumerate(paper_paths):
-    # print(i, x)
+    if args.printpaperpaths:
+        print(i, x)
     paper_dict[i] = str(x)
     text = open(x, "r").read().strip()
     if text:
