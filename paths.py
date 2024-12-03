@@ -27,6 +27,8 @@ if args.simple:
     graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "simple" / graph_doc_filename
 else:
     graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "complex" / graph_doc_filename
+if args.nerrel:
+    graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "nerrel" / graph_doc_filename
 
 os.makedirs(Path(graphdoc_pkl_path).parent, exist_ok=True)
 
@@ -61,5 +63,7 @@ if args.simple:
     triple_path = Path(triple_path) / "simple"
 else:
     triple_path = Path(triple_path) / "complex"
+if args.nerrel:
+    triple_path = Path(triple_path) / "nerrel"
 
 os.makedirs(Path(triple_path), exist_ok=True)

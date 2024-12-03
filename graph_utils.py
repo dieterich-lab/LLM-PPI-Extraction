@@ -176,6 +176,10 @@ class MyNeo4jGraph(Neo4jGraph):
 
 
 def parse_msg2triples(message):
+    # output = repair_json(message.content, return_objects=True)
+    # if isinstance(output, dict) and "triples" in output:
+    #     output = output["triples"]
+    # if not output:
     if "parsed" in message.additional_kwargs and message.additional_kwargs["parsed"]:
         output = message.additional_kwargs["parsed"].model_dump()["triples"]
     elif (
@@ -191,10 +195,28 @@ def parse_msg2triples(message):
         "message" in message.response_metadata
         and "tool_calls" in message.response_metadata["message"]
     ):
-        obj = message.response_metadata["message"]["tool_calls"][0]["function"][
-            "arguments"
-        ]["triples"]
+        if isinstance(
+            message.response_metadata["message"]["tool_calls"][0]["function"][
+                "arguments"
+            ],
+            dict,
+        ):
+            obj = message.response_metadata["message"]["tool_calls"][0]["function"][
+                "arguments"
+            ]["triples"]
+        else:
+            obj = message.response_metadata["message"]["tool_calls"][0]["function"][
+                "arguments"
+            ]
         output = repair_json(obj, return_objects=True)
+    elif (
+        "message" in message.response_metadata
+        and "content" in message.response_metadata["message"]
+    ):
+        obj = repair_json(
+            message.response_metadata["message"]["content"], return_objects=True
+        )
+        output = obj["parameters"]["triples"]
     else:
         output = repair_json(
             message.additional_kwargs["tool_calls"][0]["function"]["arguments"],
@@ -204,6 +226,9 @@ def parse_msg2triples(message):
         return output
     if isinstance(output, list) and isinstance(output[0], str):
         output = [output]
+    # output = repair_json(message.content, return_objects=True)
+    # if isinstance(output, dict) and "triples" in output:
+    #     output = output["triples"]
     triples = list()
     for triple in output:
         if isinstance(triple, dict):

@@ -68,6 +68,39 @@ style_dict = {
                 "relations that involve interactions between two signalling protein and PPI's.",
             ],
         },
+        "nerrel": {
+            "ppi": [
+                "You are a top-tier molecular biologist specialized in the field of  "
+                "cardiology and molecular biology. Your task is to identify all protein-protein  "
+                "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways.  "
+                "Specify also the type of interaction (e.g., binding, activation, inhibition,  "
+                "phosphorylation) and direction if applicable (e.g., protein A activates protein B). "
+                "To start off, first extract a list of all named proteins that are mentioned in the text.",
+                "Now review the protein-protein interactions (PPI's) to determine if "
+                "they are specific to signaling pathways. Retain those PPI's that are specific to "
+                "signalling and remove those that are not.",
+                "Review one more time the protein-protein interactions (PPI'S) to determine"
+                "whether there are in the list regulations that are of a transcriptional or gene regulatory"
+                "nature. Retain those interactions that are only specific to PPI's in cell signalling and remove "
+                "those relations that show transcription factor to their gene targets.",
+            ],
+            "tf": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all transcription factor (TF) to "
+                "gene relations in the text. The source of the relations that you identify should be a "
+                "TF, while the target should be genes who are regulated by the TF. Specify also the type of "
+                "the relation (e.g. regulation, suppression, expression, etc.). "
+                "To start off, first extract a list of all named genes and transcription factors that are mentioned in the text.",
+                "Now review the transcription factor (TF) to gene relations to determine if  "
+                "they are specific to gene regulatory networks. Retain those relations that are only "
+                "involving TF's and their gene targets and remove those that are not.",
+                "Review one more time the transcription factor (TF) to gene relations "
+                "to determine whether there are in the list relations that are of a protein-protein "
+                "interaction (PPI's) or protein signalling nature. Retain those relations which involve "
+                "a transcription factor and the gene whose expression they regulate. Remove those "
+                "relations that involve interactions between two signalling protein and PPI's.",
+            ],
+        },
     },
     2: {
         "simple": {
@@ -144,6 +177,25 @@ style_dict = {
                 "JAK phosphorylates cytokine receptors; cytokine receptors bind to Grb2; Grb2 activates "
                 "SOS; SOS stimulates MAPK; MAPK phosphorylates STATS; Grb2 activates SOS; "
                 "cytokine receptors binds PI3K; PI3K activates AKT.",
+            ],
+        },
+        "nerrel": {
+            "both": [
+                "You are a top-tier molecular biologist specialized in the field of  "
+                "cardiology and molecular biology. Now, in step 1, your task is to identify all protein-protein "
+                "interactions (PPI's) involved in signalling as well as relations between transcription  "
+                "factors (TF) and their target genes of a gene regulatory network. "
+                "To start off, first extract a list of all named proteins, genes and transcription factors that are mentioned in the text.",
+                "Now, review the extracted entities. Please extract those relations which "
+                "correspond to protein-protein interactions (PPI's) that are involved in "
+                "cell-signalling (e.g. through binding, activation, inhibition, phosphorylation, "
+                "etc.). Please ignore those transcription factor to gene relations that are involved "
+                "in gene regulatory networks (e.g. regulation of expression or suppression of a gene).",
+                "Review the extracted entities from step 1 and the extracted relations from step 2again. Please extract those transcription factor (TF) "
+                "to gene relations that are involved in gene regulatory networks (e.g. regulation of "
+                "expression or suppression of a gene). Please ignore those relations which correspond to "
+                "protein-protein interactions that are involved in cell-signalling (e.g. through binding, "
+                "activation, inhibition, phosphorylation, etc.).",
             ],
         },
     },
@@ -225,6 +277,25 @@ style_dict = {
                 "Here a bad output would be giving relations involving gene regulatory relations such as:"
                 "STATs regulates c-Fos; STATs regulate HIF-1α; STAT3 targets Cyclin D1; STAT3 targets BclXL; "
                 "STAT3 targets y-Myc; STAT3 targets β-catenin; STAT3 targets NF-κB.",
+            ],
+        },
+        "simple": {
+            "both": [
+                "You are a top-tier molecular biologist specialized in the field of  "
+                "cardiology and molecular biology. Now, in step 1, your task is to identify all protein-protein "
+                "interactions (PPI's) involved in signalling as well as relations between transcription  "
+                "factors (TF) and their target genes of a gene regulatory network. "
+                "To start off, first extract a list of all named proteins, genes and transcription factors that are mentioned in the text.",
+                "Now, in step 2, review the extracted entities from step 1. Please  output those transcription factor (TF) "
+                "to gene relations that are involved in gene regulatory networks (e.g. regulation of "
+                "expression or suppression of a gene). Please remove those relations which correspond to "
+                "protein-protein interactions that are involved in cell-signalling (e.g. through binding, "
+                "activation, inhibition, phosphorylation, etc.).",
+                "Now, review the extracted entities from step 1 and the relations from step 2 again. Please output those relations which "
+                "correspond to protein-protein interactions (PPI's) that are involved in "
+                "cell-signalling (e.g. through binding, activation, inhibition, phosphorylation, "
+                "etc.). Please ignore those transcription factor to gene relations that are involved "
+                "in gene regulatory networks (e.g. regulation of expression or suppression of a gene).",
             ],
         },
     },
@@ -317,6 +388,57 @@ style_dict = {
                 "ii) Gene supression (when a TF suppresses the transcription of a target gene, leading  "
                 "to decreased expression of that gene) "
                 "iii) Epigenetic regulation (modifications that affect gene accessibility)",
+            ],
+        },
+        "nerrel": {
+            "ppi": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) involved in signalling as well as relations between transcription  "
+                "factors (TF) and their target genes of a gene regulatory network. "
+                "To start off, first extract a list of all named proteins that are mentioned in the text.",
+                "Now, review the extracted proteins. Please retain those relations which "
+                "correspond to protein-protein interactions that are involved in cell-signalling.  "
+                "Please remove those transcription factor (TF) to gene relations that are involved  "
+                "in gene regulatory networks. "
+                "For context, here are provided a list of interactions types that are involved in  "
+                "cell-signalling that you might find in text and which might help you correctly  "
+                "identify protein-protein interaction pairs which you need to keep: binding, protein "
+                "complexes, phosphorylation, activation, inhibition, interaxtion.",
+            ],
+            "tf": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) involved in signalling as well as relations between transcription  "
+                "factors (TF) and their target genes of a gene regulatory network. "
+                "To start off, first extract a list of all named genes and transcription factors that are mentioned in the text.",
+                "Now, review the extracted genes and transcription factors. Please retain those transcription factor to "
+                "gene relations that are involved in gene regulatory networks. Please remove those "
+                "relations which correspond to protein-protein interactions (PPI's) that are involved in "
+                "cell-signalling. "
+                "For context, here are provided a list of relations types that are involved in gene "
+                "regulatory networks that you might find in text and which might help you correctly "
+                "identify TF-Gene relation pairs which you need to keep: activation or supression of "
+                "a gene and epigenetic regulation.",
+            ],
+            "lr": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all the interactions "
+                "involved in cell communication networks as well as interactions between ligands "
+                "and their receptor targets. Please provide the relations "
+                "specifying the ligand name as the source and receptor name as the target.",
+                "Now, review the extracted relations. Please retain those relations which "
+                "correspond to ligand-receptor interactions and make sure that they do not "
+                "correspond to any type of interaction such as intra-cellular protein-protein "
+                "interactions or transcription factor to gene target relations of a gene regulatory "
+                "network."
+                "The nature of the interaction that you report can be of the following types: "
+                "i) Autocrine (intracellular communication whereby cells secrete ligands that are used "
+                "to induce a cellular in receptors expressed on the same cell); ii) Paracrine (where "
+                "the interaction depends on the diffusion of signalling molecules from one cell to another "
+                "after secretion); and iii) Endocrine (whereby ligands are secreted and travel long "
+                "distances through extracellular fluids such as the blood plasma; typical mediators of "
+                "this communication are hormones).",
             ],
         },
     },
@@ -448,6 +570,70 @@ style_dict = {
                 "v) Transport and localization (e.g. chaperone interaction, anchor and localization)",
             ],
         },
+        "nerrel": {
+            "ppi": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) involved in signalling as well as relations between transcription  "
+                "factors (TF) and their target genes of a gene regulatory network. "
+                "To start off, first extract a list of all named proteins that are mentioned in the text.",
+                "Now review the extracted proteins. Please retain those relations which "
+                "correspond to protein-protein interactions (PPI's) that are involved in cell-signalling.  "
+                "Please remove those transcription factor (TF) to gene relations that are involved  "
+                "in gene regulatory networks. "
+                "For context, here are provided a list of interactions types that are involved in  "
+                "cell-signalling that you might find in text and which might help you correctly  "
+                "identify protein-protein interaction pairs which you need to keep: binding, protein "
+                "complexes, phosphorylation, activation, inhibition, interaxtion.",
+                "Review one more time the protein-protein interactions (PPI'S) and remove "
+                "those relation that are of a transcriptional or gene regulatory nature. For context, "
+                "here are provided a list of relations types that are involved in gene regulatory networks"
+                "that you might find in text and which might help you correctly identify transcription factor (TF) "
+                "to gene relation pairs before removing them: activation or supression of a gene and epigenetic "
+                "regulation.",
+            ],
+            "tf": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) involved in signalling as well as relations between transcription  "
+                "factors (TF) and their target genes of a gene regulatory network. "
+                "To start off, first extract a list of all named genes and transcription factors that are mentioned in the text.",
+                "Now, review the extracted genes and transcription factors. Please retain those transcription factor (TF) "
+                "to gene relations that are involved in gene regulatory networks. Please remove those "
+                "relations which correspond to protein-protein interactions that are involved in cell-signalling. "
+                "For context, here are provided a list of relations types that are involved in gene "
+                "regulatory networks that you might find in text and which might help you correctly "
+                "identify TF-Gene relation pairs which you need to keep: activation or supression of "
+                "a gene and epigenetic regulation.",
+                "Review one more time the transcription factor (TF) to gene relations "
+                "and remove those relations which correspond to protein-protein interactions that are involved in "
+                "cell-signalling. For context, here are provided a list of interactions types that are involved in "
+                "cell-signalling that you might find in text and which might help you correctly "
+                "identify protein-protein interaction pairs which you need to remove: binding, protein"
+                "complexes, phosphorylation, activation, inhibition, interaxtion.",
+            ],
+            "lr": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all the interactions "
+                "involved in cell communication networks as well as interactions between ligands "
+                "and their receptor targets. Please provide the relations "
+                "specifying the ligand name as the source and receptor name as the target.",
+                "Now, review the extracted relations. Please retain those relations which "
+                "correspond to ligand-receptor interactions and make sure that they do not "
+                "correspond to any type of interaction such as intra-cellular protein-protein "
+                "interactions or transcription factor to gene target relations of a gene regulatory "
+                "network."
+                "Please keep in mind that a ligand can be hormones, growth factors, chemokines, "
+                "cytokines and neurotransmitters. Receptors can be proteins or protein complexes "
+                "situated in the membrane of the receiver cells. The nature of the interaction that "
+                "you report can be of the following types: i) Autocrine (intracellular communication "
+                "whereby cells secrete ligands that are used to induce a cellular in receptors expressed "
+                "on the same cell); ii) Paracrine (where the interaction depends on the diffusion of s "
+                "ignalling molecules from one cell to another after secretion); and iii) Endocrine (whereby "
+                "ligands are secreted and travel long distances through extracellular fluids such as the "
+                "blood plasma; typical mediators of this communication are hormones).",
+            ],
+        },
     },
     6: {
         "simple": {
@@ -486,7 +672,7 @@ style_dict = {
                 "You are a top-tier molecular biologist specialized in the field of "
                 "cardiology and molecular biology. Your task is to identify all protein-protein "
                 "interactions (PPI's) involved in signalling as well as relations between transcription  "
-                "factors (TF) and their target genes of a gene regulatory network. ",
+                "factors (TF) and their target genes of a gene regulatory network. "
                 "To start off, first extract a list of all named proteins that are mentioned in the text.",
                 "Now, review the extracted proteins. Please report those interactions "
                 "whose protein members bind and interact to each other or form protein complexes.",
@@ -502,8 +688,8 @@ style_dict = {
                 "cardiology and molecular biology. Your task is to identify all protein-protein "
                 "interactions (PPI's) involved in signalling as well as relations between transcription  "
                 "factors (TF) and their target genes of a gene regulatory network. "
-                "To start off, first extract a list of all named proteins that are mentioned in the text.",
-                "Now, review the extracted proteins. Please report those relations in which a "
+                "To start off, first extract a list of all named genes and transcription factors that are mentioned in the text.",
+                "Now, review the extracted genes and transcription factors. Please report those relations in which a "
                 "transcription factor (TF) orchestrates the activation, regulation or expression of a gene. In this "
                 "case an activation happens when a TF promotes the transcription of a target gene, leading "
                 "to increased expression of that gene.",

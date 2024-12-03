@@ -1,3 +1,4 @@
+import json
 import pickle
 from parser import args
 
@@ -104,19 +105,10 @@ base_prompt = ChatPromptTemplate.from_messages(
         MessagesPlaceholder(variable_name="messages"),
     ]
 )
-triple_parser = JsonOutputParser(pydantic_object=triple_schema)
-if args.nerrel:
-    ner_parser = JsonOutputParser(pydantic_object=Proteins)
-    init_ner_prompt = PromptTemplate(
-        template=NER_TEMPLATE_SIMPLE,
-        input_variables=["input"],
-        partial_variables={
-            "format_instructions": ner_parser.get_format_instructions(),
-            "examples": ner_example_dict[args.target],
-        },
-    )
 
+triple_parser = JsonOutputParser(pydantic_object=triple_schema)
 init_triple_prompt = PromptTemplate(
+    # triple_system_prompt = PromptTemplate(
     template=INTERACT_TEMPLATE if not args.simple else INTERACT_TEMPLATE_SIMPLE,
     input_variables=["input"],
     partial_variables={
@@ -130,7 +122,32 @@ init_triple_prompt = PromptTemplate(
         ),
     },
 )
+# triple_system_message = SystemMessage(content=triple_system_prompt)
+# triple_base_prompt = ChatPromptTemplate.from_messages(
+#     [
+#         triple_system_message,
+#         MessagesPlaceholder(variable_name="messages"),
+#     ]
+# )
 
+if args.nerrel:
+    ner_parser = JsonOutputParser(pydantic_object=Proteins)
+    init_ner_prompt = PromptTemplate(
+        # ner_system_prompt = PromptTemplate(
+        template=NER_TEMPLATE_SIMPLE,
+        input_variables=["input"],
+        partial_variables={
+            "format_instructions": ner_parser.get_format_instructions(),
+            "examples": ner_example_dict[args.target],
+        },
+    )
+    # ner_system_message = SystemMessage(content=ner_system_prompt)
+    # ner_base_prompt = ChatPromptTemplate.from_messages(
+    #     [
+    #         ner_system_message,
+    #         MessagesPlaceholder(variable_name="messages"),
+    #     ]
+    # )
 
 f = None
 ppi_f = None
@@ -144,21 +161,21 @@ if not args.dev:
 
 if args.style:
     interact_llm = llm.with_structured_output(triple_schema, include_raw=True)
-    graph_runnable = triple_base_prompt | interact_llm
-    # graph_runnable = base_prompt | interact_llm
+    # graph_runnable = triple_base_prompt | interact_llm
+    graph_runnable = base_prompt | interact_llm
     if args.nerrel:
         ner_llm = llm.with_structured_output(Proteins, include_raw=True)
-        ner_runnable = base_ner_prompt | ner_llm
-        # ner_runnable = base_prompt | ner_llm
+        # ner_runnable = ner_base_prompt | ner_llm
+        ner_runnable = base_prompt | ner_llm
 
     workflow = StateGraph(state_schema=MessagesState)
 
     def call_model(state: MessagesState):
-        # if NER:
-        #     response = ner_runnable.invoke({"messages": state["messages"]})
-        # else:
-        #     response = graph_runnable.invoke({"messages": state["messages"]})
-        response = graph_runnable.invoke({"messages": state["messages"]})
+        if NER:
+            response = ner_runnable.invoke({"messages": state["messages"]})
+        else:
+            response = graph_runnable.invoke({"messages": state["messages"]})
+        # response = graph_runnable.invoke({"messages": state["messages"]})
         return {"messages": response}
 
     workflow.add_edge(START, "model")
@@ -207,12 +224,27 @@ for i, (doc, id) in enumerate(
                     )
                     NER = False
                 if args.target != "both":
-                    for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][1:]:
-                        msg = app.invoke(
-                            {"messages": [HumanMessage(human_msg)]},
-                            config,
-                        )
-                    final_message = msg["messages"][-1]
+                    if args.style != 6:
+                        for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][
+                            1:
+                        ]:
+                            msg = app.invoke(
+                                {"messages": [HumanMessage(human_msg)]},
+                                config,
+                            )
+                        final_message = msg["messages"][-1]
+                    else:
+                        prev_msgs = list()
+                        for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][
+                            1:
+                        ]:
+                            msg = app.invoke(
+                                {"messages": [HumanMessage(human_msg)]},
+                                config,
+                            )
+                            prev_msgs.append(msg["messages"][-1])
+                        prev_msgs.pop(-1)
+                        final_message = msg["messages"][-1]
                 else:
                     msg = app.invoke(
                         {
@@ -260,11 +292,15 @@ for i, (doc, id) in enumerate(
 
     for final_message, file in zip(final_messages, files):
         triples = parse_msg2triples(final_message)
+        if args.style == 6:
+            for prev_msg in prev_msgs:
+                prev_triples = parse_msg2triples(prev_msg)
+                triples += prev_triples
         print(i, triples)
         graph_doc = build_graphdoc(triples, doc, id)
         if args.saveinbetweenoutputs:
             previous_graphdocs = list()
-            for i in range(1, len(msg["messages"]) - 2, 2):
+            for i in range(1 if not args.nerrel else 3, len(msg["messages"]) - 2, 2):
                 previous_triples = parse_msg2triples(msg["messages"][i])
                 previous_graphdocs.append(build_graphdoc(previous_triples, doc, id))
         if not args.dev:
