@@ -45,6 +45,7 @@ else:
         api_key=os.getenv("NEBIUS_API_KEY_ENIO"),
         model=model,
         temperature=0,
-        max_tokens=256,
+        max_tokens=512,
+        # max_tokens=256,
         seed=0,
     )

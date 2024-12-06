@@ -22,8 +22,6 @@ from structured_classes import (
     TF_Triples_Simple,
 )
 from templates import (
-    INTERACT_TEMPLATE,
-    INTERACT_TEMPLATE_SIMPLE,
     PPI_BASESTRINGPARTS,
     PPI_BASESTRINGPARTS_SIMPLE,
     PPI_EXAMPLES,
@@ -36,6 +34,8 @@ from templates import (
     TF_EXAMPLES_SIMPLE,
     TF_INTERACTIONS,
     TF_NODE_LABELS,
+    TRIPLE_TEMPLATE,
+    TRIPLE_TEMPLATE_SIMPLE,
 )
 from utils import Timeout
 
@@ -193,7 +193,7 @@ system_prompt = "\n".join(
 )
 
 human_prompt = (
-    INTERACT_TEMPLATE.format(
+    TRIPLE_TEMPLATE.format(
         node_labels=nodelabels_dict[args.task],
         rel_types=interactions_dict[args.task],
         examples=escape_json(json.dumps(example_dict[args.task])),
@@ -201,7 +201,7 @@ human_prompt = (
         input="{input}",
     )
     if not args.simple
-    else INTERACT_TEMPLATE_SIMPLE.format(
+    else TRIPLE_TEMPLATE_SIMPLE.format(
         rel_types=interactions_dict[args.task],
         examples=escape_json(json.dumps(example_dict[args.task])),
         input="{input}",

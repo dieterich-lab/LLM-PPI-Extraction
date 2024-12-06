@@ -1,87 +1,164 @@
-INTERACT_TEMPLATE = """Based on the following example, extract entities and 
+TRIPLE_TEMPLATE = """Based on the following example, extract entities and 
 relations from the provided text.
 
 Use the following entity types, don't use other entity that is not defined below:
-# ENTITY TYPES:
+
+### Entity Types::
+
 {node_labels}
 
 Use the following relation types, don't use any other relation that is not defined below:
-# RELATION TYPES:
+
+### Relation Types:
+
 {rel_types}
 
 Below are a number of examples of text and their extracted entities and relationships.
+
+### Examples:
+
 {examples}
 
 For the following text, extract entities and relations as in the provided example:
 
-{format_instructions}
-
-Text: {input}
-
-"""
-
-INTERACT_TEMPLATE_SIMPLE = """Based on the following example, extract entities and 
-relations from the provided text.
-
-Use the following relation types, don't use any other relation that is not defined below:
-# RELATION TYPES:
-{rel_types}
-
-Below are a number of examples of text and their extracted entities and relationships.
-{examples}
-
-Use the following JSON format:
-
-{format_instructions}
-
-### Text: 
-
-{input}
-
-"""
-
-NER_TEMPLATE_SIMPLE = """Based on the following example, extract all proteins
-from the provided text.
-
-Below are a number of examples of text passages and corresponding extracted proteins.
-{examples}
-
-Use the following JSON format:
+### Format instructions:
 
 {format_instructions}
 
 ### Text: 
  
 {input}
-
 """
 
-PPI_BASESTRINGPARTS = [
-    "You are a top-tier molecular biologist specialized in the field of cardiology. "
-    "Your task is to identify pairs of proteins which are known to be interacting with "
-    " each other. It is very important that the entities that you identify as interacting "
-    "to only be proteins. It is import that you don't confuse them with transcription factors. "
-    "To me, it does not matter the nature of the interaction, it can be "
-    "an activation, inhibition, binding, etc.. All that matters is that you provide to me "
-    "pairs of proteins which are known to be interacting with each other one way or another."
-    "the protein (entities) and relations (the interaction between the proteins) "
-    " requested with the user prompt from a given "
-    "text. You must generate the output in a JSON format containing a list "
-    "with JSON objects. "
-    'Each object should have the keys: "head", '
-    '"relation" and "tail". The "head" and "tail" '
-    "key must contain the name or denominator of the extracted protein."
-    "Attempt to extract as many proteins and relations as you can. Maintain "
-    "Entity Consistency: When extracting entities, it's vital to ensure "
-    'consistency. If a protein, such as "PRKACA", is mentioned multiple '
-    "times in the text but is referred to by different names "
-    '(e.g., "PRKACA", "PKACA", "cAMP-activated catalytic subunit alpha"), '
-    "always use the canonical gene name identifier for "
-    "that entity. The knowledge graph should be coherent and easily "
-    "understandable, so maintaining consistency in entity references is "
-    "crucial.",
-    "IMPORTANT NOTES: Don't add any explanation and text.",
-]
+TRIPLE_TEMPLATE_SIMPLE = """Based on the following example, extract entities and 
+relations from the provided text.
+
+Use the following relation types, don't use any other relation that is not defined below:
+
+### RELATION TYPES:
+
+{rel_types}
+
+Below are a number of examples of text and their extracted entities and relationships.
+
+### Examples:
+
+{examples}
+
+Use the following JSON format:
+
+### Format Instructions:
+
+{format_instructions}
+
+### Text: 
+
+{input}
+"""
+
+PPI_NER_INDIVIDUAL_TEMPLATE = """In the following you'll find a list of 
+PROTEINS  that have been extracted from the provided TEXT that is listed at the end of this prompt.
+You are now to extract relations only of those PROTEINS, that interact with each other, based on the text.
+
+IMPORTANT: Read the TEXT carefully. Not all PROTEINS are candidates for interactions.
+
+### PROTEINS
+
+{entities}
+
+Use the following relation types, don't use any other relation that is not defined below:
+
+### RELATION TYPES
+
+{rel_types}
+
+Below are a number of examples of text and their extracted entities and relationships.
+
+### EXAMPLES
+{examples}
+
+Use the following JSON format:
+
+### FORMAT INSTRUCTIONS
+
+{format_instructions}
+
+### TEXT: 
+
+{input}
+"""
+
+TF_NER_INDIVIDUALTEMPLATE = """In the following you'll find a list of 
+TRANSCRIPTION FACTORS and GENES  that have been extracted from the provided TEXT that is listed at the end of this prompt.
+You are now to extract relations only beteween those TRANSCRIPTION FACTORS and GENES that interact with each other, based on the text.
+
+IMPORTANT: Read the TEXT carefull. Not all TRANSCRIPTION FACTORS and GENES are candidates for interactions.
+
+### TRANSCRIPTION FACTORS and GENES
+
+{entities}
+
+Use the following relation types, don't use any other relation that is not defined below:
+
+### RELATION TYPES
+
+{rel_types}
+
+Below are a number of examples of text and their extracted entities and relationships.
+
+### EXAMPLES
+{examples}
+
+Use the following JSON format:
+
+### FORMAT INSTRUCTIONS
+
+{format_instructions}
+
+### TEXT: 
+
+{input}
+"""
+
+PPI_NER_CONVERSATIONAL_TEMPLATE = """Based on the following example, extract all proteins
+from the provided text.
+
+Below are a number of examples of text passages and corresponding extracted proteins.
+
+### Examples:
+
+{examples}
+
+Use and adhere to the following JSON format:
+
+### Format instructions:
+
+{format_instructions}
+
+### Text: 
+
+{input}
+"""
+
+TF_NER_CONVERSATIONAL_TEMPLATE = """Based on the following example, extract all genes and transcription factors
+from the provided text.
+
+Below are a number of examples of text passages and corresponding extracted genes and transcription factors.
+
+### Examples:
+
+{examples}
+
+Use and adhere to the following JSON format:
+
+### Format instructions:
+
+{format_instructions}
+
+### Text: 
+
+{input}
+"""
 
 PPI_EXAMPLES = [
     {
@@ -130,59 +207,6 @@ PPI_EXAMPLES = [
         "tail": "TTI1",
         "tail_type": "Protein",
     },
-]
-
-TF_BASESTRINGPARTS = [
-    "You are a top-tier molecular biologist specialized in the field of cardiology. "
-    "Your task is to identify pairs of regulatory interactions between transcription factors and their target genes."
-    "It is very important that the entities that you identify as in such relation pairs "
-    "to only be transcription factors as a source and a gene as a target. "
-    "It is important that you don't confuse them protein-protein interactions. "
-    "To me, it does not matter the nature of the interaction, it can be "
-    "either suppressive or enhancing. All that matters is that you identify as many transcription factors "
-    " together with the genes that they are targeting."
-    "the entities (transcription factors and their target genes) "
-    " and relations (transcriptional relations)  requested with the user prompt from a given "
-    "text. You must generate the output in a JSON format containing a list "
-    "with JSON objects. "
-    'Each object should have the keys: "head", '
-    '"relation" and "tail". The "head" and "tail" '
-    "key must contain the name or denominator of the extracted transcription factors and genes."
-    "Again, attempt to extract as many proteins and relations as you can and provide the pairs with their gene names."
-    "Also what is very important is that the names that you provide for the transcription factors and their target genes, "
-    "should either be canonical gene names or their gene synonyms as they would be reported in ensembl."
-    "For example if you are reporting a gene relation involving the Hypoxia-inducible factor 1-alpha transcription factor, "
-    "this should either be reported by it's gene name HIF1A or as some other gene synonym from Ensembl, such as HIF1, HIF1-α, etc.."
-    "The same convention should be also for the names of the target genes."
-    "The knowledge graph should be coherent and easy "
-    "understandable, so maintaining consistency in entity references is "
-    "crucial.",
-    "IMPORTANT NOTES: Don't add any explanation and text.",
-]
-
-PPI_BASESTRINGPARTS_SIMPLE = [
-    "You are a top-tier molecular biologist specialized in the field of cardiology. "
-    "Your task is to identify pairs of proteins which are known to be interacting with "
-    " each other. "
-    "You must generate the output in a JSON format containing a list with JSON objects. "
-    'Each object should have the keys: "head", "relation" and "tail". '
-    'The "head" and "tail" key must contain the name or denominator of the extracted  proteins / genes. '
-    "The objects should be coherent and easy understandable, so maintaining consistency in entity references is "
-    "crucial.",
-    "IMPORTANT NOTES: Only extract objects for entities that appear in the input and ",
-    "don't add any explanation!",
-]
-
-TF_BASESTRINGPARTS_SIMPLE = [
-    "You are a top-tier molecular biologist specialized in the field of cardiology. "
-    "Your task is to identify pairs of regulatory interactions between transcription factors and their target genes."
-    "You must generate the output in a JSON format containing a list with JSON objects. "
-    'Each object should have the keys: "head", "relation" and "tail". '
-    'The "head" and "tail" key must contain the name or denominator of the extracted transcription factors and genes. '
-    "The objects should be coherent and easy understandable, so maintaining consistency in entity references is "
-    "crucial.",
-    "IMPORTANT NOTES: Only extract objects for entities that appear in the input and ",
-    "don't add any explanation!",
 ]
 
 PPI_EXAMPLES_SIMPLE = [
@@ -305,19 +329,6 @@ TF_EXAMPLES = [
         "tail_type": "gene",
     },
 ]
-PPI_BASESTRINGPARTS_SIMPLE = [
-    "You are a top-tier molecular biologist specialized in the field of cardiology. "
-    "Your task is to identify pairs of proteins which are known to be interacting with "
-    " each other. "
-    "You must generate the output in a JSON format containing a list with JSON objects. "
-    'Each object should have the keys: "head", "relation" and "tail". '
-    'The "head" and "tail" key must contain the name or denominator of the extracted  proteins / genes. '
-    "The objects should be coherent and easy understandable, so maintaining consistency in entity references is "
-    "crucial.",
-    "IMPORTANT NOTES: Only extract objects for entities that appear in the input and ",
-    "don't add any explanation!",
-]
-
 
 TF_EXAMPLES_SIMPLE = [
     {

@@ -6,11 +6,11 @@ from pathlib import Path
 from langchain_community.graphs import Neo4jGraph
 from prompt_utils import create_unstructured_prompt
 from templates import (
-    INTERACT_TEMPLATE,
     PPI_BASESTRINGPARTS,
     PPI_EXAMPLES,
     TRANS_BASESTRINGPARTS,
     TRANS_EXAMPLES,
+    TRIPLE_TEMPLATE,
 )
 
 os.environ["NEO4J_URI"] = "bolt+s://linda-llm-dev.dieterichlab.org:7687"
@@ -78,7 +78,7 @@ with open(paper_pkl_path, "rb") as f:
 print(len(documents))
 
 prompt = create_unstructured_prompt(
-    template=INTERACT_TEMPLATE,
+    template=TRIPLE_TEMPLATE,
     base_string_parts=eval(f"{task.upper()}_BASESTRINGPARTS"),
     examples=eval(f"{task.upper()}_EXAMPLES"),
     node_labels=["PROTEIN"],

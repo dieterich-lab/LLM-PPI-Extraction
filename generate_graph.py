@@ -5,6 +5,7 @@ from parser import args
 from const import PROMPT_LOOKUP
 from get_documents import documents, whole_documents
 from graph_utils import build_graphdoc, parse_msg2triples
+from json_repair import repair_json
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import (
@@ -15,8 +16,14 @@ from langchain_core.prompts import (
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 from llm import llm
-from paths import graphdoc_pkl_path, ppi_graphdoc_pkl_path, tf_graphdoc_pkl_path
+from paths import (
+    graphdoc_pkl_path,
+    ner_json_path,
+    ppi_graphdoc_pkl_path,
+    tf_graphdoc_pkl_path,
+)
 from structured_classes import (
+    GenesAndTranscriptionFactors,
     LR_Triples_Simple,
     PPI_Triples,
     PPI_Triples_Simple,
@@ -28,22 +35,25 @@ from structured_classes import (
 )
 from style_templates import style_dict
 from templates import (
-    INTERACT_TEMPLATE,
-    INTERACT_TEMPLATE_SIMPLE,
     LR_EXAMPLES_SIMPLE,
     LR_INTERACTIONS,
     LR_NODE_LABELS,
-    NER_TEMPLATE_SIMPLE,
     PPI_EXAMPLES,
     PPI_EXAMPLES_SIMPLE,
     PPI_INTERACTIONS,
+    PPI_NER_CONVERSATIONAL_TEMPLATE,
     PPI_NER_EXAMPLES_SIMPLE,
+    PPI_NER_INDIVIDUAL_TEMPLATE,
     PPI_NODE_LABELS,
     TF_EXAMPLES,
     TF_EXAMPLES_SIMPLE,
     TF_INTERACTIONS,
+    TF_NER_CONVERSATIONAL_TEMPLATE,
     TF_NER_EXAMPLES_SIMPLE,
+    TF_NER_INDIVIDUALTEMPLATE,
     TF_NODE_LABELS,
+    TRIPLE_TEMPLATE,
+    TRIPLE_TEMPLATE_SIMPLE,
 )
 from utils import Timeout
 
@@ -90,26 +100,38 @@ simple_schema_dict = {
     "both": Triples_Simple,
 }
 
-mode = "nerrel" if args.nerrel else "simple" if args.simple else "complex"
-basestring_parts = style_dict[args.style][mode][PROMPT_LOOKUP][0]
+mode = (
+    f"nerrel_{args.nerrel}" if args.nerrel else "simple" if args.simple else "complex"
+)
+triple_basestring_parts = style_dict[args.style][mode][PROMPT_LOOKUP][0]
+
+triple_prompt = ChatPromptTemplate.from_messages(
+    [
+        SystemMessage(content=triple_basestring_parts),
+        MessagesPlaceholder(variable_name="messages"),
+    ]
+)
+
 
 triple_schema = (
     schema_dict[PROMPT_LOOKUP] if not args.simple else simple_schema_dict[PROMPT_LOOKUP]
 )
 
 
-system_message = SystemMessage(content=basestring_parts)
-base_prompt = ChatPromptTemplate.from_messages(
-    [
-        system_message,
-        MessagesPlaceholder(variable_name="messages"),
-    ]
+triple_template = (
+    PPI_NER_INDIVIDUAL_TEMPLATE
+    if args.nerrel == "individual" and args.target == "ppi"
+    else (
+        TF_NER_INDIVIDUALTEMPLATE
+        if args.nerrel == "individual" and args.target == "tf"
+        else TRIPLE_TEMPLATE if not args.simple else TRIPLE_TEMPLATE_SIMPLE
+    )
 )
 
 triple_parser = JsonOutputParser(pydantic_object=triple_schema)
+
 init_triple_prompt = PromptTemplate(
-    # triple_system_prompt = PromptTemplate(
-    template=INTERACT_TEMPLATE if not args.simple else INTERACT_TEMPLATE_SIMPLE,
+    template=triple_template,
     input_variables=["input"],
     partial_variables={
         "format_instructions": triple_parser.get_format_instructions(),
@@ -122,60 +144,62 @@ init_triple_prompt = PromptTemplate(
         ),
     },
 )
-# triple_system_message = SystemMessage(content=triple_system_prompt)
-# triple_base_prompt = ChatPromptTemplate.from_messages(
-#     [
-#         triple_system_message,
-#         MessagesPlaceholder(variable_name="messages"),
-#     ]
-# )
 
 if args.nerrel:
-    ner_parser = JsonOutputParser(pydantic_object=Proteins)
+    kw = "proteins" if args.target == "ppi" else "genes_and_transcriptionfactors"
+    if args.target == "ppi":
+        ner_parser = JsonOutputParser(pydantic_object=Proteins)
+    elif args.target == "tf":
+        ner_parser = JsonOutputParser(pydantic_object=GenesAndTranscriptionFactors)
     init_ner_prompt = PromptTemplate(
-        # ner_system_prompt = PromptTemplate(
-        template=NER_TEMPLATE_SIMPLE,
+        template=(
+            PPI_NER_CONVERSATIONAL_TEMPLATE
+            if args.target == "ppi"
+            else TF_NER_CONVERSATIONAL_TEMPLATE
+        ),
         input_variables=["input"],
         partial_variables={
             "format_instructions": ner_parser.get_format_instructions(),
             "examples": ner_example_dict[args.target],
         },
     )
-    # ner_system_message = SystemMessage(content=ner_system_prompt)
-    # ner_base_prompt = ChatPromptTemplate.from_messages(
-    #     [
-    #         ner_system_message,
-    #         MessagesPlaceholder(variable_name="messages"),
-    #     ]
-    # )
 
 f = None
 ppi_f = None
 tf_f = None
+ner_f = None
 if not args.dev:
     if args.target != "both":
         f = open(graphdoc_pkl_path, "wb")
+        ner_f = open(ner_json_path, "w")
     else:
         ppi_f = open(ppi_graphdoc_pkl_path, "wb")
         tf_f = open(tf_graphdoc_pkl_path, "wb")
 
 if args.style:
     interact_llm = llm.with_structured_output(triple_schema, include_raw=True)
-    # graph_runnable = triple_base_prompt | interact_llm
-    graph_runnable = base_prompt | interact_llm
+    graph_chain = triple_prompt | interact_llm
     if args.nerrel:
-        ner_llm = llm.with_structured_output(Proteins, include_raw=True)
-        # ner_runnable = ner_base_prompt | ner_llm
-        ner_runnable = base_prompt | ner_llm
+        if args.target == "ppi":
+            ner_llm = llm.with_structured_output(Proteins, include_raw=True)
+        elif args.target == "tf":
+            ner_llm = llm.with_structured_output(
+                GenesAndTranscriptionFactors, include_raw=True
+            )
+        ner_chain = triple_prompt | ner_llm
+        # ner_chain = ner_prompt | ner_llm
+        # if args.nerrel == "conversational":
+        #     ner_chain = triple_prompt | ner_llm
+        # elif args.nerrel == "individual":
+        #     ner_chain = ner_prompt | ner_llm
 
     workflow = StateGraph(state_schema=MessagesState)
 
     def call_model(state: MessagesState):
         if NER:
-            response = ner_runnable.invoke({"messages": state["messages"]})
+            response = ner_chain.invoke({"messages": state["messages"]})
         else:
-            response = graph_runnable.invoke({"messages": state["messages"]})
-        # response = graph_runnable.invoke({"messages": state["messages"]})
+            response = graph_chain.invoke({"messages": state["messages"]})
         return {"messages": response}
 
     workflow.add_edge(START, "model")
@@ -210,19 +234,70 @@ for i, (doc, id) in enumerate(
                         },
                         config,
                     )
-                else:
-                    NER = True
-                    msg = app.invoke(
-                        {
-                            "messages": [
-                                HumanMessage(
-                                    init_ner_prompt.format(input=doc.page_content)
-                                )
-                            ]
-                        },
-                        config,
-                    )
-                    NER = False
+                else:  # nerrel
+                    msg_dict = {
+                        "messages": [
+                            HumanMessage(init_ner_prompt.format(input=doc.page_content))
+                        ]
+                    }
+                    if args.nerrel == "conversational":
+                        NER = True
+                        msg = app.invoke(msg_dict, config)
+                        ner_answer = msg["messages"][-1]
+                        if "parsed" in ner_answer and ner_answer["parsed"]:
+                            ners = str(ner_answer["parsed"].model_dump())
+                        elif kw in repair_json(
+                            ner_answer.additional_kwargs["tool_calls"][0]["function"][
+                                "arguments"
+                            ],
+                            return_objects=True,
+                        ):
+                            ners = repair_json(
+                                ner_answer.additional_kwargs["tool_calls"][0][
+                                    "function"
+                                ]["arguments"]
+                            )
+                        elif "tool_calls" in ner_answer["raw"].additional_kwargs:
+                            ners = ner_answer["raw"].additional_kwargs["tool_calls"][0][
+                                "function"
+                            ]["arguments"]
+                        elif (
+                            "tool_calls"
+                            in ner_answer["raw"].response_metadata["message"]
+                        ):
+                            ners = ner_answer["raw"].response_metadata["message"][
+                                "tool_calls"
+                            ][0]["function"]["arguments"]
+
+                        NER = False
+                    elif args.nerrel == "individual":
+                        ner_answer = ner_chain.invoke(msg_dict, config)
+                        if ner_answer["parsed"]:
+                            ners = str(ner_answer["parsed"].model_dump())
+                        elif "tool_calls" in ner_answer["raw"].additional_kwargs:
+                            ners = ner_answer["raw"].additional_kwargs["tool_calls"][0][
+                                "function"
+                            ]["arguments"]
+                        elif (
+                            "tool_calls"
+                            in ner_answer["raw"].response_metadata["message"]
+                        ):
+                            ners = ner_answer["raw"].response_metadata["message"][
+                                "tool_calls"
+                            ][0]["function"]["arguments"]
+                        msg = app.invoke(
+                            {
+                                "messages": [
+                                    HumanMessage(
+                                        init_triple_prompt.format(
+                                            input=doc.page_content, entities=ners
+                                        )
+                                    )
+                                ]
+                            },
+                            config,
+                        )
+
                 if args.target != "both":
                     if args.style != 6:
                         for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][
@@ -300,7 +375,9 @@ for i, (doc, id) in enumerate(
         graph_doc = build_graphdoc(triples, doc, id)
         if args.saveinbetweenoutputs:
             previous_graphdocs = list()
-            for i in range(1 if not args.nerrel else 3, len(msg["messages"]) - 2, 2):
+            for i in range(
+                3 if args.nerrel == "conversational" else 1, len(msg["messages"]) - 2, 2
+            ):
                 previous_triples = parse_msg2triples(msg["messages"][i])
                 previous_graphdocs.append(build_graphdoc(previous_triples, doc, id))
         if not args.dev:
@@ -308,6 +385,8 @@ for i, (doc, id) in enumerate(
                 pickle.dump(graph_doc, file)
             else:
                 pickle.dump([*previous_graphdocs, graph_doc], file)
+            if args.nerrel:
+                json.dump(repair_json(ners, return_objects=True)[kw], ner_f, indent=4)
     # except Exception as e:
     #     print(e)
 
@@ -319,3 +398,5 @@ if not args.dev:
         tf_f.close()
 
 print(f"Finished writing graph docs to {graphdoc_pkl_path}.")
+if args.nerrel:
+    print(f"Finished writing NERs to {ner_json_path}.")

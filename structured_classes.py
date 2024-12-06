@@ -138,3 +138,13 @@ class Proteins(BaseModel):
     """
 
     proteins: List[str] = Field(description="List of all extracted proteins.")
+
+
+class GenesAndTranscriptionFactors(BaseModel):
+    """
+    A class that contains a list of genes and transcription factors.
+    """
+
+    genes_and_transcriptionfactors: List[str] = Field(
+        description="List of all extracted genes and transcription factors."
+    )

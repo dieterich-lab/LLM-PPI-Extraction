@@ -44,7 +44,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--nerrel",
-    action="store_true",
+    type=str,
+    choices=["conversational", "individual"],
 )
 parser.add_argument(
     "--printpaperpaths",
