@@ -4,7 +4,7 @@ from parser import args
 
 from const import PROMPT_LOOKUP
 from get_documents import documents, whole_documents
-from graph_utils import build_graphdoc, parse_msg2triples
+from graph_utils import attempt, build_graphdoc, parse_msg2triples
 from json_repair import repair_json
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
@@ -146,10 +146,10 @@ init_triple_prompt = PromptTemplate(
 )
 
 if args.nerrel:
-    kw = "proteins" if args.target == "ppi" else "genes_and_transcriptionfactors"
-    if args.target == "ppi":
+    kw = "proteins" if PROMPT_LOOKUP == "ppi" else "genes_and_transcriptionfactors"
+    if PROMPT_LOOKUP == "ppi":
         ner_parser = JsonOutputParser(pydantic_object=Proteins)
-    elif args.target == "tf":
+    elif PROMPT_LOOKUP == "tf":
         ner_parser = JsonOutputParser(pydantic_object=GenesAndTranscriptionFactors)
     init_ner_prompt = PromptTemplate(
         template=(
@@ -160,7 +160,7 @@ if args.nerrel:
         input_variables=["input"],
         partial_variables={
             "format_instructions": ner_parser.get_format_instructions(),
-            "examples": ner_example_dict[args.target],
+            "examples": ner_example_dict[PROMPT_LOOKUP],
         },
     )
 
@@ -171,7 +171,8 @@ ner_f = None
 if not args.dev:
     if args.target != "both":
         f = open(graphdoc_pkl_path, "wb")
-        ner_f = open(ner_json_path, "w")
+        if args.nerrel:
+            ner_f = open(ner_json_path, "w")
     else:
         ppi_f = open(ppi_graphdoc_pkl_path, "wb")
         tf_f = open(tf_graphdoc_pkl_path, "wb")
@@ -180,9 +181,9 @@ if args.style:
     interact_llm = llm.with_structured_output(triple_schema, include_raw=True)
     graph_chain = triple_prompt | interact_llm
     if args.nerrel:
-        if args.target == "ppi":
+        if PROMPT_LOOKUP == "ppi":
             ner_llm = llm.with_structured_output(Proteins, include_raw=True)
-        elif args.target == "tf":
+        elif PROMPT_LOOKUP == "tf":
             ner_llm = llm.with_structured_output(
                 GenesAndTranscriptionFactors, include_raw=True
             )
@@ -209,150 +210,180 @@ if args.style:
 target_docs = documents if not args.doclevel else whole_documents
 print(len(target_docs))
 
+
+def query(app, doc, id):
+    global NER
+    ners, ppi_final_message, tf_final_message, prev_msgs, msg = (
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+    config = {"configurable": {"thread_id": id}}
+    if not args.nerrel:
+        msg = app.invoke(
+            {
+                "messages": [
+                    HumanMessage(init_triple_prompt.format(input=doc.page_content))
+                ]
+            },
+            config,
+        )
+    else:  # nerrel
+        msg_dict = {
+            "messages": [HumanMessage(init_ner_prompt.format(input=doc.page_content))]
+        }
+        if args.nerrel == "conversational":
+            NER = True
+            msg = app.invoke(msg_dict, config)
+            ner_answer = msg["messages"][-1]
+            if "parsed" in ner_answer and ner_answer["parsed"]:
+                ners = str(ner_answer["parsed"].model_dump())
+            elif "tool_calls" in ner_answer.additional_kwargs and kw in repair_json(
+                ner_answer.additional_kwargs["tool_calls"][0]["function"]["arguments"],
+                return_objects=True,
+            ):
+                ners = repair_json(
+                    ner_answer.additional_kwargs["tool_calls"][0]["function"][
+                        "arguments"
+                    ]
+                )
+            elif (
+                "raw" in ner_answer
+                and "tool_calls" in ner_answer["raw"].additional_kwargs
+            ):
+                ners = str(
+                    ner_answer["raw"].additional_kwargs["tool_calls"][0]["function"][
+                        "arguments"
+                    ]
+                )
+            elif "raw" in ner_answer and (
+                "tool_calls" in ner_answer["raw"].response_metadata["message"]
+            ):
+                ners = str(
+                    ner_answer["raw"].response_metadata["message"]["tool_calls"][0][
+                        "function"
+                    ]["arguments"]
+                )
+            elif (
+                "tool_calls" in ner_answer.response_metadata["message"]
+                and ner_answer.response_metadata["message"]["tool_calls"][0][
+                    "function"
+                ]["arguments"]
+            ):
+                ners = str(
+                    ner_answer.response_metadata["message"]["tool_calls"][0][
+                        "function"
+                    ]["arguments"]
+                )
+            NER = False
+            if not args.dev:
+                obj = repair_json(ners, return_objects=True)
+                if obj:
+                    obj = obj[kw]
+                json.dump(
+                    obj,
+                    ner_f,
+                    indent=4,
+                )
+            if args.onlyner:
+                return ners, ppi_final_message, tf_final_message, prev_msgs, msg
+        elif args.nerrel == "individual":
+            ner_answer = ner_chain.invoke(msg_dict, config)
+            if ner_answer["parsed"]:
+                ners = str(ner_answer["parsed"].model_dump())
+            elif "tool_calls" in ner_answer["raw"].additional_kwargs:
+                ners = ner_answer["raw"].additional_kwargs["tool_calls"][0]["function"][
+                    "arguments"
+                ]
+            elif "tool_calls" in ner_answer["raw"].response_metadata["message"]:
+                ners = ner_answer["raw"].response_metadata["message"]["tool_calls"][0][
+                    "function"
+                ]["arguments"]
+            if not args.dev:
+                json.dump(
+                    repair_json(ners, return_objects=True)[kw],
+                    ner_f,
+                    indent=4,
+                )
+            if args.onlyner:
+                return ners, ppi_final_message, tf_final_message, prev_msgs, msg
+            msg = app.invoke(
+                {
+                    "messages": [
+                        HumanMessage(
+                            init_triple_prompt.format(
+                                input=doc.page_content, entities=ners
+                            )
+                        )
+                    ]
+                },
+                config,
+            )
+
+    if args.target != "both":
+        if args.style != 6:
+            for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][1:]:
+                msg = app.invoke(
+                    {"messages": [HumanMessage(human_msg)]},
+                    config,
+                )
+            final_message = msg["messages"][-1]
+        else:
+            prev_msgs = list()
+            for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][1:]:
+                msg = app.invoke(
+                    {"messages": [HumanMessage(human_msg)]},
+                    config,
+                )
+                prev_msgs.append(msg["messages"][-1])
+            prev_msgs.pop(-1)
+            final_message = msg["messages"][-1]
+    else:
+        msg = app.invoke(
+            {
+                "messages": [
+                    HumanMessage(style_dict[args.style][mode][PROMPT_LOOKUP][1])
+                ]
+            },
+            config,
+        )
+        if args.style == 2:
+            ppi_final_message = msg["messages"][-1]
+        elif args.style == 3:
+            tf_final_message = msg["messages"][-1]
+        msg = app.invoke(
+            {
+                "messages": [
+                    HumanMessage(style_dict[args.style][mode][PROMPT_LOOKUP][2])
+                ]
+            },
+            config,
+        )
+        if args.style == 2:
+            tf_final_message = msg["messages"][-1]
+        elif args.style == 3:
+            ppi_final_message = msg["messages"][-1]
+    return ners, ppi_final_message, tf_final_message, prev_msgs, msg
+
+
 for i, (doc, id) in enumerate(
     target_docs[
         args.startfromdoc : len(target_docs) if args.untildoc == 0 else args.untildoc
     ],
     args.startfromdoc,
 ):
-    c = 0
-    # try:
     memory = MemorySaver()
     app = workflow.compile(checkpointer=memory)
-    while c < 5:
-        try:
-            with Timeout(1800):
-                config = {"configurable": {"thread_id": id}}
-                if not args.nerrel:
-                    msg = app.invoke(
-                        {
-                            "messages": [
-                                HumanMessage(
-                                    init_triple_prompt.format(input=doc.page_content)
-                                )
-                            ]
-                        },
-                        config,
-                    )
-                else:  # nerrel
-                    msg_dict = {
-                        "messages": [
-                            HumanMessage(init_ner_prompt.format(input=doc.page_content))
-                        ]
-                    }
-                    if args.nerrel == "conversational":
-                        NER = True
-                        msg = app.invoke(msg_dict, config)
-                        ner_answer = msg["messages"][-1]
-                        if "parsed" in ner_answer and ner_answer["parsed"]:
-                            ners = str(ner_answer["parsed"].model_dump())
-                        elif kw in repair_json(
-                            ner_answer.additional_kwargs["tool_calls"][0]["function"][
-                                "arguments"
-                            ],
-                            return_objects=True,
-                        ):
-                            ners = repair_json(
-                                ner_answer.additional_kwargs["tool_calls"][0][
-                                    "function"
-                                ]["arguments"]
-                            )
-                        elif "tool_calls" in ner_answer["raw"].additional_kwargs:
-                            ners = ner_answer["raw"].additional_kwargs["tool_calls"][0][
-                                "function"
-                            ]["arguments"]
-                        elif (
-                            "tool_calls"
-                            in ner_answer["raw"].response_metadata["message"]
-                        ):
-                            ners = ner_answer["raw"].response_metadata["message"][
-                                "tool_calls"
-                            ][0]["function"]["arguments"]
 
-                        NER = False
-                    elif args.nerrel == "individual":
-                        ner_answer = ner_chain.invoke(msg_dict, config)
-                        if ner_answer["parsed"]:
-                            ners = str(ner_answer["parsed"].model_dump())
-                        elif "tool_calls" in ner_answer["raw"].additional_kwargs:
-                            ners = ner_answer["raw"].additional_kwargs["tool_calls"][0][
-                                "function"
-                            ]["arguments"]
-                        elif (
-                            "tool_calls"
-                            in ner_answer["raw"].response_metadata["message"]
-                        ):
-                            ners = ner_answer["raw"].response_metadata["message"][
-                                "tool_calls"
-                            ][0]["function"]["arguments"]
-                        msg = app.invoke(
-                            {
-                                "messages": [
-                                    HumanMessage(
-                                        init_triple_prompt.format(
-                                            input=doc.page_content, entities=ners
-                                        )
-                                    )
-                                ]
-                            },
-                            config,
-                        )
+    ners, ppi_final_message, tf_final_message, prev_msgs, msg = attempt(
+        5, 300, query, kwargs={"app": app, "doc": doc, "id": id}
+    )
 
-                if args.target != "both":
-                    if args.style != 6:
-                        for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][
-                            1:
-                        ]:
-                            msg = app.invoke(
-                                {"messages": [HumanMessage(human_msg)]},
-                                config,
-                            )
-                        final_message = msg["messages"][-1]
-                    else:
-                        prev_msgs = list()
-                        for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][
-                            1:
-                        ]:
-                            msg = app.invoke(
-                                {"messages": [HumanMessage(human_msg)]},
-                                config,
-                            )
-                            prev_msgs.append(msg["messages"][-1])
-                        prev_msgs.pop(-1)
-                        final_message = msg["messages"][-1]
-                else:
-                    msg = app.invoke(
-                        {
-                            "messages": [
-                                HumanMessage(
-                                    style_dict[args.style][mode][PROMPT_LOOKUP][1]
-                                )
-                            ]
-                        },
-                        config,
-                    )
-                    if args.style == 2:
-                        ppi_final_message = msg["messages"][-1]
-                    elif args.style == 3:
-                        tf_final_message = msg["messages"][-1]
-                    msg = app.invoke(
-                        {
-                            "messages": [
-                                HumanMessage(
-                                    style_dict[args.style][mode][PROMPT_LOOKUP][2]
-                                )
-                            ]
-                        },
-                        config,
-                    )
-                    if args.style == 2:
-                        tf_final_message = msg["messages"][-1]
-                    elif args.style == 3:
-                        ppi_final_message = msg["messages"][-1]
-                break
-        except Timeout.Timeout:
-            print("Timeout")
-            c += 1
+    if args.onlyner:
+        print(i, ners)
+        continue
     if args.target == "both" and (not ppi_final_message and not tf_final_message):
         continue
     if args.target != "both" and not final_message:
@@ -385,14 +416,14 @@ for i, (doc, id) in enumerate(
                 pickle.dump(graph_doc, file)
             else:
                 pickle.dump([*previous_graphdocs, graph_doc], file)
-            if args.nerrel:
-                json.dump(repair_json(ners, return_objects=True)[kw], ner_f, indent=4)
     # except Exception as e:
     #     print(e)
 
 if not args.dev:
     if args.target != "both":
         f.close()
+        if args.nerrel:
+            ner_f.close()
     else:
         ppi_f.close()
         tf_f.close()

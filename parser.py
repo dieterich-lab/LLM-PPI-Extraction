@@ -43,6 +43,10 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "--onlyner",
+    action="store_true",
+)
+parser.add_argument(
     "--nerrel",
     type=str,
     choices=["conversational", "individual"],
@@ -74,4 +78,5 @@ parser.add_argument(
 parser.add_argument(
     "--model", choices=["8b", "70b", "405b", "mixtral", "biollm", "nemo"], default="70b"
 )
+parser.add_argument("--apikey", type=str, choices=["NEBIUS_API_KEY_ENIO2"])
 args = parser.parse_args()

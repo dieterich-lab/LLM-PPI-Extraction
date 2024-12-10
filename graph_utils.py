@@ -8,6 +8,7 @@ from json_repair import repair_json
 from langchain_community.graphs import Neo4jGraph
 from langchain_community.graphs.graph_document import GraphDocument, Node, Relationship
 from pydantic import BaseModel, Field
+from utils import Timeout
 
 BASE_ENTITY_LABEL = "__Entity__"
 EXCLUDED_LABELS = ["_Bloom_Perspective_", "_Bloom_Scene_"]
@@ -273,3 +274,18 @@ def build_graphdoc(triples, doc, id):
     graph_doc.source.metadata["source"] = paper_dict[id]
     graph_doc.source.metadata["id"] = str(id)
     return graph_doc
+
+
+# def attempt(x, s, func, *args, **kwargs):
+def attempt(x, s, func, args=[], kwargs={}):
+    c = 0
+    res = None
+    while c < x:
+        try:
+            with Timeout(s):
+                res = func(*args, **kwargs)
+                break
+        except Timeout.Timeout:
+            print("Timeout")
+            c += 1
+    return res

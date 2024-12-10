@@ -42,7 +42,11 @@ if not args.nebius and args.model != "405b":
 else:
     llm = ChatOpenAI(
         base_url="https://api.studio.nebius.ai/v1/",
-        api_key=os.getenv("NEBIUS_API_KEY_ENIO"),
+        api_key=(
+            os.getenv("NEBIUS_API_KEY_ENIO2")
+            if not args.apikey
+            else os.getenv(args.apikey)
+        ),
         model=model,
         temperature=0,
         max_tokens=512,
