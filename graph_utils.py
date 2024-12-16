@@ -218,7 +218,8 @@ def parse_msg2triples(message):
             message.response_metadata["message"]["content"], return_objects=True
         )
         output = obj["parameters"]["triples"]
-    else:
+    # else:
+    elif "tool_calls" in message.additional_kwargs:
         output = repair_json(
             message.additional_kwargs["tool_calls"][0]["function"]["arguments"],
             return_objects=True,
@@ -289,3 +290,7 @@ def attempt(x, s, func, args=[], kwargs={}):
             print("Timeout")
             c += 1
     return res
+
+
+def filter_ners(ners, list):
+    return [x for x in ners if x.replace(" ", "").lower() in list]

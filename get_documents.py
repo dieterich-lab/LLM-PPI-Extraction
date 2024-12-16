@@ -1,10 +1,11 @@
+import csv
 import json
 import os
 import pickle
 from parser import args
 from pathlib import Path
 
-from const import PAPER_PATH
+from const import PAPER_PATH, PROMPT_LOOKUP
 from langchain_core.documents.base import Document
 from langchain_text_splitters import MarkdownTextSplitter
 
@@ -18,30 +19,49 @@ text_splitter = MarkdownTextSplitter(
 )
 paper_dict = dict()
 
-if args.target != "biored":
-    _paper_paths = Path(
-        f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/{PAPER_PATH}/{args.parser}"
-    )
-    if args.curated:
-        _paper_paths = _paper_paths / "5curated"
-    paper_paths = list(_paper_paths.glob(f"*.{ending_dict[args.parser]}"))
-else:
+all_ner_paths = None
+true_ner_paths = None
+
+if args.target == "biored":
     _paper_paths = Path(
         "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/biored_26_11_2024/src/corpus"
     )
     paper_paths = list(_paper_paths.glob(f"*"))
+elif "regulatome" in args.target:
+    _paper_paths = Path(
+        "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/corpus"
+    )
+    if "ppi" in args.target:
+        paper_paths = list(_paper_paths.glob(f"*"))
+        _all_ner_paths = Path(
+            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
+        )
+        all_ner_paths = list(_all_ner_paths.glob(f"*"))
+        _true_ner_paths = Path(
+            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_ppi"
+        )
+        true_ner_paths = list(_true_ner_paths.glob(f"*"))
+    elif "tf" in args.target:
+        raise
+else:
+    _paper_paths = Path(
+        f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/{PAPER_PATH}/{args.parser}"
+    )
+    if args.curated and "eval" not in args.target:
+        _paper_paths = _paper_paths / "5curated"
+    paper_paths = list(_paper_paths.glob(f"*.{ending_dict[args.parser]}"))
 
 
 paper_pkl_path = Path(
     f"/beegfs/prj/LINDA_LLM/outputs/paper_chunks/{PAPER_PATH}/{args.parser}/paper_chunks.pkl"
 )
-if args.curated:
+if args.curated and "eval" not in args.target:
     paper_pkl_path = paper_pkl_path.parent / "5curated" / "paper_chunks.pkl"
 
 paper_dict_path = Path(
     f"/beegfs/prj/LINDA_LLM/outputs/paper_dicts/{PAPER_PATH}/{args.parser}/paper_dict.pkl"
 )
-if args.curated:
+if args.curated and "eval" not in args.target:
     paper_dict_path = paper_dict_path.parent / "5curated" / "paper_chunks.pkl"
 
 os.makedirs(paper_pkl_path.parent, exist_ok=True)
@@ -58,7 +78,7 @@ for i, x in enumerate(paper_paths):
     text = open(x, "r").read().strip()
     if text:
         texts = text_splitter.create_documents([text])
-        whole_text = Document(page_content=text)
+        whole_text = Document(page_content=text, metadata={"file_path": x})
         for t in texts:
             pickle.dump((t, i), f)
         pickle.dump((whole_text, i), wf)
@@ -88,3 +108,13 @@ with open(whole_paper_pkl_path, "rb") as f:
             whole_documents.append(pickle.load(f))
         except EOFError:
             break
+
+ner_list = None
+if args.toolcall:
+    if PROMPT_LOOKUP == "ppi":
+        ner_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/unique_gene_names.txt"
+    elif PROMPT_LOOKUP == "tf":
+        ner_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_tf_annotations/unique_tf_names.txt"
+    with open(ner_path, "r") as f:
+        ner_list = [x.strip() for x in f.readlines()]
+    ner_list = [x.replace(" ", "").lower() for x in ner_list]

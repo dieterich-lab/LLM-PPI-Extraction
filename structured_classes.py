@@ -40,6 +40,16 @@ class PPI_Triple_Simple(BaseModel):
     tail: str = Field(description="Tail protein entity.")
 
 
+class PPI_Triples_Simple(BaseModel):
+    """
+    A class that contains a list of protein relations in the form of triples.
+    """
+
+    triples: List[PPI_Triple_Simple] = Field(
+        description="List of all extracted Triples."
+    )
+
+
 class TF_Triple_Simple(BaseModel):
     head: str = Field(description="Head gene entity")
     relation: Literal["REGULATES"] = Field(
@@ -110,16 +120,6 @@ class Triples_Simple(BaseModel):
     """
 
     triples: List[Triple_Simple] = Field(description="List of all extracted Triples.")
-
-
-class PPI_Triples_Simple(BaseModel):
-    """
-    A class that contains a list of protein relations in the form of triples.
-    """
-
-    triples: List[PPI_Triple_Simple] = Field(
-        description="List of all extracted Triples."
-    )
 
 
 class TF_Triples_Simple(BaseModel):
