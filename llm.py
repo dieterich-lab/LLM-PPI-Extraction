@@ -10,7 +10,8 @@ if not args.nebius:
         "70b": "llama3.1:70b",
         "405b": "llama3.1:405b",
         "mixtral": "mixtral:8x22b",
-        "biollm": "taozhiyuai/openbiollm-llama-3:70b_q4_k_m",
+        "openbiollm": "taozhiyuai/openbiollm-llama-3:70b_q4_k_m",
+        "biomistral": "cniongolo/biomistral",
         "nemo": "mistral-nemo",
     }
     model = model_dict[args.model]

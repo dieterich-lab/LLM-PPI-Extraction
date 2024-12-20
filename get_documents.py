@@ -31,8 +31,8 @@ elif "regulatome" in args.target:
     _paper_paths = Path(
         "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/corpus"
     )
+    paper_paths = list(_paper_paths.glob(f"*"))
     if "ppi" in args.target:
-        paper_paths = list(_paper_paths.glob(f"*"))
         _all_ner_paths = Path(
             "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
         )
@@ -42,7 +42,14 @@ elif "regulatome" in args.target:
         )
         true_ner_paths = list(_true_ner_paths.glob(f"*"))
     elif "tf" in args.target:
-        raise
+        _all_ner_paths = Path(
+            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
+        )
+        all_ner_paths = list(_all_ner_paths.glob(f"*"))
+        _true_ner_paths = Path(
+            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_tf"
+        )
+        true_ner_paths = list(_true_ner_paths.glob(f"*"))
 else:
     _paper_paths = Path(
         f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/{PAPER_PATH}/{args.parser}"

@@ -353,13 +353,16 @@ def query(app, doc, id):
                     ners[kw] = filter_ners(ners[kw], ner_list)
                 ners = str(ners)
             elif args.relgiventrueners:
-                ner_path = [
-                    x
-                    for x in true_ner_paths
-                    if doc.metadata["file_path"].stem == x.stem
-                ][0]
-                ners = open(ner_path, "r").readlines()
-                ners = [x.strip() for x in ners]
+                try:
+                    ner_path = [
+                        x
+                        for x in true_ner_paths
+                        if doc.metadata["file_path"].stem == x.stem
+                    ][0]
+                    ners = open(ner_path, "r").readlines()
+                    ners = [x.strip() for x in ners]
+                except:
+                    ners = list()
             elif args.relgivenallners:
                 ner_path = [
                     x for x in all_ner_paths if doc.metadata["file_path"].stem == x.stem
@@ -462,7 +465,12 @@ for i, (doc, id) in enumerate(
         app = workflow.compile(checkpointer=memory)
 
         ners, final_message, ppi_final_message, tf_final_message, prev_msgs, msg = (
-            attempt(5, 300, query, kwargs={"app": app, "doc": doc, "id": id})
+            attempt(
+                5,
+                300 if args.model != "405b" else 1_000_000,
+                query,
+                kwargs={"app": app, "doc": doc, "id": id},
+            )
         )
 
         if args.onlyner:
