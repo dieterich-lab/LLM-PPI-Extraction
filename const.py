@@ -9,7 +9,7 @@ elif "lr" in args.target:
 else:
     PROMPT_LOOKUP = args.target
 
-if args.target in ["ppi", "tf", "both"]:
+if args.target in ["ppi", "tf", "both"] and args.curated:
     PAPER_PATH = "ppi"
 else:
     PAPER_PATH = args.target

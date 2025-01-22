@@ -36,18 +36,14 @@ if not args.nebius and args.model != "405b":
         temperature=0,
         keep_alive="240h",
         base_url=f"http://{ip_dict[args.gpu]}:114{args.port}",
-        # num_ctx=32_000 if args.doclevel else 4_000,
+        num_ctx=50_000 if args.doclevel else 4_000,
         num_predict=-1,
         seed=0,
     )
 else:
     llm = ChatOpenAI(
         base_url="https://api.studio.nebius.ai/v1/",
-        api_key=(
-            os.getenv("NEBIUS_API_KEY_ENIO2")
-            if not args.apikey
-            else os.getenv(args.apikey)
-        ),
+        api_key=os.getenv(args.apikey),
         model=model,
         temperature=0,
         max_tokens=512,

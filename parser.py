@@ -114,6 +114,6 @@ parser.add_argument(
 parser.add_argument(
     "--model", choices=["8b", "70b", "405b", "mixtral", "biollm", "nemo"], default="70b"
 )
-parser.add_argument("--apikey", type=str, choices=["NEBIUS_API_KEY_ENIO2"])
+parser.add_argument("--apikey", type=str, default="NEBIUS_API_KEY_PRP")
 
 args = parser.parse_args()

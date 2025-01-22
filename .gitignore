@@ -3,6 +3,8 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,linux,python
 
 slurm/
+_*
+_*/
 
 ### Linux ###
 *~

@@ -176,12 +176,6 @@ if args.nerrel:
         ner_parser = JsonOutputParser(pydantic_object=Proteins)
     elif PROMPT_LOOKUP == "tf":
         ner_parser = JsonOutputParser(pydantic_object=GenesAndTranscriptionFactors)
-    # if args.nerlist:
-    #     ner_template = (
-    #         PPI_NER_TEMPLATE_NERLIST
-    #         if args.target == "ppi"
-    #         else TF_NER_TEMPLATE_NERLIST
-    #     )
     if args.toolcall:
         ner_template = (
             PPI_NER_TEMPLATE_TOOLCALL
@@ -206,12 +200,25 @@ tf_f = None
 ner_f = None
 if not args.dev:
     if args.target != "both":
-        f = open(graphdoc_pkl_path, "wb")
+        if args.startfromdoc == 0:
+            f = open(graphdoc_pkl_path, "wb")
+        else:
+            f = open(graphdoc_pkl_path, "ab+")
+        print(f"Open file {graphdoc_pkl_path}")
         if args.nerrel:
-            ner_f = open(ner_json_path, "w")
+            if args.startfromdoc == 0:
+                ner_f = open(ner_json_path, "w")
+            else:
+                ner_f = open(ner_json_path, "a+")
+            print(f"Open file {ner_json_path}")
     else:
-        ppi_f = open(ppi_graphdoc_pkl_path, "wb")
-        tf_f = open(tf_graphdoc_pkl_path, "wb")
+        if args.startfromdoc == 0:
+            ppi_f = open(ppi_graphdoc_pkl_path, "wb")
+            tf_f = open(tf_graphdoc_pkl_path, "wb")
+        else:
+            ppi_f = open(ppi_graphdoc_pkl_path, "ab+")
+            tf_f = open(tf_graphdoc_pkl_path, "ab+")
+        print(f"Open files {ppi_graphdoc_pkl_path, tf_graphdoc_pkl_path}")
 
 interact_llm = llm.with_structured_output(triple_schema, include_raw=True)
 graph_chain = triple_prompt | interact_llm
@@ -319,7 +326,10 @@ def query(app, doc, id):
                         except SyntaxError:
                             pass
                 if args.filelist:
-                    ner_obj.append(str(doc.metadata["file_path"]))
+                    if not isinstance(ner_obj, str):
+                        ner_obj.append(str(doc.metadata["file_path"]))
+                    else:
+                        ner_obj = [str(doc.metadata["file_path"])]
                 json.dump(
                     ner_obj,
                     ner_f,
@@ -380,7 +390,10 @@ def query(app, doc, id):
                             except SyntaxError:
                                 pass
                     if args.filelist:
-                        ner_obj.append(str(doc.metadata["file_path"]))
+                        if not isinstance(ner_obj, str):
+                            ner_obj.append(str(doc.metadata["file_path"]))
+                        else:
+                            ner_obj = [str(doc.metadata["file_path"])]
                     json.dump(
                         ner_obj,
                         ner_f,
@@ -460,58 +473,63 @@ for i, (doc, id) in enumerate(
     ],
     args.startfromdoc,
 ):
+    # try:
+    memory = MemorySaver()
+    app = workflow.compile(checkpointer=memory)
+
+    result = attempt(
+        tries=1,
+        seconds=int(1e6),
+        # seconds=500 if args.model != "405b" else 1e6,
+        func=query,
+        kwargs={"app": app, "doc": doc, "id": id},
+    )
     try:
-        memory = MemorySaver()
-        app = workflow.compile(checkpointer=memory)
-
         ners, final_message, ppi_final_message, tf_final_message, prev_msgs, msg = (
-            attempt(
-                5,
-                300 if args.model != "405b" else 1_000_000,
-                query,
-                kwargs={"app": app, "doc": doc, "id": id},
-            )
+            result
         )
+    except TypeError:
+        continue
 
-        if args.onlyner:
-            print(i, ners)
-            continue
-        if args.target == "both" and (not ppi_final_message and not tf_final_message):
-            continue
-        if args.target != "both" and not final_message:
-            continue
+    if args.onlyner:
+        print(i, ners)
+        continue
+    if args.target == "both" and (not ppi_final_message and not tf_final_message):
+        continue
+    if args.target != "both" and not final_message:
+        continue
 
-        final_messages = (
-            [final_message]
-            if args.target != "both"
-            else [ppi_final_message, tf_final_message]
-        )
-        files = [f] if args.target != "both" else [ppi_f, tf_f]
+    final_messages = (
+        [final_message]
+        if args.target != "both"
+        else [ppi_final_message, tf_final_message]
+    )
+    files = [f] if args.target != "both" else [ppi_f, tf_f]
 
-        for fm, file in zip(final_messages, files):
-            triples = parse_msg2triples(fm)
-            if args.style == 6:
-                for prev_msg in prev_msgs:
-                    prev_triples = parse_msg2triples(prev_msg)
-                    triples += prev_triples
-            print(i, triples)
-            graph_doc = build_graphdoc(triples, doc, id)
-            if args.saveinbetweenoutputs:
-                previous_graphdocs = list()
-                for i in range(
-                    3 if args.nerrel == "conversational" else 1,
-                    len(msg["messages"]) - 2,
-                    2,
-                ):
-                    previous_triples = parse_msg2triples(msg["messages"][i])
-                    previous_graphdocs.append(build_graphdoc(previous_triples, doc, id))
-            if not args.dev:
-                if not args.saveinbetweenoutputs:
-                    pickle.dump(graph_doc, file)
-                else:
-                    pickle.dump([*previous_graphdocs, graph_doc], file)
-    except Exception as e:
-        print(e)
+    for fm, file in zip(final_messages, files):
+        triples = parse_msg2triples(fm)
+        if args.style == 6:
+            for prev_msg in prev_msgs:
+                prev_triples = parse_msg2triples(prev_msg)
+                triples += prev_triples
+        print(i, triples)
+        graph_doc = build_graphdoc(triples, doc, id)
+        if args.saveinbetweenoutputs:
+            previous_graphdocs = list()
+            for i in range(
+                3 if args.nerrel == "conversational" else 1,
+                len(msg["messages"]) - 2,
+                2,
+            ):
+                previous_triples = parse_msg2triples(msg["messages"][i])
+                previous_graphdocs.append(build_graphdoc(previous_triples, doc, id))
+        if not args.dev:
+            if not args.saveinbetweenoutputs:
+                pickle.dump(graph_doc, file)
+            else:
+                pickle.dump([*previous_graphdocs, graph_doc], file)
+# except Exception as e:
+#     print(e)
 
 if not args.dev:
     if args.target != "both":

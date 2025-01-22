@@ -217,13 +217,22 @@ def parse_msg2triples(message):
         obj = repair_json(
             message.response_metadata["message"]["content"], return_objects=True
         )
-        output = obj["parameters"]["triples"]
+        if (
+            isinstance(obj, dict)
+            and "parameters" in obj
+            and "triples" in obj["parameters"]
+        ):
+            output = obj["parameters"]["triples"]
+        else:
+            output = list()
     # else:
     elif "tool_calls" in message.additional_kwargs:
         output = repair_json(
             message.additional_kwargs["tool_calls"][0]["function"]["arguments"],
             return_objects=True,
         )["triples"]
+    else:
+        output = []
     if not output:
         return output
     if isinstance(output, list) and isinstance(output[0], str):
@@ -278,12 +287,12 @@ def build_graphdoc(triples, doc, id):
 
 
 # def attempt(x, s, func, *args, **kwargs):
-def attempt(x, s, func, args=[], kwargs={}):
+def attempt(tries, seconds, func, args=[], kwargs={}):
     c = 0
     res = None
-    while c < x:
+    while c < tries:
         try:
-            with Timeout(s):
+            with Timeout(seconds):
                 res = func(*args, **kwargs)
                 break
         except Timeout.Timeout:
