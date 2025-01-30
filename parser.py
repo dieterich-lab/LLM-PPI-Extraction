@@ -141,7 +141,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--model",
-    choices=["8b", "70b", "405b"],
+    choices=["8b", "70b", "405b", "deepseek", "70b3.3"],
     default="70b",
     help="Alias pointing back to model names of the local Ollama server or the provider.",
 )
