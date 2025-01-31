@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import langchain_core
 from json_repair import repair_json
 from langchain_core.exceptions import ErrorCode, create_message
 from langchain_core.messages.base import BaseMessage

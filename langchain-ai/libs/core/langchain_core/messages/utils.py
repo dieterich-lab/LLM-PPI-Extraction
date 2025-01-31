@@ -26,8 +26,7 @@ from typing import (
     overload,
 )
 
-from pydantic import Discriminator, Field, Tag
-
+from json_repair import repair_json
 from langchain_core.exceptions import ErrorCode, create_message
 from langchain_core.messages.ai import AIMessage, AIMessageChunk
 from langchain_core.messages.base import BaseMessage, BaseMessageChunk
@@ -37,13 +36,13 @@ from langchain_core.messages.human import HumanMessage, HumanMessageChunk
 from langchain_core.messages.modifier import RemoveMessage
 from langchain_core.messages.system import SystemMessage, SystemMessageChunk
 from langchain_core.messages.tool import ToolCall, ToolMessage, ToolMessageChunk
+from pydantic import Discriminator, Field, Tag
 
 if TYPE_CHECKING:
-    from langchain_text_splitters import TextSplitter
-
     from langchain_core.language_models import BaseLanguageModel
     from langchain_core.prompt_values import PromptValue
     from langchain_core.runnables.base import Runnable
+    from langchain_text_splitters import TextSplitter
 
 
 def _get_type(v: Any) -> str:
@@ -306,6 +305,178 @@ def _convert_to_message(message: MessageLikeRepresentation) -> BaseMessage:
     """
     if isinstance(message, BaseMessage):
         _message = message
+        if hasattr(_message, "invalid_tool_calls") and hasattr(
+            _message, "invalid_tool_calls"
+        ):
+            _message.invalid_tool_calls = list()
+            if (
+                "message" in _message.response_metadata
+                and "tool_calls" in _message.response_metadata["message"]
+            ):
+                if (
+                    "triples"
+                    in _message.response_metadata["message"]["tool_calls"][0][
+                        "function"
+                    ]["arguments"]
+                ):
+                    obj = repair_json(
+                        _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"]["triples"]
+                    )
+                    _message.response_metadata["message"]["tool_calls"][0]["function"][
+                        "arguments"
+                    ]["triples"] = obj
+                elif (
+                    "proteins"
+                    in _message.response_metadata["message"]["tool_calls"][0][
+                        "function"
+                    ]["arguments"]
+                ):
+                    if not isinstance(
+                        _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"],
+                        str,
+                    ):
+                        try:
+                            obj = str(
+                                _message.response_metadata["message"]["tool_calls"][0][
+                                    "function"
+                                ]["arguments"]["proteins"]
+                            )
+                        except:
+                            obj = repair_json(
+                                _message.response_metadata["message"]["tool_calls"][0][
+                                    "function"
+                                ]["arguments"]["proteins"]
+                            )
+                        _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"]["proteins"] = obj
+                    else:
+                        obj = _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"]
+                elif (
+                    "genes_and_transcriptionfactors"
+                    in _message.response_metadata["message"]["tool_calls"][0][
+                        "function"
+                    ]["arguments"]
+                ):
+                    if not isinstance(
+                        _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"],
+                        str,
+                    ):
+                        try:
+                            obj = str(
+                                _message.response_metadata["message"]["tool_calls"][0][
+                                    "function"
+                                ]["arguments"]["genes_and_transcriptionfactors"]
+                            )
+                        except:
+                            obj = repair_json(
+                                _message.response_metadata["message"]["tool_calls"][0][
+                                    "function"
+                                ]["arguments"]["genes_and_transcriptionfactors"]
+                            )
+                        _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"]["genes_and_transcriptionfactors"] = obj
+                    else:
+                        obj = _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"]
+                else:
+                    obj = str(
+                        _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"]
+                    )
+            elif "tool_calls" in _message.additional_kwargs:
+                obj = repair_json(
+                    _message.additional_kwargs["tool_calls"][0]["function"]["arguments"]
+                )
+                _message.additional_kwargs["tool_calls"][0]["function"][
+                    "arguments"
+                ] = obj
+            else:
+                obj = str(list())
+            _message.content = obj  # NEW
+    elif (
+        isinstance(message, dict)
+        and "raw" in message
+        and isinstance(message["raw"], BaseMessage)
+    ):
+        _message = message["raw"]
+        if (
+            hasattr(_message, "response_metadata")
+            and "message" in _message.response_metadata
+            and "tool_calls" in _message.response_metadata["message"]
+        ):
+            if (
+                "triples"
+                in _message.response_metadata["message"]["tool_calls"][0]["function"][
+                    "arguments"
+                ]
+            ):
+                obj = repair_json(
+                    str(
+                        _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"]["triples"]
+                    )
+                )
+                _message.response_metadata["message"]["tool_calls"][0]["function"][
+                    "arguments"
+                ] = obj
+            elif (
+                "proteins"
+                in _message.response_metadata["message"]["tool_calls"][0]["function"][
+                    "arguments"
+                ]
+            ):
+                obj = repair_json(
+                    str(
+                        _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"]["proteins"]
+                    )
+                )
+                _message.response_metadata["message"]["tool_calls"][0]["function"][
+                    "proteins"
+                ] = obj
+            elif (
+                "genes_and_transcriptionfactors"
+                in _message.response_metadata["message"]["tool_calls"][0]["function"][
+                    "arguments"
+                ]
+            ):
+                obj = repair_json(
+                    str(
+                        _message.response_metadata["message"]["tool_calls"][0][
+                            "function"
+                        ]["arguments"]["genes_and_transcriptionfactors"]
+                    )
+                )
+                _message.response_metadata["message"]["tool_calls"][0]["function"][
+                    "genes_and_transcriptionfactors"
+                ] = obj
+            else:
+                obj = str(list())
+                _message.response_metadata["message"]["tool_calls"][0]["function"][
+                    "arguments"
+                ] = obj
+        elif "tool_calls" in _message.additional_kwargs:
+            obj = repair_json(
+                _message.additional_kwargs["tool_calls"][0]["function"]["arguments"]
+            )
+            _message.additional_kwargs["tool_calls"][0]["function"]["arguments"] = obj
+        else:
+            obj = str(list())
+        _message.content = obj  # NEW
     elif isinstance(message, str):
         _message = _create_message_from_message_type("human", message)
     elif isinstance(message, Sequence) and len(message) == 2:

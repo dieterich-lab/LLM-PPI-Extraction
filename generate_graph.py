@@ -3,9 +3,6 @@ import json
 import pickle
 from parser import args
 
-import langchain_core
-
-# import langchain_patch
 from const import PROMPT_LOOKUP
 from get_documents import all_ner_paths, documents, true_ner_paths, whole_documents
 from graph_utils import attempt, build_graphdoc, parse_msg2triples, parse_ners
@@ -17,7 +14,6 @@ from langchain_core.prompts import (
     MessagesPlaceholder,
     PromptTemplate,
 )
-from langchain_patch import patched_convert_to_message
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 from llm import llm
@@ -64,8 +60,6 @@ from templates import (
     TRIPLE_TEMPLATE,
     TRIPLE_TEMPLATE_SIMPLE,
 )
-
-langchain_core.messages.utils._convert_to_message = patched_convert_to_message
 
 NER = False
 
