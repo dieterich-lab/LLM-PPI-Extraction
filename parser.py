@@ -107,10 +107,10 @@ parser.add_argument(
     help="We used Nebius (nebius.com) as provider to run external computations. This changes the Chat Wrapper API (see 'llm.py').",
 )
 parser.add_argument(
-    "--doclevel",
-    action="store_true",
-    default=True,
-    help="If true, whole documents are given as input to the llm instead of chunks. The the `text_splitter` in get_documents.py for information how documents are chunked.",
+    "--level",
+    choices=["docs", "chunks"],
+    default="docs",
+    help="Either, whole documents are given as input to the llm instead or chunks. The the `text_splitter` in get_documents.py for information how documents are chunked.",
 )
 parser.add_argument(
     "--curated",
