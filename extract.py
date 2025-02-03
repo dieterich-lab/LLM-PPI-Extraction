@@ -25,54 +25,52 @@ from paths import (
     ppi_graphdoc_pkl_path,
     tf_graphdoc_pkl_path,
 )
-from structured_classes import GenesAndTranscriptionFactors, Proteins
+from structured_classes import GenesAndTranscriptionFactors, Proteins, Triples
 from style_templates import style_dict
 from templates import (
-    PPI_INDIVIDUAL_TEMPLATE_ALL_NERS,
-    PPI_INDIVIDUAL_TEMPLATE_TRUE_NERS,
-    PPI_NER_TEMPLATE,
-    TF_INDIVIDUAL_TEMPLATE_ALL_NERS,
-    TF_INDIVIDUAL_TEMPLATE_TRUE_NERS,
-    TF_NER_TEMPLATE,
-    TRIPLE_TEMPLATE,
-    TRIPLE_TEMPLATE_SIMPLE,
+    ProteinIndividualAllNersTemplate,
+    ProteinIndividualTrueNersTemplate,
+    ProteinNerTemplate,
+    TfGeneIndividualAllNersTemplate,
+    TfGeneIndividualTrueNersTemplate,
+    TfGeneNerTemplate,
+    TripleTemplate,
 )
 
-NER = False
+NER_SWITCH = False
 
-triple_basestring_parts = style_dict[args.style][args.mode][PROMPT_LOOKUP][0]
+init_string = style_dict[args.style][args.mode][PROMPT_LOOKUP][0]
 
-triple_prompt = ChatPromptTemplate.from_messages(
+triple_chat_prompt = ChatPromptTemplate.from_messages(
     [
-        SystemMessage(content=triple_basestring_parts),
+        SystemMessage(content=init_string),
         MessagesPlaceholder(variable_name="messages"),
     ]
 )
 
-triple_schema = schema_dict[PROMPT_LOOKUP]
 
 if PROMPT_LOOKUP == "ppi":
     triple_template = (
-        PPI_INDIVIDUAL_TEMPLATE_ALL_NERS
+        ProteinIndividualAllNersTemplate
         if args.nerrel == "individual" and not args.relgiventrueners
         else (
-            PPI_INDIVIDUAL_TEMPLATE_TRUE_NERS
+            ProteinIndividualTrueNersTemplate
             if args.relgiventrueners
-            else TRIPLE_TEMPLATE_SIMPLE
+            else TripleTemplate
         )
     )
 elif PROMPT_LOOKUP == "tf":
     triple_template = (
-        TF_INDIVIDUAL_TEMPLATE_ALL_NERS
+        TfGeneIndividualAllNersTemplate
         if args.nerrel == "individual" and not args.relgiventrueners
         else (
-            TF_INDIVIDUAL_TEMPLATE_TRUE_NERS
+            TfGeneIndividualTrueNersTemplate
             if args.relgiventrueners
-            else TRIPLE_TEMPLATE_SIMPLE
+            else TripleTemplate
         )
     )
 
-triple_parser = JsonOutputParser(pydantic_object=triple_schema)
+triple_parser = JsonOutputParser(pydantic_object=Triples)
 
 init_triple_prompt = PromptTemplate(
     template=triple_template,
@@ -90,7 +88,7 @@ if args.nerrel:
         ner_parser = JsonOutputParser(pydantic_object=Proteins)
     elif PROMPT_LOOKUP == "tf":
         ner_parser = JsonOutputParser(pydantic_object=GenesAndTranscriptionFactors)
-    ner_template = PPI_NER_TEMPLATE if PROMPT_LOOKUP == "ppi" else TF_NER_TEMPLATE
+    ner_template = ProteinNerTemplate if PROMPT_LOOKUP == "ppi" else TfGeneNerTemplate
     init_ner_prompt = PromptTemplate(
         template=ner_template,
         input_variables=["input"],
@@ -100,10 +98,6 @@ if args.nerrel:
         },
     )
 
-f = None
-ppi_f = None
-tf_f = None
-ner_f = None
 if not args.dev:
     if args.target != "both":
         if args.startfromdoc == 0:
@@ -126,8 +120,8 @@ if not args.dev:
             tf_f = open(tf_graphdoc_pkl_path, "ab+")
         print(f"Open files {ppi_graphdoc_pkl_path, tf_graphdoc_pkl_path}")
 
-interact_llm = llm.with_structured_output(triple_schema, include_raw=True)
-graph_chain = triple_prompt | interact_llm
+interact_llm = llm.with_structured_output(Triples, include_raw=True)
+graph_chain = triple_chat_prompt | interact_llm
 if args.nerrel:
     if PROMPT_LOOKUP == "ppi":
         ner_llm = llm.with_structured_output(Proteins, include_raw=True)
@@ -135,13 +129,13 @@ if args.nerrel:
         ner_llm = llm.with_structured_output(
             GenesAndTranscriptionFactors, include_raw=True
         )
-    ner_chain = triple_prompt | ner_llm
+    ner_chain = triple_chat_prompt | ner_llm
 
 workflow = StateGraph(state_schema=MessagesState)
 
 
 def call_model(state: MessagesState):
-    if NER:
+    if NER_SWITCH:
         response = ner_chain.invoke({"messages": state["messages"]})
     else:
         response = graph_chain.invoke({"messages": state["messages"]})
@@ -157,7 +151,7 @@ print(len(target_docs))
 
 
 def query(app, doc, id):
-    global NER
+    global NER_SWITCH
     ners, final_message, ppi_final_message, tf_final_message, prev_msgs, msg = (
         None,
         None,
@@ -181,11 +175,11 @@ def query(app, doc, id):
             "messages": [HumanMessage(init_ner_prompt.format(input=doc.page_content))]
         }
         if args.nerrel == "conversational":
-            NER = True
+            NER_SWITCH = True
             msg = app.invoke(msg_dict, config)
             ner_answer = msg["messages"][-1]
             ners = parse_ners(ner_answer)
-            NER = False
+            NER_SWITCH = False
             if not args.dev:
                 ner_obj = repair_json(ners, return_objects=True)
                 if ner_obj:

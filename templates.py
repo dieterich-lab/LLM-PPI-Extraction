@@ -1,36 +1,4 @@
-TRIPLE_TEMPLATE = """Based on the following example, extract entities and 
-relations from the provided text.
-
-Use the following entity types, don't use other entity that is not defined below:
-
-### Entity Types::
-
-{node_labels}
-
-Use the following relation types, don't use any other relation that is not defined below:
-
-### Relation Types:
-
-{rel_types}
-
-Below are a number of examples of text and their extracted entities and relationships.
-
-### Examples:
-
-{examples}
-
-For the following text, extract entities and relations as in the provided example:
-
-### Format instructions:
-
-{format_instructions}
-
-### Text: 
- 
-{input}
-"""
-
-TRIPLE_TEMPLATE_SIMPLE = """Based on the following example, extract entities and 
+TripleTemplate = """Based on the following example, extract entities and 
 relations from the provided text.
 
 Use the following relation types, don't use any other relation that is not defined below:
@@ -56,7 +24,7 @@ Use the following JSON format:
 {input}
 """
 
-PPI_INDIVIDUAL_TEMPLATE_ALL_NERS = """In the following you'll find a list of 
+ProteinIndividualAllNersTemplate = """In the following you'll find a list of 
 PROTEINS  that have been extracted from the provided TEXT that is listed at the end of this prompt.
 You are now to extract relations only of those PROTEINS, that interact with each other, based on the text.
 
@@ -89,7 +57,7 @@ Be aware that the relationships signal also the direction of the participants. U
 {input}
 """
 
-PPI_INDIVIDUAL_TEMPLATE_TRUE_NERS = """In the following you'll find a list of 
+ProteinIndividualTrueNersTemplate = """In the following you'll find a list of 
 PROTEINS  that have been extracted from the provided TEXT that is listed at the end of this prompt.
 You are now to extract relations only of those PROTEINS, that interact with each other, based on the text.
 
@@ -120,7 +88,7 @@ Be aware that the relationships signal also the direction of the participants. U
 {input}
 """
 
-PPI_INDIVIDUAL_TEMPLATE_NO_EXAMPLES = """In the following you'll find a list of 
+ProteinIndividualNoExamplesTemplate = """In the following you'll find a list of 
 PROTEINS  that have been extracted from the provided TEXT that is listed at the end of this prompt.
 You are now to extract relations only of those PROTEINS, that interact with each other, based on the text.
 
@@ -147,7 +115,7 @@ Be aware that the relationships signal also the direction of the participants. U
 {input}
 """
 
-TF_INDIVIDUAL_TEMPLATE_ALL_NERS = """In the following you'll find a list of 
+TfGeneIndividualAllNersTemplate = """In the following you'll find a list of 
 TRANSCRIPTION FACTORS and GENES  that have been extracted from the provided TEXT that is listed at the end of this prompt.
 You are now to extract relations only beteween those TRANSCRIPTION FACTORS and GENES that interact with each other, based on the text.
 
@@ -180,7 +148,7 @@ Be aware that the relationships signal also the direction of the participants. U
 {input}
 """
 
-TF_INDIVIDUAL_TEMPLATE_TRUE_NERS = """In the following you'll find a list of 
+TfGeneIndividualTrueNersTemplate = """In the following you'll find a list of 
 TRANSCRIPTION FACTORS and GENES  that have been extracted from the provided TEXT that is listed at the end of this prompt.
 You are now to extract relations only beteween those TRANSCRIPTION FACTORS and GENES that interact with each other, based on the text.
 
@@ -211,7 +179,7 @@ Be aware that the relationships signal also the direction of the participants. U
 {input}
 """
 
-TF_INDIVIDUAL_TEMPLATE_NO_EXAMPLES = """In the following you'll find a list of 
+TfGenesIndividualNoExamplesTemplate = """In the following you'll find a list of 
 TRANSCRIPTION FACTORS and GENES  that have been extracted from the provided TEXT that is listed at the end of this prompt.
 You are now to extract relations only beteween those TRANSCRIPTION FACTORS and GENES that interact with each other, based on the text.
 
@@ -238,7 +206,7 @@ Be aware that the relationships signal also the direction of the participants. U
 {input}
 """
 
-PPI_NER_TEMPLATE = """Based on the following example, extract all proteins
+ProteinNerTemplate = """Based on the following example, extract all proteins
 from the provided text.
 
 Below are a number of examples of text passages and corresponding extracted proteins.
@@ -258,7 +226,7 @@ Use and adhere to the following JSON format:
 {input}
 """
 
-TF_NER_TEMPLATE = """Based on the following example, extract all genes and transcription factors
+TfGeneNerTemplate = """Based on the following example, extract all genes and transcription factors
 from the provided text.
 
 Below are a number of examples of text passages and corresponding extracted genes and transcription factors.

@@ -1,104 +1,106 @@
 conversation_dict = {
     "direct": {
-        "ppi": [
-            "You are a top-tier molecular biologist specialized in the field of "
-            "cardiology and molecular biology. Your task is to identify all protein-protein "
-            "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways.",
-            "Now review your extracted protein-protein interactions (PPI's) to determine if "
-            "they are specific to signaling pathways. Retain only signalling pathway interactions "
-            "and remove the rest.",
-            "Review one more time the protein-protein interactions (PPI's) to  "
-            "determine whether there are in the list regulations that are of a transcriptional or gene  "
-            "regulatory nature. Retain those interactions that are only specific to PPI's in cell  "
-            "signalling and remove those relations that represent relations between transcription factors "
-            "to their gene targets.",
-        ],
-        "tf": [
-            "You are a top-tier molecular biologist specialized in the field of "
-            "cardiology and molecular biology. Your task is to identify all transcription factor (TF) "
-            "to gene relations in the text. The source of the relations that you identify should be a "
-            "TF, while the target should be genes who are regulated by the TF.",
-            "Now review your extracted transcription factor (TF) to gene relations to determine if "
-            "they are specific to gene regulatory networks. Retain those interactions that are only "
-            "involving TF's and their gene targets and remove those that are not.",
-            "Review one more time the transcription factor to gene relations  "
-            "to determine whether there are in the list relations that are protein-protein "
-            "interactions (PPI's) network or involved in protein signalling networks. Retain interactions  "
-            "of gene regulatory networks involve a transcription factor and the gene whose expression  "
-            "they regulate. Remove those relations that involve interactions between two signalling protein "
-            "and PPI's.",
-        ],
-        "lr": [
-            "You are a top-tier molecular biologist specialized in the field of "
-            "cardiology and molecular biology. Your task is to identify all the interactions "
-            "involved in cell communication networks as well as interactions between ligands "
-            "and their receptor targets. Please provide the relations "
-            "specifying the ligand name as the source and receptor name as the target."
-        ],
-    },
-    "nerrel_conversational": {
-        "ppi": [
-            "You are a top-tier molecular biologist specialized in the field of "
-            "cardiology and molecular biology. Your task is to identify all protein-protein "
-            "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways.",
-            "Now review the extracted proteins and extract portein-protein interactions (PPIs) between them "
-            "that are specific to signaling pathways. Retain those PPI's that are specific to "
-            "signalling and remove those that are not.",
-            "Review one more time the protein-protein interactions (PPI'S) to determine"
-            "whether there are in the list regulations that are of a transcriptional or gene regulatory"
-            "nature. Retain those interactions that are only specific to PPI's in cell signalling and remove "
-            "those relations that show transcription factor to their gene targets.",
-        ],
-        "tf": [
-            "You are a top-tier molecular biologist specialized in the field of "
-            "cardiology and molecular biology. Your task is to identify all transcription factor (TF) "
-            "to gene relations in the text. The source of the relations that you identify should be a "
-            "TF, while the target should be genes who are regulated by the TF.",
-            "Now review extracted transcription factors and genes to determine interactions between them  "
-            "that are specific to gene regulatory networks. Extract those relations that are only "
-            "involving TF's and their gene targets and remove those that are not.",
-            "Review one more time the transcription factor (TF) to gene relations "
-            "to determine whether there are in the list relations that are of a protein-protein "
-            "interaction (PPI's) or protein signalling nature. Retain those relations which involve "
-            "a transcription factor and the gene whose expression they regulate. Remove those "
-            "relations that involve interactions between two signalling protein and PPI's.",
-        ],
-    },
-    "nerrel_individual": {
-        "ppi": [
-            "You are a top-tier molecular biologist specialized in the field of "
-            "cardiology and molecular biology. Your task is to identify all proteins "
-            "in the text, focusing on proteins involved in signaling pathways.",
-            "You are a top-tier molecular biologist specialized in the field of "
-            "cardiology and molecular biology. Your task is to identify all protein-protein "
-            "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways.",
-            "Now review your extracted protein-protein interactions (PPI's) to determine if "
-            "they are specific to signaling pathways. Retain those PPI's that are specific to "
-            "signalling and remove those that are not.",
-            "Review one more time the protein-protein interactions (PPI'S) to determine"
-            "whether there are in the list regulations that are of a transcriptional or gene regulatory"
-            "nature. Retain those interactions that are only specific to PPI's in cell signalling and remove "
-            "those relations that show transcription factor to their gene targets.",
-        ],
-        "tf": [
-            "You are a top-tier molecular biologist specialized in the field of "
-            "cardiology and molecular biology. Your task is to identify all transcription factor (TF) "
-            "to gene relations in the text. The source of the relations that you identify should be a "
-            "TF, while the target should be genes who are regulated by the TF.",
-            "You are a top-tier molecular biologist specialized in the field of "
-            "cardiology and molecular biology. Your task is to identify all transcription factor (TF) "
-            "to gene relations in the text. The source of the relations that you identify should be a "
-            "TF, while the target should be genes who are regulated by the TF.",
-            "Now review the transcription factor (TF) to gene relations to determine if  "
-            "they are specific to gene regulatory networks. Retain those relations that are only "
-            "involving TF's and their gene targets and remove those that are not.",
-            "Review one more time the transcription factor (TF) to gene relations "
-            "to determine whether there are in the list relations that are of a protein-protein "
-            "interaction (PPI's) or protein signalling nature. Retain those relations which involve "
-            "a transcription factor and the gene whose expression they regulate. Remove those "
-            "relations that involve interactions between two signalling protein and PPI's.",
-        ],
-    },
+        1: {
+            "ppi": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways.",
+                "Now review your extracted protein-protein interactions (PPI's) to determine if "
+                "they are specific to signaling pathways. Retain only signalling pathway interactions "
+                "and remove the rest.",
+                "Review one more time the protein-protein interactions (PPI's) to  "
+                "determine whether there are in the list regulations that are of a transcriptional or gene  "
+                "regulatory nature. Retain those interactions that are only specific to PPI's in cell  "
+                "signalling and remove those relations that represent relations between transcription factors "
+                "to their gene targets.",
+            ],
+            "tf": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all transcription factor (TF) "
+                "to gene relations in the text. The source of the relations that you identify should be a "
+                "TF, while the target should be genes who are regulated by the TF.",
+                "Now review your extracted transcription factor (TF) to gene relations to determine if "
+                "they are specific to gene regulatory networks. Retain those interactions that are only "
+                "involving TF's and their gene targets and remove those that are not.",
+                "Review one more time the transcription factor to gene relations  "
+                "to determine whether there are in the list relations that are protein-protein "
+                "interactions (PPI's) network or involved in protein signalling networks. Retain interactions  "
+                "of gene regulatory networks involve a transcription factor and the gene whose expression  "
+                "they regulate. Remove those relations that involve interactions between two signalling protein "
+                "and PPI's.",
+            ],
+            "lr": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all the interactions "
+                "involved in cell communication networks as well as interactions between ligands "
+                "and their receptor targets. Please provide the relations "
+                "specifying the ligand name as the source and receptor name as the target."
+            ],
+        },
+        "nerrel_conversational": {
+            "ppi": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways.",
+                "Now review the extracted proteins and extract portein-protein interactions (PPIs) between them "
+                "that are specific to signaling pathways. Retain those PPI's that are specific to "
+                "signalling and remove those that are not.",
+                "Review one more time the protein-protein interactions (PPI'S) to determine"
+                "whether there are in the list regulations that are of a transcriptional or gene regulatory"
+                "nature. Retain those interactions that are only specific to PPI's in cell signalling and remove "
+                "those relations that show transcription factor to their gene targets.",
+            ],
+            "tf": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all transcription factor (TF) "
+                "to gene relations in the text. The source of the relations that you identify should be a "
+                "TF, while the target should be genes who are regulated by the TF.",
+                "Now review extracted transcription factors and genes to determine interactions between them  "
+                "that are specific to gene regulatory networks. Extract those relations that are only "
+                "involving TF's and their gene targets and remove those that are not.",
+                "Review one more time the transcription factor (TF) to gene relations "
+                "to determine whether there are in the list relations that are of a protein-protein "
+                "interaction (PPI's) or protein signalling nature. Retain those relations which involve "
+                "a transcription factor and the gene whose expression they regulate. Remove those "
+                "relations that involve interactions between two signalling protein and PPI's.",
+            ],
+        },
+        "nerrel_individual": {
+            "ppi": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all proteins "
+                "in the text, focusing on proteins involved in signaling pathways.",
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all protein-protein "
+                "interactions (PPI's) in the text, focusing on proteins involved in signaling pathways.",
+                "Now review your extracted protein-protein interactions (PPI's) to determine if "
+                "they are specific to signaling pathways. Retain those PPI's that are specific to "
+                "signalling and remove those that are not.",
+                "Review one more time the protein-protein interactions (PPI'S) to determine"
+                "whether there are in the list regulations that are of a transcriptional or gene regulatory"
+                "nature. Retain those interactions that are only specific to PPI's in cell signalling and remove "
+                "those relations that show transcription factor to their gene targets.",
+            ],
+            "tf": [
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all transcription factor (TF) "
+                "to gene relations in the text. The source of the relations that you identify should be a "
+                "TF, while the target should be genes who are regulated by the TF.",
+                "You are a top-tier molecular biologist specialized in the field of "
+                "cardiology and molecular biology. Your task is to identify all transcription factor (TF) "
+                "to gene relations in the text. The source of the relations that you identify should be a "
+                "TF, while the target should be genes who are regulated by the TF.",
+                "Now review the transcription factor (TF) to gene relations to determine if  "
+                "they are specific to gene regulatory networks. Retain those relations that are only "
+                "involving TF's and their gene targets and remove those that are not.",
+                "Review one more time the transcription factor (TF) to gene relations "
+                "to determine whether there are in the list relations that are of a protein-protein "
+                "interaction (PPI's) or protein signalling nature. Retain those relations which involve "
+                "a transcription factor and the gene whose expression they regulate. Remove those "
+                "relations that involve interactions between two signalling protein and PPI's.",
+            ],
+        },
+    }
 }
 
 # style_dict = {

@@ -4,6 +4,20 @@ from typing import List, Literal
 from pydantic import BaseModel, Field
 
 
+class Triple(BaseModel):
+    head: str = Field(description="Head entity.")
+    relation: Literal["INTERACTS_WITH"] = Field(description="Relation.")
+    tail: str = Field(description="Tail entity.")
+
+
+class Triples(BaseModel):
+    """
+    A class that contains a list of triples.
+    """
+
+    triples: List[Triple] = Field(description="List of all extracted Triples.")
+
+
 class ProteinTriple(BaseModel):
     head: str = Field(description="Head protein entity.")
     relation: Literal["INTERACTS_WITH"] = Field(description="Protein-protein relation.")
