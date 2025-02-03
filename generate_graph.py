@@ -26,12 +26,9 @@ from paths import (
 from structured_classes import (
     GenesAndTranscriptionFactors,
     LR_Triples_Simple,
-    PPI_Triples,
     PPI_Triples_Simple,
     Proteins,
-    TF_Triples,
-    TF_Triples_Simple,
-    Triples,
+    TFGeneTriples,
     Triples_Simple,
 )
 from style_templates import style_dict
@@ -89,15 +86,21 @@ nodelabels_dict = {
     "both": PPI_NODE_LABELS + TF_NODE_LABELS,
 }
 
-schema_dict = {
-    "ppi": PPI_Triples,
-    "tf": TF_Triples,
-    "both": Triples,
-}
+# schema_dict = {
+#     "ppi": ProteinTriples,
+#     "tf": TFGeneTriples,
+#     "both": Triples,
+# }
 
-simple_schema_dict = {
+# simple_schema_dict = {
+#     "ppi": PPI_Triples_Simple,
+#     "tf": TFGenesTriples,
+#     "lr": LR_Triples_Simple,
+#     "both": Triples_Simple,
+# }
+schema_dict = {
     "ppi": PPI_Triples_Simple,
-    "tf": TF_Triples_Simple,
+    "tf": TFGeneTriples,
     "lr": LR_Triples_Simple,
     "both": Triples_Simple,
 }
@@ -120,9 +123,11 @@ triple_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-triple_schema = (
-    schema_dict[PROMPT_LOOKUP] if not args.simple else simple_schema_dict[PROMPT_LOOKUP]
-)
+# triple_schema = (
+#     schema_dict[PROMPT_LOOKUP] if not args.simple else simple_schema_dict[PROMPT_LOOKUP]
+# )
+
+triple_schema = schema_dict[PROMPT_LOOKUP]
 
 if PROMPT_LOOKUP == "ppi":
     triple_template = (
@@ -163,7 +168,7 @@ init_triple_prompt = PromptTemplate(
 )
 
 if args.nerrel:
-    kw = "proteins" if PROMPT_LOOKUP == "ppi" else "genes_and_transcriptionfactors"
+    kw = "entities"
     if PROMPT_LOOKUP == "ppi":
         ner_parser = JsonOutputParser(pydantic_object=Proteins)
     elif PROMPT_LOOKUP == "tf":

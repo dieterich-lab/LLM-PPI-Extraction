@@ -328,7 +328,7 @@ def _convert_to_message(message: MessageLikeRepresentation) -> BaseMessage:
                         "arguments"
                     ]["triples"] = obj
                 elif (
-                    "proteins"
+                    "entities"
                     in _message.response_metadata["message"]["tool_calls"][0][
                         "function"
                     ]["arguments"]
@@ -343,48 +343,17 @@ def _convert_to_message(message: MessageLikeRepresentation) -> BaseMessage:
                             obj = str(
                                 _message.response_metadata["message"]["tool_calls"][0][
                                     "function"
-                                ]["arguments"]["proteins"]
+                                ]["arguments"]["entities"]
                             )
                         except:
                             obj = repair_json(
                                 _message.response_metadata["message"]["tool_calls"][0][
                                     "function"
-                                ]["arguments"]["proteins"]
+                                ]["arguments"]["entities"]
                             )
                         _message.response_metadata["message"]["tool_calls"][0][
                             "function"
-                        ]["arguments"]["proteins"] = obj
-                    else:
-                        obj = _message.response_metadata["message"]["tool_calls"][0][
-                            "function"
-                        ]["arguments"]
-                elif (
-                    "genes_and_transcriptionfactors"
-                    in _message.response_metadata["message"]["tool_calls"][0][
-                        "function"
-                    ]["arguments"]
-                ):
-                    if not isinstance(
-                        _message.response_metadata["message"]["tool_calls"][0][
-                            "function"
-                        ]["arguments"],
-                        str,
-                    ):
-                        try:
-                            obj = str(
-                                _message.response_metadata["message"]["tool_calls"][0][
-                                    "function"
-                                ]["arguments"]["genes_and_transcriptionfactors"]
-                            )
-                        except:
-                            obj = repair_json(
-                                _message.response_metadata["message"]["tool_calls"][0][
-                                    "function"
-                                ]["arguments"]["genes_and_transcriptionfactors"]
-                            )
-                        _message.response_metadata["message"]["tool_calls"][0][
-                            "function"
-                        ]["arguments"]["genes_and_transcriptionfactors"] = obj
+                        ]["arguments"]["entities"] = obj
                     else:
                         obj = _message.response_metadata["message"]["tool_calls"][0][
                             "function"
@@ -433,7 +402,7 @@ def _convert_to_message(message: MessageLikeRepresentation) -> BaseMessage:
                     "arguments"
                 ] = obj
             elif (
-                "proteins"
+                "entities"
                 in _message.response_metadata["message"]["tool_calls"][0]["function"][
                     "arguments"
                 ]
@@ -442,27 +411,11 @@ def _convert_to_message(message: MessageLikeRepresentation) -> BaseMessage:
                     str(
                         _message.response_metadata["message"]["tool_calls"][0][
                             "function"
-                        ]["arguments"]["proteins"]
+                        ]["arguments"]["entities"]
                     )
                 )
                 _message.response_metadata["message"]["tool_calls"][0]["function"][
-                    "proteins"
-                ] = obj
-            elif (
-                "genes_and_transcriptionfactors"
-                in _message.response_metadata["message"]["tool_calls"][0]["function"][
-                    "arguments"
-                ]
-            ):
-                obj = repair_json(
-                    str(
-                        _message.response_metadata["message"]["tool_calls"][0][
-                            "function"
-                        ]["arguments"]["genes_and_transcriptionfactors"]
-                    )
-                )
-                _message.response_metadata["message"]["tool_calls"][0]["function"][
-                    "genes_and_transcriptionfactors"
+                    "entities"
                 ] = obj
             else:
                 obj = str(list())
