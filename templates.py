@@ -258,38 +258,6 @@ Use and adhere to the following JSON format:
 {input}
 """
 
-PPI_NER_TEMPLATE_TOOLCALL = """
-Extract all proteins from the provided TEXT.
-
-Use and adhere to the following JSON format:
-
-### FORMAT INSTRUCTIONS:
-
-{format_instructions}
-
-### TEXT: 
-
-{input}
-
-* IMPORTANT: Please be greedy, meaning you should extract as many entities (proteins) as possible. You will have the possibility to filter the results in a second step.
-"""
-
-TF_NER_TEMPLATE_TOOLCALL = """
-Extract all transcription factors and genes from the provided TEXT.
-
-Use and adhere to the following JSON format:
-
-### FORMAT INSTRUCTIONS:
-
-{format_instructions}
-
-### TEXT: 
-
-{input}
-
-* IMPORTANT: Please be greedy, meaning you should extract as many entities (transcription factors and genes) as possible. You will have the possibility to filter the results in a second step.
-"""
-
 TF_NER_TEMPLATE = """Based on the following example, extract all genes and transcription factors
 from the provided text.
 

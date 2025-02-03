@@ -46,7 +46,6 @@ from templates import (
     PPI_INTERACTIONS,
     PPI_NER_EXAMPLES_SIMPLE,
     PPI_NER_TEMPLATE,
-    PPI_NER_TEMPLATE_TOOLCALL,
     PPI_NODE_LABELS,
     TF_EXAMPLES,
     TF_EXAMPLES_SIMPLE,
@@ -55,7 +54,6 @@ from templates import (
     TF_INTERACTIONS,
     TF_NER_EXAMPLES_SIMPLE,
     TF_NER_TEMPLATE,
-    TF_NER_TEMPLATE_TOOLCALL,
     TF_NODE_LABELS,
     TRIPLE_TEMPLATE,
     TRIPLE_TEMPLATE_SIMPLE,
@@ -170,13 +168,6 @@ if args.nerrel:
         ner_parser = JsonOutputParser(pydantic_object=Proteins)
     elif PROMPT_LOOKUP == "tf":
         ner_parser = JsonOutputParser(pydantic_object=GenesAndTranscriptionFactors)
-    # if args.toolcall:
-    #     ner_template = (
-    #         PPI_NER_TEMPLATE_TOOLCALL
-    #         if PROMPT_LOOKUP == "ppi"
-    #         else TF_NER_TEMPLATE_TOOLCALL
-    #     )
-    # else:
     ner_template = PPI_NER_TEMPLATE if PROMPT_LOOKUP == "ppi" else TF_NER_TEMPLATE
     init_ner_prompt = PromptTemplate(
         template=ner_template,
@@ -273,8 +264,6 @@ def query(app, doc, id):
             ner_answer = msg["messages"][-1]
             ners = parse_ners(ner_answer, kw)
             NER = False
-            # if args.toolcall:
-            #     ners[kw] = filter_ners(ners[kw], ner_list)
             if not args.dev:
                 ner_obj = repair_json(ners, return_objects=True)
                 if ner_obj:
@@ -316,10 +305,6 @@ def query(app, doc, id):
                     ners = ner_answer["raw"].response_metadata["message"]["tool_calls"][
                         0
                     ]["function"]["arguments"]
-                # if args.toolcall:
-                #     if isinstance(ners, str):
-                #         ners = repair_json(ners, return_objects=True)
-                #     ners[kw] = filter_ners(ners[kw], ner_list)
                 ners = str(ners)
             elif args.relgiventrueners:
                 try:
@@ -379,7 +364,6 @@ def query(app, doc, id):
                 },
                 config,
             )
-
     if args.target != "both":
         if args.style != 6:
             for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][1:]:
@@ -436,21 +420,19 @@ for i, (doc, id) in enumerate(
     memory = MemorySaver()
     app = workflow.compile(checkpointer=memory)
 
-    result = attempt(
-        tries=1,
-        seconds=int(1e6),
-        func=query,
-        kwargs={"app": app, "doc": doc, "id": id},
-    )
-    try:
-        ners, final_message, ppi_final_message, tf_final_message, prev_msgs, msg = (
-            result
-        )
-    except TypeError:
-        continue
+    # result = attempt(
+    #     tries=1,
+    #     seconds=int(1e6),
+    #     func=query,
+    #     kwargs={"app": app, "doc": doc, "id": id},
+    # )
+    # try:
+    # except TypeError as e:
+    #     continue
+    results = query(app=app, doc=doc, id=id)
+    ners, final_message, ppi_final_message, tf_final_message, prev_msgs, msg = results
 
     if args.onlyner:
-        print(i, ners)
         continue
     if args.target == "both" and (not ppi_final_message and not tf_final_message):
         continue
