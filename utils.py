@@ -19,3 +19,17 @@ class Timeout:
 
     def raise_timeout(self, *args):
         raise Timeout.Timeout()
+
+
+def attempt(tries, seconds, func, args=[], kwargs={}):
+    c = 0
+    res = None
+    while c < tries:
+        try:
+            with Timeout(seconds):
+                res = func(*args, **kwargs)
+                break
+        except Timeout.Timeout:
+            print("Timeout")
+            c += 1
+    return res

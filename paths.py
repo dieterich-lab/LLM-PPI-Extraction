@@ -23,17 +23,9 @@ if args.style:
         Path(graphdoc_pkl_path).parent / f"style{args.style}" / graph_doc_filename
     )
 
-if args.simple:
-    graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "simple" / graph_doc_filename
-else:
-    graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "complex" / graph_doc_filename
+graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / args.mode / graph_doc_filename
 
 ner_json_path = None
-if args.nerrel:
-    graphdoc_pkl_path = (
-        Path(graphdoc_pkl_path).parent / f"nerrel_{args.nerrel}" / graph_doc_filename
-    )
-    ner_json_path = Path(graphdoc_pkl_path).parent / "ner.json"
 
 if args.relgiventrueners:
     graphdoc_pkl_path = (
@@ -73,12 +65,7 @@ else:
     triple_path = Path(triple_path) / "chunks"
 if args.style:
     triple_path = Path(triple_path) / f"style{args.style}"
-if args.simple:
-    triple_path = Path(triple_path) / "simple"
-else:
-    triple_path = Path(triple_path) / "complex"
-if args.nerrel:
-    triple_path = Path(triple_path) / f"nerrel_{args.nerrel}"
+triple_path = Path(triple_path) / args.mode
 if args.relgiventrueners:
     triple_path = Path(triple_path) / f"relgiventrueners"
 if args.relgivenallners:

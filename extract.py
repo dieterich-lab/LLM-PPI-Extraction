@@ -4,8 +4,9 @@ import pickle
 from parser import args
 
 from const import PROMPT_LOOKUP
+from dicts import example_dict, ner_example_dict, schema_dict
 from get_documents import all_ner_paths, documents, true_ner_paths, whole_documents
-from graph_utils import attempt, build_graphdoc, parse_msg2triples, parse_ners
+from graph_utils import build_graphdoc
 from json_repair import repair_json
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
@@ -17,104 +18,29 @@ from langchain_core.prompts import (
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
 from llm import llm
+from parsing import parse_msg2triples, parse_ners
 from paths import (
     graphdoc_pkl_path,
     ner_json_path,
     ppi_graphdoc_pkl_path,
     tf_graphdoc_pkl_path,
 )
-from structured_classes import (
-    GenesAndTranscriptionFactors,
-    LR_Triples_Simple,
-    PPI_Triples_Simple,
-    Proteins,
-    TFGeneTriples,
-    Triples_Simple,
-)
+from structured_classes import GenesAndTranscriptionFactors, Proteins
 from style_templates import style_dict
 from templates import (
-    LR_EXAMPLES_SIMPLE,
-    LR_INTERACTIONS,
-    LR_NODE_LABELS,
-    PPI_EXAMPLES,
-    PPI_EXAMPLES_SIMPLE,
     PPI_INDIVIDUAL_TEMPLATE_ALL_NERS,
     PPI_INDIVIDUAL_TEMPLATE_TRUE_NERS,
-    PPI_INTERACTIONS,
-    PPI_NER_EXAMPLES_SIMPLE,
     PPI_NER_TEMPLATE,
-    PPI_NODE_LABELS,
-    TF_EXAMPLES,
-    TF_EXAMPLES_SIMPLE,
     TF_INDIVIDUAL_TEMPLATE_ALL_NERS,
     TF_INDIVIDUAL_TEMPLATE_TRUE_NERS,
-    TF_INTERACTIONS,
-    TF_NER_EXAMPLES_SIMPLE,
     TF_NER_TEMPLATE,
-    TF_NODE_LABELS,
     TRIPLE_TEMPLATE,
     TRIPLE_TEMPLATE_SIMPLE,
 )
 
 NER = False
 
-example_dict = {
-    "ppi": PPI_EXAMPLES,
-    "tf": TF_EXAMPLES,
-    "both": PPI_EXAMPLES + TF_EXAMPLES,
-}
-simple_example_dict = {
-    "ppi": PPI_EXAMPLES_SIMPLE,
-    "tf": TF_EXAMPLES_SIMPLE,
-    "lr": LR_EXAMPLES_SIMPLE,
-    "both": PPI_EXAMPLES_SIMPLE + TF_EXAMPLES_SIMPLE,
-}
-ner_example_dict = {
-    "ppi": PPI_NER_EXAMPLES_SIMPLE,
-    "tf": TF_NER_EXAMPLES_SIMPLE,
-}
-interactions_dict = {
-    "ppi": PPI_INTERACTIONS,
-    "tf": TF_INTERACTIONS,
-    "lr": LR_INTERACTIONS,
-    "both": PPI_INTERACTIONS + TF_INTERACTIONS,
-}
-nodelabels_dict = {
-    "ppi": PPI_NODE_LABELS,
-    "tf": TF_NODE_LABELS,
-    "tf": LR_NODE_LABELS,
-    "both": PPI_NODE_LABELS + TF_NODE_LABELS,
-}
-
-# schema_dict = {
-#     "ppi": ProteinTriples,
-#     "tf": TFGeneTriples,
-#     "both": Triples,
-# }
-
-# simple_schema_dict = {
-#     "ppi": PPI_Triples_Simple,
-#     "tf": TFGenesTriples,
-#     "lr": LR_Triples_Simple,
-#     "both": Triples_Simple,
-# }
-schema_dict = {
-    "ppi": PPI_Triples_Simple,
-    "tf": TFGeneTriples,
-    "lr": LR_Triples_Simple,
-    "both": Triples_Simple,
-}
-
-mode = (
-    "simple"
-    if (args.relgivenallners or args.relgiventrueners)
-    else (
-        f"nerrel_{args.nerrel}"
-        if args.nerrel
-        else "simple" if args.simple else "complex"
-    )
-)
-triple_basestring_parts = style_dict[args.style][mode][PROMPT_LOOKUP][0]
+triple_basestring_parts = style_dict[args.style][args.mode][PROMPT_LOOKUP][0]
 
 triple_prompt = ChatPromptTemplate.from_messages(
     [
@@ -122,10 +48,6 @@ triple_prompt = ChatPromptTemplate.from_messages(
         MessagesPlaceholder(variable_name="messages"),
     ]
 )
-
-# triple_schema = (
-#     schema_dict[PROMPT_LOOKUP] if not args.simple else simple_schema_dict[PROMPT_LOOKUP]
-# )
 
 triple_schema = schema_dict[PROMPT_LOOKUP]
 
@@ -136,7 +58,7 @@ if PROMPT_LOOKUP == "ppi":
         else (
             PPI_INDIVIDUAL_TEMPLATE_TRUE_NERS
             if args.relgiventrueners
-            else TRIPLE_TEMPLATE if not args.simple else TRIPLE_TEMPLATE_SIMPLE
+            else TRIPLE_TEMPLATE_SIMPLE
         )
     )
 elif PROMPT_LOOKUP == "tf":
@@ -146,7 +68,7 @@ elif PROMPT_LOOKUP == "tf":
         else (
             TF_INDIVIDUAL_TEMPLATE_TRUE_NERS
             if args.relgiventrueners
-            else TRIPLE_TEMPLATE if not args.simple else TRIPLE_TEMPLATE_SIMPLE
+            else TRIPLE_TEMPLATE_SIMPLE
         )
     )
 
@@ -157,18 +79,13 @@ init_triple_prompt = PromptTemplate(
     input_variables=["input"],
     partial_variables={
         "format_instructions": triple_parser.get_format_instructions(),
-        "node_labels": False if args.simple else nodelabels_dict[PROMPT_LOOKUP],
-        "rel_types": interactions_dict[PROMPT_LOOKUP],
-        "examples": (
-            example_dict[PROMPT_LOOKUP]
-            if not args.simple
-            else simple_example_dict[PROMPT_LOOKUP]
-        ),
+        "node_labels": False,
+        "rel_types": ["INTERACTS_WITH"],
+        "examples": example_dict[PROMPT_LOOKUP] if not args.noexamples else False,
     },
 )
 
 if args.nerrel:
-    kw = "entities"
     if PROMPT_LOOKUP == "ppi":
         ner_parser = JsonOutputParser(pydantic_object=Proteins)
     elif PROMPT_LOOKUP == "tf":
@@ -267,12 +184,12 @@ def query(app, doc, id):
             NER = True
             msg = app.invoke(msg_dict, config)
             ner_answer = msg["messages"][-1]
-            ners = parse_ners(ner_answer, kw)
+            ners = parse_ners(ner_answer)
             NER = False
             if not args.dev:
                 ner_obj = repair_json(ners, return_objects=True)
                 if ner_obj:
-                    ner_obj = ner_obj[kw]
+                    ner_obj = ner_obj["entities"]
                     if isinstance(ner_obj, str):
                         try:
                             ner_obj = ast.literal_eval(ner_obj)
@@ -332,7 +249,7 @@ def query(app, doc, id):
                 if not (args.relgivenallners or args.relgiventrueners):
                     ner_obj = repair_json(str(ners), return_objects=True)
                     if ner_obj:
-                        ner_obj = ner_obj[kw]
+                        ner_obj = ner_obj["entities"]
                         if isinstance(ner_obj, str):
                             try:
                                 ner_obj = ast.literal_eval(ner_obj)
@@ -371,7 +288,7 @@ def query(app, doc, id):
             )
     if args.target != "both":
         if args.style != 6:
-            for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][1:]:
+            for human_msg in style_dict[args.style][args.mode][PROMPT_LOOKUP][1:]:
                 msg = app.invoke(
                     {"messages": [HumanMessage(human_msg)]},
                     config,
@@ -379,7 +296,7 @@ def query(app, doc, id):
             final_message = msg["messages"][-1]
         else:
             prev_msgs = list()
-            for human_msg in style_dict[args.style][mode][PROMPT_LOOKUP][1:]:
+            for human_msg in style_dict[args.style][args.mode][PROMPT_LOOKUP][1:]:
                 msg = app.invoke(
                     {"messages": [HumanMessage(human_msg)]},
                     config,
@@ -391,7 +308,7 @@ def query(app, doc, id):
         msg = app.invoke(
             {
                 "messages": [
-                    HumanMessage(style_dict[args.style][mode][PROMPT_LOOKUP][1])
+                    HumanMessage(style_dict[args.style][args.mode][PROMPT_LOOKUP][1])
                 ]
             },
             config,
@@ -403,7 +320,7 @@ def query(app, doc, id):
         msg = app.invoke(
             {
                 "messages": [
-                    HumanMessage(style_dict[args.style][mode][PROMPT_LOOKUP][2])
+                    HumanMessage(style_dict[args.style][args.mode][PROMPT_LOOKUP][2])
                 ]
             },
             config,

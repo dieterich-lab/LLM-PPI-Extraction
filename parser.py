@@ -2,6 +2,17 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
+    "mode",
+    type=str,
+    choices=["direct", "conversational", "individual"],
+    default="individual",
+    help="""
+	direct: LLM will extract relations directly, without doing NER first.
+	individual: One LLM does NER first (extracting the entities), another does RE (classifying relations between those detected entities). 
+    conversational: Now, the same model is used for NER and RE (such that the conversation starts with the NER)
+    """,
+)
+parser.add_argument(
     "--target",
     type=str,
     choices=[
@@ -65,12 +76,6 @@ parser.add_argument(
     help="To only parse untnil the nth document/chunk.",
 )
 parser.add_argument(
-    "--simple",
-    action="store_true",
-    default=True,
-    help="If true, the simpler prompt if chosen from the `style_dict` in 'style_templates.py' for the current style. Otherwise we use the style denoted `complex`, which is a more elaborate variant of the prompt.",
-)
-parser.add_argument(
     "--onlyner",
     action="store_true",
     help="If true, only named entitiy recognition is carried out and the named entities are saved to 'ner.json' in the `graphdoc_pkl_path`.",
@@ -86,15 +91,6 @@ parser.add_argument(
     action="store_true",
     help="An option to only do RE. This sets `nerrel` automatically to `individual`. A list of ALL the ground truth entities is given to the chat model to let it classify relations between those. If you have those pre-annotations then "
     "you can add the path to in 'get_documents.py' to the variable `_all_ner_paths`. The path must containt txt-files for each document with the same filename as the document with newline separated entities.",
-)
-parser.add_argument(
-    "--nerrel",
-    type=str,
-    choices=["conversational", "individual"],
-    default="individual",
-    help="This is the option for doing NER first (extracting the entities) and then RE (classifying relations between those detected entities). "
-    "'conversational' means that the same model is used for NER and RE (such that the conversation starts with the NER) whereas 'individual' means that a dedicated chat is used to extract the entities and the actual chat is started by "
-    "giving those entities to the chat model and ask for RE.",
 )
 parser.add_argument(
     "--printpaperpaths",
