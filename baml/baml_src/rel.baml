@@ -14,8 +14,7 @@ function ExtractRelationshipTriples(input: string) -> Triples {
 //   client Deepseek8b
   client Llama38b
   prompt #"
-    Extract from the following INPUT all protein-protein interactions
-    in the following format:
+    Extract from the following INPUT all protein-protein interactions.
     {{ ctx.output_format }}
     {{ _.role("user") }}
     INPUT: {{ input }}
