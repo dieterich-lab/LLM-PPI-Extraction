@@ -4,7 +4,7 @@ import pickle
 from parser import args
 
 from const import PROMPT_LOOKUP
-from dicts import example_dict, ner_example_dict, schema_dict
+from dicts import example_dict, ner_example_dict
 from get_documents import all_ner_paths, documents, true_ner_paths, whole_documents
 from graph_utils import build_graphdoc
 from json_repair import repair_json
@@ -26,7 +26,7 @@ from paths import (
     tf_graphdoc_pkl_path,
 )
 from structured_classes import GenesAndTranscriptionFactors, Proteins, Triples
-from style_templates import style_dict
+from style_templates import conversation_dict
 from templates import (
     ProteinIndividualAllNersTemplate,
     ProteinIndividualTrueNersTemplate,
@@ -39,7 +39,7 @@ from templates import (
 
 NER_SWITCH = False
 
-init_string = style_dict[args.style][args.mode][PROMPT_LOOKUP][0]
+init_string = conversation_dict[args.style][args.mode][PROMPT_LOOKUP][0]
 
 triple_chat_prompt = ChatPromptTemplate.from_messages(
     [
@@ -282,7 +282,9 @@ def query(app, doc, id):
             )
     if args.target != "both":
         if args.style != 6:
-            for human_msg in style_dict[args.style][args.mode][PROMPT_LOOKUP][1:]:
+            for human_msg in conversation_dict[args.style][args.mode][PROMPT_LOOKUP][
+                1:
+            ]:
                 msg = app.invoke(
                     {"messages": [HumanMessage(human_msg)]},
                     config,
@@ -290,7 +292,9 @@ def query(app, doc, id):
             final_message = msg["messages"][-1]
         else:
             prev_msgs = list()
-            for human_msg in style_dict[args.style][args.mode][PROMPT_LOOKUP][1:]:
+            for human_msg in conversation_dict[args.style][args.mode][PROMPT_LOOKUP][
+                1:
+            ]:
                 msg = app.invoke(
                     {"messages": [HumanMessage(human_msg)]},
                     config,
@@ -302,7 +306,9 @@ def query(app, doc, id):
         msg = app.invoke(
             {
                 "messages": [
-                    HumanMessage(style_dict[args.style][args.mode][PROMPT_LOOKUP][1])
+                    HumanMessage(
+                        conversation_dict[args.style][args.mode][PROMPT_LOOKUP][1]
+                    )
                 ]
             },
             config,
@@ -314,7 +320,9 @@ def query(app, doc, id):
         msg = app.invoke(
             {
                 "messages": [
-                    HumanMessage(style_dict[args.style][args.mode][PROMPT_LOOKUP][2])
+                    HumanMessage(
+                        conversation_dict[args.style][args.mode][PROMPT_LOOKUP][2]
+                    )
                 ]
             },
             config,
