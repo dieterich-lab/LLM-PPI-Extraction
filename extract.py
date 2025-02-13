@@ -1,3 +1,4 @@
+import os
 import pickle
 import sys
 
@@ -11,6 +12,8 @@ from converter import convert_and_save_to_json
 from documents import chunks, docs
 from paths import triple_json_path, triple_pkl_path
 from prompts import prompts, system_prompt
+
+os.environ["BAML_LOG"] = args.loglevel
 
 texts = docs if args.doclevel == "docs" else chunks
 

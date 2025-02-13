@@ -84,6 +84,12 @@ parser.add_argument(
     help="These are aliases pointing back to the folder of parsed PDF files (paths configured in 'get_documents.py' and 'paths.py')",
 )
 parser.add_argument(
+    "--loglevel",
+    choices=["error", "warn", "info", "debug", "trace", "off"],
+    default="off",
+    help="These are aliases pointing back to the folder of parsed PDF files (paths configured in 'get_documents.py' and 'paths.py')",
+)
+parser.add_argument(
     "--startfromdoc",
     nargs="?",
     const=0,
