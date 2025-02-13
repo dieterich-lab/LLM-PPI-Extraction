@@ -40,7 +40,7 @@ function ExtractNEs(sys_prompt: string, text: string, message: Message) -> Entit
   prompt #"
     {{ _.role("system") }}
     {{ sys_prompt }}
-    Text: {{ text }}
+    TEXT: {{ text }}
     {{ ctx.output_format(prefix="Use the following OUTPUT FORMAT:") }}
     USER QUESTION:
     {{ _.role(message.role) }} 
