@@ -44,7 +44,7 @@ with open(triple_pkl_path, "wb") as triple_pkl_file:
                 )
                 responses.append(response)
                 messages.append(Message(role="assistant", content=str(response)))
-                print(i, response)
+                print(f"STEP {i}, {response}")
         except:
             pass
 

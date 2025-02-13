@@ -41,7 +41,7 @@ function ExtractNEs(sys_prompt: string, text: string, message: Message) -> Entit
     {{ _.role("system") }}
     {{ sys_prompt }}
     Text: {{ text }}
-    {{ ctx.output_format(prefix="Use the following output format:") }}
+    {{ ctx.output_format(prefix="Use the following OUTPUT FORMAT:") }}
     USER QUESTION:
     {{ _.role(message.role) }} 
     {{ message.content }}
