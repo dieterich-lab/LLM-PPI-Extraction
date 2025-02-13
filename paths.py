@@ -2,73 +2,10 @@ import os
 from parser import args
 from pathlib import Path
 
-from llm import model
-
-graph_doc_filename = "graph_documents.pkl"
-if args.saveinbetweenoutputs:
-    graph_doc_filename = "graph_documents_+_in_between.pkl"
-
-graphdoc_pkl_path = f"/beegfs/prj/LINDA_LLM/outputs/graph_docs/{args.target}/{args.parser}/{model}/graph_documents.pkl"
-
-if args.curated:
-    graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "5curated" / graph_doc_filename
-
-if args.level == "docs":
-    graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "docs" / graph_doc_filename
-else:
-    graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "chunks" / graph_doc_filename
-
-if args.style:
-    graphdoc_pkl_path = (
-        Path(graphdoc_pkl_path).parent / f"style{args.style}" / graph_doc_filename
-    )
-
-graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / args.mode / graph_doc_filename
-
-ner_json_path = None
-
-if args.relgiventrueners:
-    graphdoc_pkl_path = (
-        Path(graphdoc_pkl_path).parent / "relgiventrueners" / graph_doc_filename
-    )
-if args.relgivenallners:
-    graphdoc_pkl_path = (
-        Path(graphdoc_pkl_path).parent / "relgivenallners" / graph_doc_filename
-    )
-
-os.makedirs(Path(graphdoc_pkl_path).parent, exist_ok=True)
-
-ppi_graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "ppi_graph_documents.pkl"
-tf_graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "tf_graph_documents.pkl"
-os.makedirs(Path(ppi_graphdoc_pkl_path).parent, exist_ok=True)
-os.makedirs(Path(tf_graphdoc_pkl_path).parent, exist_ok=True)
-
-graph_documents = list()
-
-if args.target != "both":
-    graphdoc_pkl_paths = [graphdoc_pkl_path]
-else:
-    ppi_graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "ppi_graph_documents.pkl"
-    tf_graphdoc_pkl_path = Path(graphdoc_pkl_path).parent / "tf_graph_documents.pkl"
-    graphdoc_pkl_paths = [ppi_graphdoc_pkl_path, tf_graphdoc_pkl_path]
-
-triple_path = Path(
-    f"/beegfs/prj/LINDA_LLM/outputs/graph_triples/{args.target}/{args.parser}/{model}"
+experiment_path = Path(
+    f"/beegfs/prj/LINDA_LLM/outputs/triples/{args.data}/{args.target}/{args.model}/{args.extractionmode}/{args.chattype}"
 )
+os.makedirs(experiment_path, exist_ok=True)
 
-if args.curated:
-    triple_path = Path(triple_path) / "5curated"
-
-if args.level == "docs":
-    triple_path = Path(triple_path) / "docs"
-else:
-    triple_path = Path(triple_path) / "chunks"
-if args.style:
-    triple_path = Path(triple_path) / f"style{args.style}"
-triple_path = Path(triple_path) / args.mode
-if args.relgiventrueners:
-    triple_path = Path(triple_path) / f"relgiventrueners"
-if args.relgivenallners:
-    triple_path = Path(triple_path) / f"relgivenallners"
-
-os.makedirs(Path(triple_path), exist_ok=True)
+triple_pkl_path = experiment_path / "triples.pkl"
+triple_json_path = experiment_path / "triples.json"
