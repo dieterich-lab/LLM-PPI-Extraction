@@ -1,6 +1,8 @@
 import json
 import pickle
 
+import baml
+
 
 def convert_and_save_to_json(triple_pkl_path, triple_json_path):
     json_triples = list()
@@ -8,23 +10,30 @@ def convert_and_save_to_json(triple_pkl_path, triple_json_path):
         while 1:
             try:
                 tuple = pickle.load(triple_pkl_file)
-                triple_objs = tuple[0]
+                steps = tuple[0]
                 text = tuple[1]
                 file_name = str(tuple[2])
-                cur_triples = list()
-                for triple_obj in triple_objs.triples:
-                    cur_triples.append(
-                        {
-                            "head": triple_obj.head,
-                            "relation": triple_obj.relation,
-                            "tail": triple_obj.tail,
-                        }
-                    )
+                step_list = list()
+                for triple_objs in steps:
+                    triple_list = list()
+                    if isinstance(triple_objs, baml.baml_client.types.Entities):
+                        triple_list = triple_objs.entities
+                    else:
+                        for triple_obj in triple_objs.triples:
+                            triple_list.append(
+                                {
+                                    "head": triple_obj.head,
+                                    "relation": triple_obj.relation,
+                                    "tail": triple_obj.tail,
+                                }
+                            )
+                    step_list.append(triple_list)
                 json_triples.append(
-                    {"triples": cur_triples, "text": text, "filename": file_name}
+                    {"triples": step_list, "text": text, "filename": file_name}
                 )
             except EOFError:
                 break
 
     with open(triple_json_path, "w") as triple_json_file:
         json.dump(json_triples, triple_json_file, indent=4)
+        print(f"Saved json to {triple_json_path}")
