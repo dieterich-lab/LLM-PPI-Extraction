@@ -49,7 +49,7 @@ elif args.data == "ours":
     )
 elif args.data == "5curated":
     _paper_paths = Path(
-        f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/{args.target}/{args.parser}/5curated/"
+        f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
     )
 paper_paths = list(_paper_paths.glob(f"*.{ending_dict[args.parser]}"))
 
