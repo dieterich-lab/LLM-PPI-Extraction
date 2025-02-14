@@ -18,6 +18,8 @@ def convert_and_save_to_json(triple_pkl_path, triple_json_path):
                     triple_list = list()
                     if isinstance(triple_objs, baml.baml_client.types.Entities):
                         triple_list = triple_objs.entities
+                    elif isinstance(triple_objs, list):
+                        triple_list = triple_objs
                     else:
                         for triple_obj in triple_objs.triples:
                             triple_list.append(

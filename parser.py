@@ -53,13 +53,10 @@ parser.add_argument(
     choices=["chunks", "docs"],
     default="docs",
 )
-# parser.add_argument(
-#     "--style",
-#     type=int,
-#     choices=list(range(1, 7)),
-#     default=1,
-#     help="Declare which of our predefined styles you want to chose (see `style_dict` in 'style_templates.py' for the individual prompts.)",
-# )
+parser.add_argument(
+    "--all_ners_given",
+    action="store_true",
+)
 parser.add_argument(
     "--port",
     type=int,

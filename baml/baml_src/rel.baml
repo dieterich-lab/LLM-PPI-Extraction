@@ -27,10 +27,8 @@ function GeneralChatExtractRelationships(sys_prompt: string, text: string, messa
     TEXT: {{ text }}
     {{ ctx.output_format(prefix="Use the following OUTPUT FORMAT:") }}
     {% for message in messages %}
-      USER QUESTION:
       {{ _.role(message.role) }} 
       {{ message.content }}
-      {{ ctx.output_format(prefix="Use the following OUTPUT FORMAT:") }}
     {% endfor %}
   "#
 }

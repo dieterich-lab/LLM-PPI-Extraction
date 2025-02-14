@@ -16,7 +16,8 @@ text_splitter = MarkdownTextSplitter(
     is_separator_regex=False,
 )
 paper_dict = dict()
-
+all_ner_paths = None
+true_ner_paths = None
 if args.data == "biored":
     _paper_paths = Path(
         "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/biored_26_11_2024/src/corpus"
