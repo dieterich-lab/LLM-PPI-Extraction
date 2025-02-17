@@ -13,11 +13,7 @@ parser.add_argument(
     choices=[
         "direct",
         "nerrel",
-        # "neronly",
-        # "relgiventrueners",
-        # "relgivenallners",
     ],
-    # default="direct",
     default="nerrel",
 )
 parser.add_argument(
@@ -25,7 +21,6 @@ parser.add_argument(
     type=str,
     choices=["oneshot", "stepwise"],
     default="stepwise",
-    # default="oneshot",
 )
 parser.add_argument(
     "--data",
@@ -83,7 +78,8 @@ parser.add_argument(
 parser.add_argument(
     "--loglevel",
     choices=["error", "warn", "info", "debug", "trace", "off"],
-    default="off",
+    default="warn",
+    # default="off",
     help="These are aliases pointing back to the folder of parsed PDF files (paths configured in 'get_documents.py' and 'paths.py')",
 )
 parser.add_argument(
