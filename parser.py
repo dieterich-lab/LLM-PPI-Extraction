@@ -78,7 +78,7 @@ parser.add_argument(
 parser.add_argument(
     "--loglevel",
     choices=["error", "warn", "info", "debug", "trace", "off"],
-    default="warn",
+    default="info",
     # default="off",
     help="These are aliases pointing back to the folder of parsed PDF files (paths configured in 'get_documents.py' and 'paths.py')",
 )

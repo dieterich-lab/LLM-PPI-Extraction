@@ -5,6 +5,8 @@ import sys
 sys.path.append("..")
 from parser import args
 
+os.environ["BAML_LOG"] = args.loglevel
+
 from baml.baml_client.sync_client import b
 from baml.baml_client.types import Message
 from clients import cr
@@ -12,9 +14,6 @@ from converter import convert_and_save_to_json
 from documents import all_ner_paths, chunks, docs
 from paths import triple_json_path, triple_pkl_path
 from prompts import prompts, system_prompt
-
-# os.environ["BAML_LOG"] = args.loglevel
-
 
 texts = docs if args.doclevel == "docs" else chunks
 
@@ -77,7 +76,7 @@ with open(triple_pkl_path, "wb") as triple_pkl_file:
                 triple_pkl_file,
             )
         except Exception as e:
-            print(f"Exception: {e}")
+            print(f"Exception")
 
         if args.dev:
             break
