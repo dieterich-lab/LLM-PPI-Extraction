@@ -55,13 +55,13 @@ chat_prompts = {
             "ppi": [
                 "Extract all proteins involved in signalling pathways from the text. "
                 "Please stick to the desired OUTPUT FORMAT.",
-                "Look at the ENTITY LIST above with extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
+                "Look at the list above containing extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
                 "Please stick to the desired OUTPUT FORMAT.",
             ],
             "tf": [
                 "Extract all transcription factors and genes from the text. "
                 "Please stick to the desired OUTPUT FORMAT.",
-                "Look at the ENTITY LIST above with extracted transcription factors and genes. Use it to extract all the relations involving transcription factors to the target genes they regulate from the text. "
+                "Look at the list above containing extracted transcription factors and genes. Use it to extract all the relations involving transcription factors to the target genes they regulate from the text. "
                 "Please stick to the desired OUTPUT FORMAT.",
             ],
         },
@@ -69,7 +69,7 @@ chat_prompts = {
             "ppi": [
                 "Extract all proteins involved in signalling pathways from the text. "
                 "Please stick to the desired OUTPUT FORMAT.",
-                "Look at the ENTITY LIST above with extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
+                "Look at the list above containing extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
                 "Please stick to the desired OUTPUT FORMAT.",
                 "Now review your extracted protein-protein interactions (PPI's) to determine if "
                 "they are specific to signaling pathways. Retain only signalling pathway interactions "
@@ -85,7 +85,7 @@ chat_prompts = {
             "tf": [
                 "Extract all transcription factors and genes from the text. "
                 "Please stick to the desired OUTPUT FORMAT.",
-                "Look at the ENTITY LIST above with extracted transcription factors and genes. Use it to extract all the relations involving transcription factors to the target genes they regulate from the text. ",
+                "Look at the list above containing extracted transcription factors and genes. Use it to extract all the relations involving transcription factors to the target genes they regulate from the text. ",
                 "Please stick to the desired OUTPUT FORMAT.",
                 "Now review your extracted transcription factor (TF) to gene relations to determine if "
                 "they are specific to gene regulatory networks. Retain those interactions that are only "
