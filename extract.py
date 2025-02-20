@@ -3,9 +3,9 @@ import pickle
 import sys
 
 sys.path.append("..")  # isort:skip
-from parser import args  # isort:skip
+from parser import args
 
-os.environ["BAML_LOG"] = args.loglevel
+os.environ["BAML_LOG"] = args.loglevel  # isort:skip
 from baml.baml_client.sync_client import b  # isort:skip
 from baml.baml_client.types import Entities, Message, Triples  # isort:skip
 from clients import cr
@@ -41,17 +41,11 @@ def extract_ners(messages, responses):
             else:
                 ners = []
             response = Entities(entities=ners)
-        responses.append(response)
-        messages.append(Message(role="assistant", content=f"{str(response)}"))
     except:
         print(f"Exception at Entity extraction")
-        responses.append(Entities(entities=[]))
-        messages.append(
-            Message(
-                role="assistant",
-                content=f"{Entities(entities=[])}",
-            )
-        )
+        response = Entities(entities=[])
+    responses.append(response)
+    messages.append(Message(role="assistant", content=f"{str(response)}"))
 
 
 def extract_rels(messages, responses):
@@ -59,17 +53,13 @@ def extract_rels(messages, responses):
         messages.append(Message(role="user", content=prompt))
         try:
             response = b.GeneralChatExtractRelationships(
-                system_prompt,
-                text,
-                messages,
-                {"client_registry": cr},
+                system_prompt, text, messages, {"client_registry": cr}
             )
-            responses.append(response)
-            messages.append(Message(role="assistant", content=str(response)))
         except:
             print(f"Exception at step {i}")
-            responses.append(Triples(triples=[]))
-            messages.append(Message(role="assistant", content=str(Triples(triples=[]))))
+            response = Triples(triples=[])
+        responses.append(response)
+        messages.append(Message(role="assistant", content=str(response)))
 
 
 with open(triple_pkl_path, "wb") as triple_pkl_file:
