@@ -2,13 +2,12 @@ import os
 import pickle
 import sys
 
-sys.path.append("..")
-from parser import args
+sys.path.append("..")  # isort:skip
+from parser import args  # isort:skip
 
 os.environ["BAML_LOG"] = args.loglevel
-
-from baml.baml_client.sync_client import b
-from baml.baml_client.types import Message
+from baml.baml_client.sync_client import b  # isort:skip
+from baml.baml_client.types import Entities, Message, Triples  # isort:skip
 from clients import cr
 from converter import convert_and_save_to_json
 from documents import all_ner_paths, chunks, docs
@@ -25,13 +24,13 @@ if args.extractionmode == "nerrel":
 with open(triple_pkl_path, "wb") as triple_pkl_file:
     for i, doc in enumerate(texts):
         print(f"Doc {i}")
-        try:
-            text = doc[0].page_content
-            messages: list[Message] = []
-            responses = list()
-            if args.extractionmode == "nerrel":
-                message = Message(role="user", content=ner_prompt)
-                messages.append(message)
+        text = doc[0].page_content
+        messages: list[Message] = []
+        responses = list()
+        if args.extractionmode == "nerrel":
+            message = Message(role="user", content=ner_prompt)
+            messages.append(message)
+            try:
                 if not args.all_ners_given:
                     response = b.ExtractNEs(
                         system_prompt,
@@ -58,10 +57,23 @@ with open(triple_pkl_path, "wb") as triple_pkl_file:
                         ners = []
                     responses.append(ners)
                     messages.append(
-                        Message(role="assistant", content=f" ENTITIY LIST: {str(ners)}")
+                        Message(
+                            role="assistant",
+                            content=f" ENTITIY LIST: {Entities(entities=ners)}",
+                        )
                     )
-            for i, prompt in enumerate(prompts):
-                messages.append(Message(role="user", content=prompt))
+            except:
+                print(f"Exception at Entity extraction")
+                responses.append(Entities(entities=[]))
+                messages.append(
+                    Message(
+                        role="assistant",
+                        content=f" ENTITIY LIST: {Entities(entities=[])}",
+                    )
+                )
+        for j, prompt in enumerate(prompts):
+            messages.append(Message(role="user", content=prompt))
+            try:
                 response = b.GeneralChatExtractRelationships(
                     system_prompt,
                     text,
@@ -70,13 +82,17 @@ with open(triple_pkl_path, "wb") as triple_pkl_file:
                 )
                 responses.append(response)
                 messages.append(Message(role="assistant", content=str(response)))
+            except:
+                print(f"Exception at step {j}")
+                responses.append(Triples(triples=[]))
+                messages.append(
+                    Message(role="assistant", content=str(Triples(triples=[])))
+                )
 
-            pickle.dump(
-                (responses, doc[0].page_content, doc[0].metadata["file_path"]),
-                triple_pkl_file,
-            )
-        except Exception as e:
-            print(f"Exception")
+        pickle.dump(
+            (responses, doc[0].page_content, doc[0].metadata["file_path"]),
+            triple_pkl_file,
+        )
 
         if args.dev:
             break
