@@ -55,7 +55,7 @@ parser.add_argument(
 parser.add_argument(
     "--port",
     type=int,
-    choices=[34, 35, 36],
+    choices=[33, 34, 35, 36],
     default=34,
     help="Port where the local Ollama server is running.",
 )

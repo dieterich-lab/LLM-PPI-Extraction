@@ -19,7 +19,7 @@ texts = docs if args.doclevel == "docs" else chunks
 print(f"New run: {triple_pkl_path.parent}")
 
 
-def extract_ners(messages, responses):
+def extract_ners(messages, responses, text, doc):
     ner_prompt = prompts.pop(0)
     message = Message(role="user", content=ner_prompt)
     messages.append(message)
@@ -48,7 +48,7 @@ def extract_ners(messages, responses):
     messages.append(Message(role="assistant", content=f"{str(response)}"))
 
 
-def extract_rels(messages, responses):
+def extract_rels(messages, responses, text):
     for i, prompt in enumerate(prompts):
         messages.append(Message(role="user", content=prompt))
         try:
@@ -62,21 +62,26 @@ def extract_rels(messages, responses):
         messages.append(Message(role="assistant", content=str(response)))
 
 
-with open(triple_pkl_path, "wb") as triple_pkl_file:
-    for i, doc in enumerate(texts):
-        print(f"Doc {i}")
-        text = doc[0].page_content
-        messages: list[Message] = []
-        responses = list()
-        if args.extractionmode == "nerrel":
-            extract_ners(messages, responses)
-        extract_rels(messages, responses)
-        pickle.dump(
-            (responses, doc[0].page_content, doc[0].metadata["file_path"]),
-            triple_pkl_file,
-        )
+def main():
+    with open(triple_pkl_path, "wb") as triple_pkl_file:
+        for i, doc in enumerate(texts):
+            print(f"Doc {i}")
+            text = doc[0].page_content
+            messages = list()
+            responses = list()
+            if args.extractionmode == "nerrel":
+                extract_ners(messages, responses, text, doc)
+            extract_rels(messages, responses, text)
+            pickle.dump(
+                (responses, doc[0].page_content, doc[0].metadata["file_path"]),
+                triple_pkl_file,
+            )
 
-        if args.dev:
-            break
+            if args.dev:
+                break
 
-convert_and_save_to_json(triple_pkl_path, triple_json_path)
+    convert_and_save_to_json(triple_pkl_path, triple_json_path)
+
+
+if __name__ == "__main__":
+    main()
