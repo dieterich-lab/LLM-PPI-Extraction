@@ -2,7 +2,8 @@
 class Triple {
   head string @description("head entity of the triple ")
   relation "INTERACTS_WITH" @description("relationship type")
-  tail string @description("tail entity protein name of the triple")
+  tail string @description("tail entity name of the triple")
+  confidence "high" | "low" @description("if this relation was extracted with high confidence or not")
 }
 
 class Triples {
