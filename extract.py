@@ -19,7 +19,7 @@ texts = docs if args.doclevel == "docs" else chunks
 print(f"New run: {triple_pkl_path.parent}")
 
 
-def extract_ners(messages, responses, text, doc):
+def extract_ners(messages, responses, text, doc, prompts):
     ner_prompt = prompts.pop(0)
     message = Message(role="user", content=ner_prompt)
     messages.append(message)
@@ -46,9 +46,10 @@ def extract_ners(messages, responses, text, doc):
         response = Entities(entities=[])
     responses.append(response)
     messages.append(Message(role="assistant", content=f"{str(response)}"))
+    return prompts
 
 
-def extract_rels(messages, responses, text):
+def extract_rels(messages, responses, text, prompts):
     for i, prompt in enumerate(prompts):
         messages.append(Message(role="user", content=prompt))
         try:
@@ -65,13 +66,14 @@ def extract_rels(messages, responses, text):
 def main():
     with open(triple_pkl_path, "wb") as triple_pkl_file:
         for i, doc in enumerate(texts):
+            _prompts = prompts.copy()
             print(f"Doc {i}")
             text = doc[0].page_content
             messages = list()
             responses = list()
             if args.extractionmode == "nerrel":
-                extract_ners(messages, responses, text, doc)
-            extract_rels(messages, responses, text)
+                _prompts = extract_ners(messages, responses, text, doc, _prompts)
+            extract_rels(messages, responses, text, _prompts)
             pickle.dump(
                 (responses, doc[0].page_content, doc[0].metadata["file_path"]),
                 triple_pkl_file,

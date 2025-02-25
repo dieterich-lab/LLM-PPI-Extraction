@@ -62,16 +62,14 @@ chat_prompts = {
         "oneshot": {
             "ppi": [
                 "Extract all proteins involved in signalling pathways from the text. "
-                "Please stick to the desired OUTPUT FORMAT. "
-                "Whenever you are unsure about a relation set the 'confidence' attribute to 'low', otherwise to 'high'.",
+                "Please stick to the desired OUTPUT FORMAT.",
                 "Look at the list above containing extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
                 "Please stick to the desired OUTPUT FORMAT. "
                 "Whenever you are unsure about a relation set the 'confidence' attribute to 'low', otherwise to 'high'.",
             ],
             "tf": [
                 "Extract all transcription factors and genes from the text. "
-                "Please stick to the desired OUTPUT FORMAT. "
-                "Whenever you are unsure about a relation set the 'confidence' attribute to 'low', otherwise to 'high'.",
+                "Please stick to the desired OUTPUT FORMAT.",
                 "Look at the list above containing extracted transcription factors and genes. Use it to extract all the relations involving transcription factors to the target genes they regulate from the text. "
                 "Please stick to the desired OUTPUT FORMAT. "
                 "Whenever you are unsure about a relation set the 'confidence' attribute to 'low', otherwise to 'high'.",
@@ -80,8 +78,7 @@ chat_prompts = {
         "stepwise": {
             "ppi": [
                 "Extract all proteins involved in signalling pathways from the text. "
-                "Please stick to the desired OUTPUT FORMAT. "
-                "Whenever you are unsure about a relation set the 'confidence' attribute to 'low', otherwise to 'high'.",
+                "Please stick to the desired OUTPUT FORMAT.",
                 "Look at the list above containing extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
                 "Please stick to the desired OUTPUT FORMAT. "
                 "Whenever you are unsure about a relation set the 'confidence' attribute to 'low', otherwise to 'high'.",
@@ -100,8 +97,7 @@ chat_prompts = {
             ],
             "tf": [
                 "Extract all transcription factors and genes from the text. "
-                "Please stick to the desired OUTPUT FORMAT. "
-                "Whenever you are unsure about a relation set the 'confidence' attribute to 'low', otherwise to 'high'.",
+                "Please stick to the desired OUTPUT FORMAT.",
                 "Look at the list above containing extracted transcription factors and genes. Use it to extract all the relations involving transcription factors to the target genes they regulate from the text. ",
                 "Please stick to the desired OUTPUT FORMAT. "
                 "Whenever you are unsure about a relation set the 'confidence' attribute to 'low', otherwise to 'high'.",
