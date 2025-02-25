@@ -27,6 +27,7 @@ def convert_and_save_to_json(triple_pkl_path, triple_json_path):
                                     "head": triple_obj.head,
                                     "relation": triple_obj.relation,
                                     "tail": triple_obj.tail,
+                                    "confidence": triple_obj.confidence,
                                 }
                             )
                     step_list.append(triple_list)
@@ -39,3 +40,9 @@ def convert_and_save_to_json(triple_pkl_path, triple_json_path):
     with open(triple_json_path, "w") as triple_json_file:
         json.dump(json_triples, triple_json_file, indent=4)
         print(f"Saved json to {triple_json_path}")
+
+
+if __name__ == "__main__":
+    from paths import triple_json_path, triple_pkl_path
+
+    convert_and_save_to_json(triple_pkl_path, triple_json_path)
