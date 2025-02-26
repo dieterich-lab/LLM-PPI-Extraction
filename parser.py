@@ -53,6 +53,10 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "--force_cot",
+    action="store_true",
+)
+parser.add_argument(
     "--port",
     type=int,
     choices=[33, 34, 35, 36],
