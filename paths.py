@@ -11,3 +11,5 @@ os.makedirs(experiment_path, exist_ok=True)
 
 triple_pkl_path = experiment_path / "triples.pkl"
 triple_json_path = experiment_path / "triples.json"
+
+regulatome_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/annotated_ppi_relations.txt"

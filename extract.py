@@ -8,11 +8,17 @@ from parser import args
 os.environ["BAML_LOG"] = args.loglevel  # isort:skip
 from baml.baml_client.sync_client import b  # isort:skip
 from baml.baml_client.types import Entities, Message, Triples  # isort:skip
+from baml.baml_client.type_builder import TypeBuilder
 from clients import cr
 from converter import convert_and_save_to_json
 from documents import all_ner_paths, chunks, docs
 from paths import triple_json_path, triple_pkl_path
 from prompts import prompts, system_prompt
+
+tb = TypeBuilder()
+tb.Triple.add_property(
+    "confidence", tb.union([tb.literal_string("high"), tb.literal_string("low")])
+).description("if this relation was extracted with high confidence or not")
 
 texts = docs if args.doclevel == "docs" else chunks
 
@@ -29,7 +35,7 @@ def extract_ners(messages, responses, text, doc, prompts):
                 system_prompt,
                 text,
                 message,
-                {"client_registry": cr},
+                {"client_registry": cr, "tb": tb},
             )
         else:
             ner_path = [
@@ -54,7 +60,7 @@ def extract_rels(messages, responses, text, prompts):
         messages.append(Message(role="user", content=prompt))
         try:
             response = b.GeneralChatExtractRelationships(
-                system_prompt, text, messages, {"client_registry": cr}
+                system_prompt, text, messages, {"client_registry": cr, "tb": tb}
             )
         except:
             print(f"Exception at step {i}")
