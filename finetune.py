@@ -50,7 +50,10 @@ def chat_conversion(data):
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "system", "content": f"TEXT: {doc}"},
-            {"role": "system", "content": f"{OUTPUT_FORMAT}"},
+            {
+                "role": "system",
+                "content": f"Use the following OUTPUT FORMAT:\n{OUTPUT_FORMAT}",
+            },
             {"role": "user", "content": prompts[0]},
             {"role": "assistant", "content": formatted_triples},
         ]

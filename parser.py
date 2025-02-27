@@ -14,7 +14,8 @@ parser.add_argument(
         "direct",
         "nerrel",
     ],
-    default="nerrel",
+    default="direct",
+    # default="nerrel",
 )
 parser.add_argument(
     "--chattype",
@@ -32,7 +33,7 @@ parser.add_argument(
         "biored",
         "regulatome",
     ],
-    default="5curated",
+    default="regulatome",
     help="Which data to extract from.",
 )
 parser.add_argument(
@@ -60,14 +61,14 @@ parser.add_argument(
     "--port",
     type=int,
     choices=[33, 34, 35, 36],
-    default=34,
+    default=33,
     help="Port where the local Ollama server is running.",
 )
 parser.add_argument(
     "--node",
     type=str,
     choices=["g2", "g3", "g4", "g5", "mk22d"],
-    default="g4",
+    default="g3",
     help="Node alias that defines the ip where the Ollama server is running (see 'llm.py').",
 )
 parser.add_argument(
@@ -83,7 +84,6 @@ parser.add_argument(
     "--loglevel",
     choices=["error", "warn", "info", "debug", "trace", "off"],
     default="info",
-    # default="off",
     help="These are aliases pointing back to the folder of parsed PDF files (paths configured in 'get_documents.py' and 'paths.py')",
 )
 parser.add_argument(

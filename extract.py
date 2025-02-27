@@ -69,20 +69,22 @@ def extract_rels(messages, responses, text, prompts):
 
 
 def main():
-    with open(triple_pkl_path, "wb") as triple_pkl_file:
+    mode = "wb" if not args.dev else "rb"
+    with open(triple_pkl_path, mode) as triple_pkl_file:
         for i, doc in enumerate(texts):
             _prompts = prompts.copy()
             print(f"Doc {i}")
             text = doc[0].page_content
             messages = list()
             responses = list()
-            if args.extractionmode == "nerrel":
+            if args.extractionmode == "nerrel" or args.all_ners_given:
                 _prompts = extract_ners(messages, responses, text, doc, _prompts)
             extract_rels(messages, responses, text, _prompts)
-            pickle.dump(
-                (responses, doc[0].page_content, doc[0].metadata["file_path"]),
-                triple_pkl_file,
-            )
+            if not args.dev:
+                pickle.dump(
+                    (responses, doc[0].page_content, doc[0].metadata["file_path"]),
+                    triple_pkl_file,
+                )
 
             if args.dev:
                 break

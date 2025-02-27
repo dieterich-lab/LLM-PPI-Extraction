@@ -125,4 +125,5 @@ chat_prompts = {
     },
 }
 
-prompts = chat_prompts[args.extractionmode][args.chattype][args.target]
+lookup = args.extractionmode if not args.all_ners_given else "nerrel"
+prompts = chat_prompts[lookup][args.chattype][args.target]
