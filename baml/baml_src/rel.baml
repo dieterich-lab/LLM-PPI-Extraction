@@ -3,7 +3,8 @@ class Triple {
   head string @description("head entity of the triple ")
   relation "INTERACTS_WITH" @description("relationship type")
   tail string @description("tail entity name of the triple")
-  confidence "high" | "low" @description("if this relation was extracted with high confidence or not")
+  // confidence ("high" | "low")? @description("if this relation was extracted with high confidence or not")
+  @@dynamic
 }
 
 class Triples {
