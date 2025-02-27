@@ -34,3 +34,12 @@ alignment_json_path = Path(
     f"/prj/LINDA_LLM/outputs/evaluations/FPs/{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.json"
 )
 os.makedirs(alignment_json_path.parent, exist_ok=True)
+
+judge_path = Path("/prj/LINDA_LLM/outputs/evaluations/FPs_judged")
+os.makedirs(judge_path.parent, exist_ok=True)
+judge_pkl_path = (
+    judge_path / f"{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.pkl"
+)
+judge_json_path = (
+    judge_path / f"{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.json"
+)

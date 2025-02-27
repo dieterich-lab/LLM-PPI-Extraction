@@ -26,7 +26,8 @@ for name, client in client_names:
                 "base_url": f"http://{ip_dict[args.node]}:114{args.port}/v1",
                 "model": client,
                 "max_tokens": 10000,
-                "temperature": 0.0,
+                "temperature": 0.0,  # from huggingface usage recommendations https://huggingface.co/deepseek-ai/DeepSeek-R1#usage-recommendations
+                # "temperature": 0.6,  # from huggingface usage recommendations https://huggingface.co/deepseek-ai/DeepSeek-R1#usage-recommendations
                 "n_ctx": 10,
             },
         }

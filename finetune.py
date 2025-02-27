@@ -7,7 +7,7 @@ from datasets import Dataset, load_dataset
 from documents import docs
 from huggingface_hub import login
 from paths import regulatome_eval_path
-from prompts import prompts, system_prompt
+from prompts import prompts, rel_system_prompt
 from pydantic.json import pydantic_encoder
 
 from baml.baml_client.sync_client import b  # isort:skip
@@ -48,7 +48,7 @@ def chat_conversion(data):
 
     return {
         "messages": [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": rel_system_prompt},
             {"role": "system", "content": f"TEXT: {doc}"},
             {
                 "role": "system",

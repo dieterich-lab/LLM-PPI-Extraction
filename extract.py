@@ -10,10 +10,10 @@ from baml.baml_client.sync_client import b  # isort:skip
 from baml.baml_client.types import Entities, Message, Triples  # isort:skip
 from baml.baml_client.type_builder import TypeBuilder
 from clients import cr
-from converter import convert_and_save_to_json
+from converter import convert_and_save_triples_to_json
 from documents import all_ner_paths, texts
 from paths import triple_json_path, triple_pkl_path
-from prompts import prompts, system_prompt
+from prompts import prompts, rel_system_prompt
 
 tb = TypeBuilder()
 tb.Triple.add_property(
@@ -31,7 +31,7 @@ def extract_ners(messages, responses, text, doc, prompts):
     try:
         if not args.all_ners_given:
             response = b.ExtractNEs(
-                system_prompt,
+                rel_system_prompt,
                 text,
                 message,
                 {"client_registry": cr, "tb": tb},
@@ -59,7 +59,7 @@ def extract_rels(messages, responses, text, prompts):
         messages.append(Message(role="user", content=prompt))
         try:
             response = b.GeneralChatExtractRelationships(
-                system_prompt, text, messages, {"client_registry": cr, "tb": tb}
+                rel_system_prompt, text, messages, {"client_registry": cr, "tb": tb}
             )
         except:
             print(f"Exception at step {i}")
@@ -89,7 +89,7 @@ def main():
             if args.dev:
                 break
 
-    convert_and_save_to_json(triple_pkl_path, triple_json_path)
+    convert_and_save_triples_to_json(triple_pkl_path, triple_json_path)
 
 
 if __name__ == "__main__":

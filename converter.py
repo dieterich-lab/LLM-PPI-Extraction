@@ -4,7 +4,7 @@ import pickle
 import baml
 
 
-def convert_and_save_to_json(triple_pkl_path, triple_json_path):
+def convert_and_save_triples_to_json(triple_pkl_path, triple_json_path):
     json_triples = list()
     with open(triple_pkl_path, "rb") as triple_pkl_file:
         while 1:
@@ -45,4 +45,4 @@ def convert_and_save_to_json(triple_pkl_path, triple_json_path):
 if __name__ == "__main__":
     from paths import triple_json_path, triple_pkl_path
 
-    convert_and_save_to_json(triple_pkl_path, triple_json_path)
+    convert_and_save_triples_to_json(triple_pkl_path, triple_json_path)
