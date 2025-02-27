@@ -98,3 +98,5 @@ with open(paper_pkl_path, "rb") as f:
             docs.append(pickle.load(f))
         except EOFError:
             break
+
+texts = docs if args.doclevel == "docs" else chunks
