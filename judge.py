@@ -43,10 +43,11 @@ def main():
                     judge_prompt,
                     {"client_registry": cr},
                 )
+                alignment.append(response.reason)
             except:
                 print(f"Exception at step {i}")
                 response = "##Exception##"
-            alignment.append(response.reason)
+                alignment.append(response)
             if not args.dev:
                 pickle.dump(alignment, judge_pkl_file)
             if args.dev:

@@ -19,17 +19,23 @@ triple_json_path = experiment_path / "triples.json"
 
 regulatome_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/annotated_ppi_relations.txt"
 
-fp_paths = {
-    "deepseek8b": {
-        "nerrel": "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/FalsePositives_DeepSeek8b_Stepwise_NoEntities_Step1_AllRel.txt",
-        "all_ners_given": "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/FalsePositives_DeepSeek8b_Stepwise_AllEntities_Step1_AllRel.txt",
+try:
+    fp_paths = {
+        "deepseek8b": {
+            "nerrel": "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/FalsePositives_DeepSeek8b_Stepwise_NoEntities_Step1_AllRel.txt",
+            "all_ners_given": "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/FalsePositives_DeepSeek8b_Stepwise_AllEntities_Step1_AllRel.txt",
+        }
     }
-}
+except:
+    pass
 
 lookup = "nerrel" if not args.all_ners_given else "all_ners_given"
-fp_path = fp_paths[args.model][lookup]
+try:
+    fp_path = fp_paths[args.model][lookup]
+except:
+    pass
 
-mode = "direct" if not args.all_ners_given else "all_ners_gieven"
+mode = "direct" if not args.all_ners_given else "all_ners_given"
 alignment_json_path = Path(
     f"/prj/LINDA_LLM/outputs/evaluations/FPs/{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.json"
 )
