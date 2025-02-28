@@ -62,7 +62,8 @@ def main():
             except EOFError:
                 break
 
-    with open(judge_json_path, "w") as judge_json_file:
+    mode = "w" if not args.dev else "r"
+    with open(judge_json_path, mode) as judge_json_file:
         json.dump(judge_alignments, judge_json_file, indent=4)
         print(f"Saved json to {judge_json_path}")
 
