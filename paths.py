@@ -2,6 +2,8 @@ import os
 from parser import args
 from pathlib import Path
 
+from clients import hf_model_id
+
 experiment_path = Path(
     f"/beegfs/prj/LINDA_LLM/outputs/triples/{args.data}/{args.target}/{args.model}/{args.extractionmode}/{args.chattype}/{args.doclevel}"
 )
@@ -17,7 +19,6 @@ os.makedirs(experiment_path, exist_ok=True)
 triple_pkl_path = experiment_path / "triples.pkl"
 triple_json_path = experiment_path / "triples.json"
 
-regulatome_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/annotated_ppi_relations.txt"
 
 try:
     fp_paths = {
@@ -49,3 +50,7 @@ judge_pkl_path = (
 judge_json_path = (
     judge_path / f"{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.json"
 )
+
+finetune_data_path = Path("/prj/LINDA_LLM/outputs/datasets") / "regulatome.hf"
+regulatome_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/annotated_ppi_relations.txt"
+sft_model_path = Path("/prj/LINDA_LLM/outputs") / "finetunedmodels" / hf_model_id

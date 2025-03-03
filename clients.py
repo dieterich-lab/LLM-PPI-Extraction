@@ -9,15 +9,26 @@ ip_dict = {
     "g5": "10.250.135.156",
     "mk22d": "10.250.135.115",
 }
-client_names = [
+
+ollama_client_names = [
     ("llama33", "llama3.3-128k:70b"),
     ("llama31", "llama3.1-128k:8b"),
     ("deepseek8b", "deepseek-r1-128k:8b"),
     ("deepseek70b", "deepseek-r1-128k:70b"),
 ]
 
+hf_client_names = [
+    ("llama33", "meta-llama/Meta-Llama-3.3-70B"),
+    ("llama31", "meta-llama/Meta-Llama-3.1-8B"),
+    ("deepseek8b", "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"),
+    ("deepseek70b", "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"),
+]
+
+hf_model_id = hf_client_names[args.model]
+
+
 clients = list()
-for name, client in client_names:
+for name, client in ollama_client_names:
     clients.append(
         {
             "name": name,

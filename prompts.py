@@ -145,3 +145,19 @@ chat_prompts = {
 
 lookup = args.extractionmode if not args.all_ners_given else "nerrel"
 prompts = chat_prompts[lookup][args.chattype][args.target]
+
+OUTPUT_FORMAT = """
+Use the following OUTPUT FORMAT:{
+    // list of triples that describe interactions between two biological entities
+    triples: [
+    {
+        // head entity of the triple 
+        head: string,
+        // relationship type
+        relation: "INTERACTS_WITH",
+        // tail entity name of the triple
+        tail: string,
+    }
+    ],
+}
+"""
