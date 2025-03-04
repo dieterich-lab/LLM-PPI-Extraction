@@ -43,12 +43,23 @@ alignment_json_path = Path(
 os.makedirs(alignment_json_path.parent, exist_ok=True)
 
 judge_path = Path("/prj/LINDA_LLM/outputs/evaluations/FPs_judged")
-os.makedirs(judge_path.parent, exist_ok=True)
+os.makedirs(judge_path, exist_ok=True)
 judge_pkl_path = (
     judge_path / f"{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.pkl"
 )
 judge_json_path = (
     judge_path / f"{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.json"
+)
+
+corrector_path = Path("/prj/LINDA_LLM/outputs/evaluations/FPs_corrected")
+os.makedirs(corrector_path, exist_ok=True)
+corrector_pkl_path = (
+    corrector_path
+    / f"{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.pkl"
+)
+corrector_json_path = (
+    corrector_path
+    / f"{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.json"
 )
 
 finetune_data_path = Path("/prj/LINDA_LLM/outputs/datasets") / "regulatome.hf"

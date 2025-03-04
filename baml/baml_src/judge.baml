@@ -19,7 +19,7 @@ function Judge(sys_prompt: string, text: string, reasoning: string, triple: stri
 }
 
 class Judgement {
-  judgment "correct" | "incorrect" @description("the answer if a given evaluation was correct or incorrect")
+  judgement "correct" | "incorrect" @description("the answer if a given evaluation was correct or incorrect")
 }
 
 function Correct(sys_prompt: string, text: string, reasoning: string, triple: string, prompt: string) -> Judgement {

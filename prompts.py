@@ -6,6 +6,11 @@ rel_system_prompt = (
     "First, read the TEXT and study the OUTPUT FORMAT, then answer the USER QUESTION."
 )
 
+cot_models = ["llama33", "llama31"]
+cot_prompt = (
+    " Let's think step by step." if args.model in cot_models and args.force_cot else ""
+)
+
 judge_system_prompt = (
     "You are a top-tier molecular biologist specialized in the field of cardiology and molecular biology. "
     "Following, you'll find a TEXT in the form of a scientific paper, "
@@ -15,12 +20,6 @@ judge_system_prompt = (
     "First, examine the TEXT, the TRIPLE and the REASONING THOUGHTS, then answer the USER QUESTION."
 )
 
-
-cot_models = ["llama33", "llama31"]
-cot_prompt = (
-    " Let's think step by step." if args.model in cot_models and args.force_cot else ""
-)
-
 judge_prompt = (
     "The TRIPLE has been extracted by an AI, but an expert analysis shows "
     "that the relationship is factual wrong. Please analyse the TEXT with regards to the "
@@ -28,6 +27,22 @@ judge_prompt = (
     "erroneous relationship. "
     "Use the given JSON OUTPUT FORMAT to summarize why the AI incorrectly inferred this relationship, e.g.: "
     '```json { "reason": "The AI incorrectly assumed... "```'
+)
+
+corrector_system_prompt = (
+    "You are a top-tier molecular biologist specialized in the field of cardiology and molecular biology. "
+    "Following, you'll find a TEXT in the form of a scientific paper, "
+    "a TRIPlE that specifies a molecular relationship, "
+    "REASONING THOUGHTS denoting why this relationship has been extractd from the TEXT "
+    " and a USER QUESTION. "
+    "First, examine the TEXT, the TRIPLE and the REASONING THOUGHTS, then answer the USER QUESTION."
+)
+
+corrector_prompt = (
+    "The TRIPLE has been extracted by an AI. You, as an expert analyst,  are tasked to re-evaluate the relationship "
+    "and tell us if this triple is factually correct or incorrect. To do so, you will inspect the TEXT and the previous "
+    "REASONING THOUGHTS of the AI and then output 'correct' or 'incorrect' dependent on your judgement. "
+    "Use the given json OUTPUT FORMAT to output your answer."
 )
 
 chat_prompts = {

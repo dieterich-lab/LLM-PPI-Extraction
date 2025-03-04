@@ -43,6 +43,7 @@ parser.add_argument(
     default="ppi",
     help="Which entity type you want to extract.",
 )
+parser.add_argument("--re_evaluate", choices=["judge", "corrector"])
 parser.add_argument(
     "--doclevel",
     type=str,
