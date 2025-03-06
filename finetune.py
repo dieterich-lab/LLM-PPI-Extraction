@@ -1,66 +1,130 @@
 import os
 import sys
-from pathlib import Path
 
-from paths import sft_model_path
+from unsloth import FastLanguageModel  # isort:skip
+from unsloth import is_bfloat16_supported  # isort:skip
+from unsloth.chat_templates import get_chat_template  # isort:skip
+
+from paths import sft_model_path  # isort:skip
+from transformers import TrainingArguments  # isort:skip
+from transformers import TextStreamer  # isort:skip
+from trl import SFTTrainer  # isort:skip
 
 sys.path.append("..")  # isort:skip
-from finetuning_tools import (
-    get_bnb_config,
-    get_dataset,
-    get_model,
-    get_peft_config,
-    get_tokenizer,
-)
+from finetuning_tools import get_dataset
 from huggingface_hub import login
-from peft import prepare_model_for_kbit_training
 from transformers import TrainingArguments
-from trl import SFTTrainer, setup_chat_format
+from trl import SFTTrainer
 
 hf_key = os.getenv("HF_ACCESS_TOKEN")
 login(token=hf_key, add_to_git_credential=True)
 
+max_seq_length = 120_000  # Choose any! We auto support RoPE Scaling internally!
+dtype = None
+load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be False.
 
-tokenizer = get_tokenizer()
-bnb_config = get_bnb_config()
-peft_config = get_peft_config()
-model = get_model(bnb_config)
-dataset = get_dataset()
 
-model, tokenizer = setup_chat_format(model, tokenizer)
-model = prepare_model_for_kbit_training(model)
-
-training_args = TrainingArguments(
-    output_dir=sft_model_path,  # directory to save the model and repository id
-    num_train_epochs=2,  # number of training epochs
-    per_device_train_batch_size=4,  # batch size per device during training
-    gradient_accumulation_steps=2,  # number of steps before performing a backward/update pass
-    gradient_checkpointing=True,  # use gradient checkpointing to save memory, use in distributed training
-    optim="adamw_8bit",  # choose paged_adamw_8bit if not enough memory
-    logging_steps=10,  # log every 10 steps
-    save_strategy="epoch",  # save checkpoint every epoch
-    learning_rate=2e-4,  # learning rate, based on QLoRA paper
-    bf16=True,  # use bfloat16 precision
-    tf32=True,  # use tf32 precision
-    max_grad_norm=0.3,  # max gradient norm based on QLoRA paper
-    warmup_ratio=0.03,  # warmup ratio based on QLoRA paper
-    lr_scheduler_type="constant",  # use constant learning rate scheduler
-    report_to="tensorboard",  # report metrics to tensorboard
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name="unsloth/Meta-Llama-3.1-8B",
+    max_seq_length=max_seq_length,
+    dtype=dtype,  # auto detection
+    load_in_4bit=load_in_4bit,
+    token=hf_key,
 )
+
+tokenizer = get_chat_template(
+    tokenizer,
+    chat_template="chatml",  # Supports zephyr, chatml, mistral, llama, alpaca, vicuna, vicuna_old, unsloth
+    map_eos_token=True,  # Maps <|im_end|> to </s> instead
+)
+
+train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer)
+
+model = FastLanguageModel.get_peft_model(
+    model,
+    r=16,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+    target_modules=[
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj",
+    ],
+    lora_alpha=16,
+    lora_dropout=0,  # Supports any, but = 0 is optimized
+    bias="none",  # Supports any, but = "none" is optimized
+    use_gradient_checkpointing="unsloth",  # True or "unsloth" for very long context
+    random_state=3407,
+    use_rslora=False,  # We support rank stabilized LoRA
+    loftq_config=None,  # And LoftQ
+)
+
 
 trainer = SFTTrainer(
     model=model,
-    args=training_args,
-    train_dataset=dataset,
-    peft_config=peft_config,
-    max_seq_length=120_000,
     tokenizer=tokenizer,
-    packing=False,  # True if the dataset is large
-    dataset_kwargs={
-        "add_special_tokens": False,  # the template adds the special tokens
-        "append_concat_token": False,  # no need to add additional separator token
-    },
+    train_dataset=train_dataset,
+    eval_dataset=dev_dataset,
+    dataset_text_field="text",
+    max_seq_length=max_seq_length,
+    dataset_num_proc=2,
+    packing=False,  # Can make training 5x faster for short sequences.
+    args=TrainingArguments(
+        per_device_train_batch_size=2,
+        gradient_accumulation_steps=4,
+        warmup_steps=5,
+        eval_strategy="epoch",
+        num_train_epochs=2,
+        # max_steps=10,
+        learning_rate=2e-4,
+        fp16=not is_bfloat16_supported(),
+        bf16=is_bfloat16_supported(),
+        logging_steps=1,
+        optim="adamw_8bit",
+        weight_decay=0.01,
+        lr_scheduler_type="linear",
+        seed=3407,
+        output_dir=sft_model_path,
+        report_to="none",  # Use this for WandB etc
+    ),
 )
 
-trainer.train()
-trainer.save_model()
+if True:
+    trainer_stats = trainer.train()
+
+# Saving
+if True:
+    model.save_pretrained(sft_model_path)
+    tokenizer.save_pretrained(sft_model_path)
+
+    model.save_pretrained_merged(
+        f"{sft_model_path}_merged_16bit",
+        tokenizer,
+        save_method="merged_16bit",
+    )
+
+    model.save_pretrained_gguf(
+        f"{sft_model_path}.GGUF",
+        tokenizer,
+    )
+
+# Loading
+if True:
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=str(sft_model_path),
+        max_seq_length=max_seq_length,
+        dtype=dtype,
+        load_in_4bit=load_in_4bit,
+    )
+    FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
+
+
+inputs = tokenizer(test_dataset[0]["text"], return_tensors="pt").to("cuda")
+
+# outputs = model.generate(**inputs, max_new_tokens=5_000, use_cache=True)
+# print(tokenizer.batch_decode(outputs))
+
+text_streamer = TextStreamer(tokenizer)
+_ = model.generate(**inputs, streamer=text_streamer, max_new_tokens=5_000)

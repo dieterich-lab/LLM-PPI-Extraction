@@ -18,10 +18,12 @@ ollama_client_names = [
 ]
 
 hf_client_names = {
-    "llama33": "meta-llama/Meta-Llama-3.3-70B",
-    "llama31": "meta-llama/Meta-Llama-3.1-8B",
-    "deepseek8b": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
-    "deepseek70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+    "llama33": "unsloth/Meta-Llama-3.3-70B",
+    "llama31": "unsloth/Meta-Llama-3.1-8B",
+    # "llama33": "meta-llama/Meta-Llama-3.3-70B",
+    # "llama31": "meta-llama/Meta-Llama-3.1-8B",
+    # "deepseek8b": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    # "deepseek70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
 }
 
 hf_model_id = hf_client_names[args.model]

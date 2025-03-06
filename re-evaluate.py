@@ -68,7 +68,7 @@ def main():
                     answer = response.judgement
                 alignment.append(answer)
             except Exception as e:
-                print(f"Exception at step {i}, {e}")
+                print(f"Exception at step {i}")
                 response = "##Exception##"
                 alignment.append(response)
             if not args.dev:

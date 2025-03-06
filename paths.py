@@ -62,6 +62,6 @@ corrector_json_path = (
     / f"{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.json"
 )
 
-finetune_data_path = Path("/prj/LINDA_LLM/outputs/datasets") / "regulatome.hf"
+finetune_data_path = Path("/prj/LINDA_LLM/outputs/datasets")
 regulatome_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/annotated_ppi_relations.txt"
 sft_model_path = Path("/prj/LINDA_LLM/outputs") / "finetunedmodels" / hf_model_id

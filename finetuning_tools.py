@@ -70,25 +70,27 @@ def get_peft_config():
     return peft_config
 
 
-def get_dataset():
-    if not finetune_data_path.exists():
+def get_dataset(tokenizer):
+    if not (finetune_data_path / "regulatome_train_dataset").exists():
 
-        def chat_conversion(data):
-            doc = [
-                x for x in docs if x[0].metadata["file_path"].stem == data["file_stem"]
-            ][0][0].page_content
-            relations = [x.strip() for x in data["relations"].split(";")]
-            relations = [(x.split("=")[0], x.split("=")[1]) for x in relations]
-            triples = [
-                Triple(head=x[0], relation="INTERACTS_WITH", tail=x[1])
-                for x in relations
-            ]
+        def chat_conversion(test=False):
+            def _chat_conversion(data):
+                doc = [
+                    x
+                    for x in docs
+                    if x[0].metadata["file_path"].stem == data["file_stem"]
+                ][0][0].page_content
+                relations = [x.strip() for x in data["relations"].split(";")]
+                relations = [(x.split("=")[0], x.split("=")[1]) for x in relations]
+                triples = [
+                    Triple(head=x[0], relation="INTERACTS_WITH", tail=x[1])
+                    for x in relations
+                ]
 
-            triples = Triples(triples=triples)
-            formatted_triples = f"```json\n{json.dumps(triples.model_dump(), default=pydantic_encoder, indent=2)}\n```"
+                triples = Triples(triples=triples)
+                formatted_triples = f"```json\n{json.dumps(triples.model_dump(), default=pydantic_encoder, indent=2)}\n```"
 
-            return {
-                "messages": [
+                conversations = [
                     {"role": "system", "content": rel_system_prompt},
                     {"role": "system", "content": f"TEXT: {doc}"},
                     {
@@ -96,19 +98,48 @@ def get_dataset():
                         "content": f"Use the following OUTPUT FORMAT:\n{OUTPUT_FORMAT}",
                     },
                     {"role": "user", "content": prompts[0]},
-                    {"role": "assistant", "content": formatted_triples},
                 ]
-            }
+                assistant_msg = {"role": "assistant", "content": formatted_triples}
+                if not test:
+                    conversations.append(assistant_msg)
+                texts = tokenizer.apply_chat_template(
+                    conversations, tokenize=False, add_generation_prompt=False
+                )
+                if test:
+                    assistant_msg = tokenizer.apply_chat_template(
+                        [assistant_msg], tokenize=False, add_generation_prompt=False
+                    )
+                return (
+                    {"text": texts}
+                    if not test
+                    else {"text": texts, "assistant": assistant_msg}
+                )
+
+            return _chat_conversion
 
         with open(regulatome_eval_path, "r") as f:
             eval_data = [
-                (x.split("\t")[0], x.split("\t")[1]) for x in f.readlines()[1:]
+                (x.split("\t")[0], x.split("\t")[1], x.split("\t")[2].strip())
+                for x in f.readlines()[1:]
             ]
 
-        eval_data = [{"file_stem": x[0], "relations": x[1]} for x in eval_data]
-        dataset = Dataset.from_list(eval_data)
-        dataset = dataset.map(chat_conversion, batched=False)
-        dataset.save_to_disk(finetune_data_path)
+        eval_data = [
+            {"file_stem": x[0], "relations": x[1], "split": x[2]} for x in eval_data
+        ]
+        train_data = [x for x in eval_data if x["split"] == "Train"]
+        dev_data = [x for x in eval_data if x["split"] == "Devel"]
+        test_data = [x for x in eval_data if x["split"] == "Test"]
+        train_dataset = Dataset.from_list(train_data)
+        dev_dataset = Dataset.from_list(dev_data)
+        test_dataset = Dataset.from_list(test_data)
+        train_dataset = train_dataset.map(chat_conversion(), batched=False)
+        dev_dataset = dev_dataset.map(chat_conversion(), batched=False)
+        test_dataset = test_dataset.map(chat_conversion(test=True), batched=False)
+        train_dataset.save_to_disk(finetune_data_path / "regulatome_train_dataset")
+        dev_dataset.save_to_disk(finetune_data_path / "regulatome_dev_dataset")
+        test_dataset.save_to_disk(finetune_data_path / "regulatome_test_dataset")
 
-    dataset = load_from_disk(finetune_data_path)
-    return dataset
+    train_dataset = load_from_disk(finetune_data_path / "regulatome_train_dataset")
+    dev_dataset = load_from_disk(finetune_data_path / "regulatome_dev_dataset")
+    test_dataset = load_from_disk(finetune_data_path / "regulatome_test_dataset")
+    return train_dataset, dev_dataset, test_dataset
