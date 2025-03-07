@@ -18,13 +18,14 @@ ollama_client_names = [
 ]
 
 hf_client_names = {
-    "llama33": "unsloth/Meta-Llama-3.3-70B",
+    "llama33": "unsloth/Llama-3.3-70B-Instruct",
     "llama31": "unsloth/Meta-Llama-3.1-8B",
-    # "llama33": "meta-llama/Meta-Llama-3.3-70B",
-    # "llama31": "meta-llama/Meta-Llama-3.1-8B",
+    "llama33regu": "hf.com/phiwi/Llama-3.3-70B-Instruct-regu",
+    "llama31regu": "hf.com/phiwi/Meta-Llama-3.1-8B-regu",
     # "deepseek8b": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     # "deepseek70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
 }
+
 
 hf_model_id = hf_client_names[args.model]
 
@@ -39,7 +40,7 @@ for name, client in ollama_client_names:
                 "base_url": f"http://{ip_dict[args.node]}:114{args.port}/v1",
                 "model": client,
                 "max_tokens": 10000,
-                "temperature": 0.0,  # from huggingface usage recommendations https://huggingface.co/deepseek-ai/DeepSeek-R1#usage-recommendations
+                "temperature": 0.0,
                 # "temperature": 0.6,  # from huggingface usage recommendations https://huggingface.co/deepseek-ai/DeepSeek-R1#usage-recommendations
                 "n_ctx": 10,
             },

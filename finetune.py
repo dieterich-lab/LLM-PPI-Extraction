@@ -1,5 +1,8 @@
 import os
 import sys
+from pathlib import Path
+
+from clients import hf_model_id
 
 from unsloth import FastLanguageModel  # isort:skip
 from unsloth import is_bfloat16_supported  # isort:skip
@@ -25,7 +28,7 @@ load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be Fals
 
 
 model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name="unsloth/Meta-Llama-3.1-8B",
+    model_name=hf_model_id,
     max_seq_length=max_seq_length,
     dtype=dtype,  # auto detection
     load_in_4bit=load_in_4bit,
@@ -72,6 +75,7 @@ trainer = SFTTrainer(
     dataset_num_proc=2,
     packing=False,  # Can make training 5x faster for short sequences.
     args=TrainingArguments(
+        disable_tqdm=True,
         per_device_train_batch_size=2,
         gradient_accumulation_steps=4,
         warmup_steps=5,
@@ -110,6 +114,13 @@ if True:
         tokenizer,
     )
 
+# Pushing
+if True:
+    model.push_to_hub_gguf(
+        f"phiwi/{Path(hf_model_id).name}-regulatome", tokenizer, token=hf_key
+    )
+
+
 # Loading
 if True:
     model, tokenizer = FastLanguageModel.from_pretrained(
@@ -119,7 +130,6 @@ if True:
         load_in_4bit=load_in_4bit,
     )
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
-
 
 inputs = tokenizer(test_dataset[0]["text"], return_tensors="pt").to("cuda")
 
