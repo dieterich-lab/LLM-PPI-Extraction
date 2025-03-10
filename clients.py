@@ -15,15 +15,17 @@ ollama_client_names = [
     ("llama31", "llama3.1-128k:8b"),
     ("deepseek8b", "deepseek-r1-128k:8b"),
     ("deepseek70b", "deepseek-r1-128k:70b"),
+    ("llama33regu", "hf.co/phiwi/Llama-3.3-70B-Instruct-regu"),
+    ("llama31regu", "hf.co/phiwi/Meta-Llama-3.1-8B-regu"),
 ]
 
 hf_client_names = {
     "llama33": "unsloth/Llama-3.3-70B-Instruct",
     "llama31": "unsloth/Meta-Llama-3.1-8B",
-    "llama33regu": "hf.com/phiwi/Llama-3.3-70B-Instruct-regu",
-    "llama31regu": "hf.com/phiwi/Meta-Llama-3.1-8B-regu",
-    # "deepseek8b": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
-    # "deepseek70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+    "deepseek8b": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    "deepseek70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+    "llama33regu": "hf.co/phiwi/Llama-3.3-70B-Instruct-regu",
+    "llama31regu": "hf.co/phiwi/Meta-Llama-3.1-8B-regu",
 }
 
 

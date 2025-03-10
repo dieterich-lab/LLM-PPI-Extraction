@@ -3,7 +3,14 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--model",
-    choices=["llama31", "llama33", "deepseek8b", "deepseek70b"],
+    choices=[
+        "llama31",
+        "llama33",
+        "deepseek8b",
+        "deepseek70b",
+        "llama31regu",
+        "llama33regu",
+    ],
     default="deepseek8b",
     help="Alias pointing back to model names of the local Ollama server or the provider.",
 )

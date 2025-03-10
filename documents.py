@@ -6,6 +6,7 @@ from pathlib import Path
 
 from langchain_core.documents.base import Document
 from langchain_text_splitters import MarkdownTextSplitter
+from paths import regulatome_eval_path
 
 ending_dict = {"marker": "md", "llama_parse": "txt"}
 
@@ -53,6 +54,20 @@ elif args.data == "5curated":
         f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
     )
 paper_paths = list(_paper_paths.glob(f"*.{ending_dict[args.parser]}"))
+
+if args.data == "regulatome":
+    with open(regulatome_eval_path, "r") as f:
+        eval_data = [
+            (x.split("\t")[0], x.split("\t")[1], x.split("\t")[2].strip())
+            for x in f.readlines()[1:]
+        ]
+
+    eval_data = [
+        {"file_stem": x[0], "relations": x[1], "split": x[2]} for x in eval_data
+    ]
+    test_data = [x["file_stem"] for x in eval_data if x["split"] == "Test"]
+    paper_paths = [x for x in paper_paths if x.stem in test_data]
+
 
 chunk_pkl_path = Path(
     f"/beegfs/prj/LINDA_LLM/outputs/docs/{args.data}/{args.target}/{args.parser}/paper_chunks.pkl"

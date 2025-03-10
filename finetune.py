@@ -24,7 +24,7 @@ login(token=hf_key, add_to_git_credential=True)
 
 max_seq_length = 120_000  # Choose any! We auto support RoPE Scaling internally!
 dtype = None
-load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be False.
+load_in_4bit = False  # Use 4bit quantization to reduce memory usage. Can be False.
 
 
 model, tokenizer = FastLanguageModel.from_pretrained(
@@ -95,20 +95,30 @@ trainer = SFTTrainer(
     ),
 )
 
-if True:
+if False:
+    # if True:
     trainer_stats = trainer.train()
+
+# Loading
+if True:
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=str(sft_model_path),
+        max_seq_length=max_seq_length,
+        dtype=dtype,
+        load_in_4bit=load_in_4bit,
+    )
+    FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
 
 # Saving
 if True:
-    model.save_pretrained(sft_model_path)
-    tokenizer.save_pretrained(sft_model_path)
-
-    model.save_pretrained_merged(
-        f"{sft_model_path}_merged_16bit",
-        tokenizer,
-        save_method="merged_16bit",
-    )
-
+    # if True:
+    # model.save_pretrained(sft_model_path)
+    # tokenizer.save_pretrained(sft_model_path)
+    # model.save_pretrained_merged(
+    #     f"{sft_model_path}_merged_16bit",
+    #     tokenizer,
+    #     save_method="merged_16bit",
+    # )
     model.save_pretrained_gguf(
         f"{sft_model_path}.GGUF",
         tokenizer,
@@ -120,16 +130,6 @@ if True:
         f"phiwi/{Path(hf_model_id).name}-regulatome", tokenizer, token=hf_key
     )
 
-
-# Loading
-if True:
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=str(sft_model_path),
-        max_seq_length=max_seq_length,
-        dtype=dtype,
-        load_in_4bit=load_in_4bit,
-    )
-    FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
 
 inputs = tokenizer(test_dataset[0]["text"], return_tensors="pt").to("cuda")
 
