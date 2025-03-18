@@ -11,7 +11,7 @@ parser.add_argument(
         "llama31regu",
         "llama33regu",
     ],
-    default="deepseek8b",
+    default="llama31",
     help="Alias pointing back to model names of the local Ollama server or the provider.",
 )
 parser.add_argument(
@@ -72,7 +72,7 @@ parser.add_argument(
 parser.add_argument(
     "--port",
     type=int,
-    choices=[33, 34, 35, 36],
+    choices=[32, 33, 34, 35],
     default=33,
     help="Port where the local Ollama server is running.",
 )
@@ -136,8 +136,8 @@ parser.add_argument(
     help="If true, we append the filename of the current processed file to the list of entities that are extracted. So be careful when ever analysing the 'ner.json' in the `graphdoc_pkl_path` that the last element in a list will then be the filenmae",
 )
 parser.add_argument(
-    "--noexamples",
-    action="store_true",
+    "--examples",
+    choices=["neg", "pos", "negpos"],
     help="Not yet implemented. Option for future experiments without giving examples to the model (exemplifying zero-shot inference.)",
 )
 parser.add_argument(

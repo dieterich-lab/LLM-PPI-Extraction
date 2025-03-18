@@ -16,9 +16,10 @@ from paths import triple_json_path, triple_pkl_path
 from prompts import prompts, rel_system_prompt
 
 tb = TypeBuilder()
-tb.Triple.add_property(
-    "confidence", tb.union([tb.literal_string("high"), tb.literal_string("low")])
-).description("if this relation was extracted with high confidence or not")
+if not args.noconfidence:
+    tb.Triple.add_property(
+        "confidence", tb.union([tb.literal_string("high"), tb.literal_string("low")])
+    ).description("if this relation was extracted with high confidence or not")
 
 
 print(f"New run: {triple_pkl_path.parent}")
@@ -61,7 +62,7 @@ def extract_rels(messages, responses, text, prompts):
             response = b.GeneralChatExtractRelationships(
                 rel_system_prompt, text, messages, {"client_registry": cr, "tb": tb}
             )
-        except:
+        except Exception as e:
             print(f"Exception at step {i}")
             response = Triples(triples=[])
         responses.append(response)
@@ -86,10 +87,8 @@ def main():
                     triple_pkl_file,
                 )
 
-            if args.dev:
-                break
-
-    convert_and_save_triples_to_json(triple_pkl_path, triple_json_path)
+    if not args.dev:
+        convert_and_save_triples_to_json(triple_pkl_path, triple_json_path)
 
 
 if __name__ == "__main__":

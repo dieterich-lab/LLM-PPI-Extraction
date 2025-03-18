@@ -22,14 +22,23 @@ def convert_and_save_triples_to_json(triple_pkl_path, triple_json_path):
                         triple_list = triple_objs
                     else:
                         for triple_obj in triple_objs.triples:
-                            triple_list.append(
-                                {
-                                    "head": triple_obj.head,
-                                    "relation": triple_obj.relation,
-                                    "tail": triple_obj.tail,
-                                    "confidence": triple_obj.confidence,
-                                }
-                            )
+                            if hasattr(triple_obj, "confidence"):
+                                triple_list.append(
+                                    {
+                                        "head": triple_obj.head,
+                                        "relation": triple_obj.relation,
+                                        "tail": triple_obj.tail,
+                                        "confidence": triple_obj.confidence,
+                                    }
+                                )
+                            else:
+                                triple_list.append(
+                                    {
+                                        "head": triple_obj.head,
+                                        "relation": triple_obj.relation,
+                                        "tail": triple_obj.tail,
+                                    }
+                                )
                     step_list.append(triple_list)
                 json_triples.append(
                     {"triples": step_list, "text": text, "filename": file_name}

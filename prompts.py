@@ -6,9 +6,9 @@ rel_system_prompt = (
     "First, read the TEXT and study the OUTPUT FORMAT, then answer the USER QUESTION."
 )
 
-cot_models = ["llama33", "llama31"]
+cot_models = ["llama33", "llama31", "llama33regu", "llama31regu"]
 cot_prompt = (
-    " Let's think step by step." if args.model in cot_models and args.force_cot else ""
+    "Let's think step by step. " if args.model in cot_models and args.force_cot else ""
 )
 confidence_prompt = (
     "Whenever you are unsure about a relation set the 'confidence' attribute to 'low', otherwise to 'high'."
@@ -50,11 +50,90 @@ corrector_prompt = (
     "Use the given json OUTPUT FORMAT to output your answer."
 )
 
+ppi_prompt = f"Extract all the protein-protein interactions involved in signalling pathways from the text. Please only extract protein pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions."
+
+ppi_neg_ex = f"""
+Below you find some examples of false positives and the reason why you should not extract those:
+* 'KRAS and BRAF cooperate in the MAPK signaling cascade to promote cell proliferation.': Although the two proteins are in the same signalling system, the text does not provide evidence of a direct interaction.
+* 'p53 and Protein MYC are both found in the same signaling complex.': Incorrect assumptions based on co-occurrence or proximity.
+* 'TNF and IL6 accumulate at DNA damage sites.': Co-localization but no evidence of direct relation/interaction between the two.
+* 'Gene TNF regulates the expression of Gene IL6': Misinterpretation of genetic or signalling pathways as protein interactions.
+* 'Prmt5 shares 80% sequence identity with Protein Prmt7, which is known to bind BRAF.': Incorrect assumptions based on structural similarity.
+* 'PTEN was pulled down in a co-IP assay with CDKN2A.': Incorrect interpretations of experimental methods.
+"""
+
+ppi_pos_ex = """
+Below you find some positive examples of relations that give you an idea of what we are looking for:
+[
+    {
+        'text': (
+            'This cytokine induces the p53 into a mutant-like conformation that forms a complex with Sp1' 
+        ),
+        'head': 'p53',
+        'relation': 'INTERACTS_WITH',
+        'tail': 'Sp1',
+    },
+    {
+        'text': (
+            'These findings suggest that the STAT3-NRF2 complex accelerates BLBC growth and progression by augmenting IL-23A expression.' 
+        ),
+        'head': 'STAT3',
+        'relation': 'INTERACTS_WITH',
+        'tail': 'NRF2',
+    },
+    {
+        'text': (
+            'HIF1A forms a transcriptional complex with ARNT under hypoxia.' 
+        ),
+        'head': 'HIF1A',
+        'relation': 'INTERACTS_WITH',
+        'tail': 'ARNT',
+    },
+    {
+        'text': (
+            'PRMT1 methylates cGAS and suppresses cGAS/STING signaling in cancer cells' 
+        ),
+        'head': 'PRMT1',
+        'relation': 'INTERACTS_WITH',
+        'tail': 'cGAS',
+    },
+    {
+        'text': (
+            'TRAF6 ubiquitinates TGFβ type I receptor to promote its cleavage and nuclear translocation in cancer.' 
+        ),
+        'head': 'TRAF6',
+        'relation': 'INTERACTS_WITH',
+        'tail': 'TGFβ',
+    },
+    {
+        'text': 'AKT1 phosphorylates AKT1S1 at Thr-246.',
+        'head': 'AKT1',
+        'relation': 'INTERACTS_WITH',
+        'tail': 'AKT1S1',
+    },
+    {
+        'text': 'PIAS1 sumoylates PNKP in cells.',
+        'head': 'PIAS1',
+        'relation': 'INTERACTS_WITH',
+        'tail': 'PNKP',
+    },
+{
+        'text': 'CBP, but not p/CAF, acetylates GATA-1 at two highly conserved lysine-rich motifs present at the C-terminal tails of both zinc fingers.',
+        'head': 'CBP',
+        'relation': 'INTERACTS_WITH',
+        'tail': 'GATA-1',
+    },
+]
+"""
+
+ppi_ex = f"{ppi_pos_ex if args.examples in ['negpos', 'pos'] else ''}{ppi_neg_ex if args.examples in ['negpos', 'neg'] else ''}"
+
 chat_prompts = {
     "direct": {
         "oneshot": {
             "ppi": [
-                "Extract all the protein-protein interactions involved in signalling pathways from the text. "
+                f"{ppi_prompt} "
+                f"{ppi_ex} "
                 "Please stick to the desired OUTPUT FORMAT. "
                 f"{confidence_prompt}{cot_prompt}",
             ],
@@ -66,20 +145,21 @@ chat_prompts = {
         },
         "stepwise": {
             "ppi": [
-                "Extract all the protein-protein interactions involved in signalling pathways from the text. "
+                f"{ppi_prompt} "
+                f"{ppi_ex} "
                 "Please stick to the desired OUTPUT FORMAT. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Now review your extracted protein-protein interactions (PPI's) to determine if "
                 "they are specific to signaling pathways. Retain only signalling pathway interactions "
                 "and remove the rest. "
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Review one more time the protein-protein interactions (PPI's) to  "
                 "determine whether there are in the list regulations that are of a transcriptional or gene  "
                 "regulatory nature. Retain those interactions that are only specific to PPI's in cell  "
                 "signalling and remove those relations that represent relations between transcription factors "
                 "to their gene targets. "
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
             ],
             "tf": [
@@ -89,7 +169,7 @@ chat_prompts = {
                 "Now review your extracted transcription factor (TF) to gene relations to determine if "
                 "they are specific to gene regulatory networks. Retain those interactions that are only "
                 "involving TF's and their gene targets and remove those that are not. "
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Review one more time the transcription factor to gene relations  "
                 "to determine whether there are in the list relations that are protein-protein "
@@ -97,17 +177,17 @@ chat_prompts = {
                 "of gene regulatory networks involve a transcription factor and the gene whose expression  "
                 "they regulate. Remove those relations that involve interactions between two signalling protein "
                 "and PPI's. "
-                "Please stick to the desired OUTPUT FORMAT. ",
+                "Use again the desired json OUTPUT FORMAT to format your answer. ",
             ],
         },
     },
     "nerrel": {
         "oneshot": {
             "ppi": [
-                "Extract all proteins involved in signalling pathways from the text. "
-                "Please stick to the desired OUTPUT FORMAT.",
+                f"{ppi_prompt} " "Please stick to the desired OUTPUT FORMAT.",
+                f"{ppi_ex} "
                 "Look at the list above containing extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Review one more time the transcription factor to gene relations  ",
             ],
@@ -115,40 +195,40 @@ chat_prompts = {
                 "Extract all transcription factors and genes from the text. "
                 "Please stick to the desired OUTPUT FORMAT.",
                 "Look at the list above containing extracted transcription factors and genes. Use it to extract all the relations involving transcription factors to the target genes they regulate from the text. "
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
             ],
         },
         "stepwise": {
             "ppi": [
-                "Extract all proteins involved in signalling pathways from the text. "
-                "Please stick to the desired OUTPUT FORMAT.",
+                f"{ppi_prompt} " "Please stick to the desired OUTPUT FORMAT.",
+                f"{ppi_ex} "
                 "Look at the list above containing extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
                 "Please stick to the desired OUTPUT FORMAT. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Now review your extracted protein-protein interactions (PPI's) to determine if "
                 "they are specific to signaling pathways. Retain only signalling pathway interactions "
                 "and remove the rest. "
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Review one more time the protein-protein interactions (PPI's) to  "
                 "determine whether there are in the list regulations that are of a transcriptional or gene  "
                 "regulatory nature. Retain those interactions that are only specific to PPI's in cell  "
                 "signalling and remove those relations that represent relations between transcription factors "
                 "to their gene targets. "
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
             ],
             "tf": [
                 "Extract all transcription factors and genes from the text. "
                 "Please stick to the desired OUTPUT FORMAT.",
                 "Look at the list above containing extracted transcription factors and genes. Use it to extract all the relations involving transcription factors to the target genes they regulate from the text. ",
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Now review your extracted transcription factor (TF) to gene relations to determine if "
                 "they are specific to gene regulatory networks. Retain those interactions that are only "
                 "involving TF's and their gene targets and remove those that are not. ",
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Review one more time the transcription factor to gene relations  "
                 "to determine whether there are in the list relations that are protein-protein "
@@ -156,7 +236,7 @@ chat_prompts = {
                 "of gene regulatory networks involve a transcription factor and the gene whose expression  "
                 "they regulate. Remove those relations that involve interactions between two signalling protein "
                 "and PPI's. "
-                "Please stick to the desired OUTPUT FORMAT. "
+                "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
             ],
         },

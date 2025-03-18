@@ -7,6 +7,9 @@ from clients import hf_model_id
 experiment_path = Path(
     f"/beegfs/prj/LINDA_LLM/outputs/triples/{args.data}/{args.target}/{args.model}/{args.extractionmode}/{args.chattype}/{args.doclevel}"
 )
+if args.examples:
+    experiment_path /= f"{args.examples}_ex"
+
 all_ners_given = "all_ners_given" if args.all_ners_given else ""
 slurm_path = Path(
     f"/prj/LINDA_LLM/outputs/slurm/{args.data}_{args.model}{all_ners_given}.txt"
