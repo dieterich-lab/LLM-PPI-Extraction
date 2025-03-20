@@ -9,6 +9,8 @@ experiment_path = Path(
 )
 if args.examples:
     experiment_path /= f"{args.examples}_ex"
+if args.recall:
+    experiment_path /= "recall"
 
 all_ners_given = "all_ners_given" if args.all_ners_given else ""
 slurm_path = Path(

@@ -16,8 +16,8 @@ ollama_client_names = [
     ("deepseek8b", "deepseek-r1-128k:8b"),
     ("deepseek70b", "deepseek-r1-128k:70b"),
     # ("llama33regu", "llama3.3:70b_Q8_regu"),
-    # ("llama33regu", "llama3.3:70b_Q4_K_M_regu"),
-    ("llama33regu", "llama3.3-70b-regu"),  # Q8
+    ("llama33regu", "llama3.3:70b-regu_Q4_K_M"),
+    # ("llama33regu", "llama3.3-70b-regu"),  # Q8
     ("llama31regu", "llama3.1-128k-8b-regu"),
 ]
 

@@ -97,7 +97,7 @@ def get_dataset(tokenizer):
                         "role": "system",
                         "content": f"Use the following OUTPUT FORMAT:\n{OUTPUT_FORMAT}",
                     },
-                    {"role": "user", "content": prompts[0]},
+                    {"role": "user", "content": f"USER QUESTION {prompts[0]}"},
                 ]
                 assistant_msg = {"role": "assistant", "content": formatted_triples}
                 if not test:

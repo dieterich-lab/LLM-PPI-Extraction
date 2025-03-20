@@ -115,3 +115,5 @@ with open(paper_pkl_path, "rb") as f:
             break
 
 texts = docs if args.doclevel == "docs" else chunks
+
+print(f"Len texts: {len(texts)}")

@@ -95,21 +95,21 @@ trainer = SFTTrainer(
     ),
 )
 
-if True:
+if False:
     trainer_stats = trainer.train()
 
-# # Loading
-# if True:
-#     model, tokenizer = FastLanguageModel.from_pretrained(
-#         model_name=str(sft_model_path),
-#         max_seq_length=max_seq_length,
-#         dtype=dtype,
-#         load_in_4bit=load_in_4bit,
-#     )
-#     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
+# Loading
+if True:
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=str(sft_model_path),
+        max_seq_length=max_seq_length,
+        dtype=dtype,
+        load_in_4bit=load_in_4bit,
+    )
+    FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
 
 # Saving
-if True:
+if False:
     model.save_pretrained_gguf(
         f"{sft_model_path}.GGUF",
         tokenizer,
@@ -128,7 +128,7 @@ if False:
     )
 
 
-if False:
+if True:
     inputs = tokenizer(test_dataset[0]["text"], return_tensors="pt").to("cuda")
 
     # outputs = model.generate(**inputs, max_new_tokens=5_000, use_cache=True)
@@ -136,3 +136,4 @@ if False:
 
     text_streamer = TextStreamer(tokenizer)
     _ = model.generate(**inputs, streamer=text_streamer, max_new_tokens=5_000)
+    pass

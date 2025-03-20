@@ -50,7 +50,10 @@ corrector_prompt = (
     "Use the given json OUTPUT FORMAT to output your answer."
 )
 
-ppi_prompt = f"Extract all the protein-protein interactions involved in signalling pathways from the text. Please only extract protein pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions."
+if not args.recall:
+    ppi_prompt = f"Extract all the protein-protein interactions involved in signalling pathways from the text. Please only extract protein pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions."
+else:
+    ppi_prompt = "Extract ALL the relations between molecular entities from the text. Be as greedy as possible, we will filter the relations for correctness later in a second step"
 
 ppi_neg_ex = f"""
 Below you find some examples of false positives and the reason why you should not extract those:
@@ -247,7 +250,7 @@ lookup = args.extractionmode if not args.all_ners_given else "nerrel"
 prompts = chat_prompts[lookup][args.chattype][args.target]
 
 OUTPUT_FORMAT = """
-Use the following OUTPUT FORMAT:{
+{
     // list of triples that describe interactions between two biological entities
     triples: [
     {
