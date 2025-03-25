@@ -64,6 +64,8 @@ model = FastLanguageModel.get_peft_model(
     loftq_config=None,  # And LoftQ
 )
 
+model.config.text_config.use_cache = False
+
 
 trainer = SFTTrainer(
     model=model,
@@ -94,12 +96,13 @@ trainer = SFTTrainer(
         report_to="none",  # Use this for WandB etc
     ),
 )
+trainer.model.config.use_cache = False
 
-if False:
+if True:
     trainer_stats = trainer.train()
 
 # Loading
-if True:
+if False:
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=str(sft_model_path),
         max_seq_length=max_seq_length,
@@ -109,7 +112,7 @@ if True:
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
 
 # Saving
-if False:
+if True:
     model.save_pretrained_gguf(
         f"{sft_model_path}.GGUF",
         tokenizer,

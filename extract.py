@@ -1,6 +1,7 @@
 import os
 import pickle
 import sys
+import tempfile
 
 sys.path.append("..")  # isort:skip
 from parser import args
@@ -12,7 +13,7 @@ from baml.baml_client.type_builder import TypeBuilder
 from clients import cr
 from converter import convert_and_save_triples_to_json
 from documents import all_ner_paths, texts
-from paths import triple_json_path, triple_pkl_path
+from paths import triple_json_path, triple_pkl_path, uniprot_path
 from prompts import prompts, rel_system_prompt
 
 tb = TypeBuilder()
@@ -21,6 +22,12 @@ if not args.noconfidence:
         "confidence", tb.union([tb.literal_string("high"), tb.literal_string("low")])
     ).description("if this relation was extracted with high confidence or not")
 
+if args.chattype == "lookup":
+    with open(uniprot_path, "r") as lookupfile:
+        lookup = {
+            line.split("\t")[0]: (line.split("\t")[1], line.split("\t")[2])
+            for line in lookupfile.readlines()[1:]
+        }
 
 print(f"New run: {triple_pkl_path.parent}")
 
@@ -69,9 +76,24 @@ def extract_rels(messages, responses, text, prompts):
         messages.append(Message(role="assistant", content=str(response)))
 
 
+def lookup_infos(messages, responses):
+    infos = dict()
+    ent_set = set()
+    for nes in responses[-1]:
+        for ne in nes[1]:
+            if ne in ent_set:
+                continue
+            ent_set.add(ne)
+            if ne.lower() in lookup:
+                infos[ne] = (
+                    f"Function: {lookup[ne.lower()][0].strip()}\nInteractions: {lookup[ne.lower()][1].strip()}"
+                )
+    messages.append(Message(role="user", content=f"BACKGROUND KNOWLEDGE: {infos}"))
+
+
 def main():
-    mode = "wb" if not args.dev else "rb"
-    with open(triple_pkl_path, mode) as triple_pkl_file:
+    file = triple_pkl_file if not args.dev else tempfile.NamedTemporaryFile().name
+    with open(file, "wb") as triple_pkl_file:
         for i, doc in enumerate(texts):
             _prompts = prompts.copy()
             print(f"Doc {i}")
@@ -80,6 +102,8 @@ def main():
             responses = list()
             if args.extractionmode == "nerrel" or args.all_ners_given:
                 _prompts = extract_ners(messages, responses, text, doc, _prompts)
+            if args.chattype == "lookup":
+                lookup_infos(messages, responses)
             extract_rels(messages, responses, text, _prompts)
             if not args.dev:
                 pickle.dump(

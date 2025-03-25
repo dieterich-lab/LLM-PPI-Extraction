@@ -7,6 +7,7 @@ parser.add_argument(
         "llama31",
         "llama33",
         "deepseek8b",
+        "gemma",
         "deepseek70b",
         "llama31regu",
         "llama33regu",
@@ -27,7 +28,7 @@ parser.add_argument(
 parser.add_argument(
     "--chattype",
     type=str,
-    choices=["oneshot", "stepwise"],
+    choices=["oneshot", "stepwise", "lookup"],
     default="stepwise",
 )
 parser.add_argument(
@@ -73,14 +74,14 @@ parser.add_argument(
     "--port",
     type=int,
     choices=[32, 33, 34, 35],
-    default=33,
+    default=34,
     help="Port where the local Ollama server is running.",
 )
 parser.add_argument(
     "--node",
     type=str,
     choices=["g2", "g3", "g4", "g5", "mk22d"],
-    default="g3",
+    default="g4",
     help="Node alias that defines the ip where the Ollama server is running (see 'llm.py').",
 )
 parser.add_argument(

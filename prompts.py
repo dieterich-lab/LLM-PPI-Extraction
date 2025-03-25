@@ -50,10 +50,20 @@ corrector_prompt = (
     "Use the given json OUTPUT FORMAT to output your answer."
 )
 
+ppi_ner_list_prompt = (
+    "Now look at the list of extracted proteins above and use it for the following task:"
+    if args.extractionmode in ["nerrel", "lookup"]
+    else ""
+)
+lookup_prompt = (
+    "We also provided above some insightful BACKGROUND KNOWLEDGE for each extracted protein. Use it as additional support."
+    if args.chattype == "lookup"
+    else ""
+)
 if not args.recall:
-    ppi_prompt = f"Extract all the protein-protein interactions involved in signalling pathways from the text. Please only extract protein pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions."
+    ppi_prompt = f"{ppi_ner_list_prompt}  Extract all the protein-protein interactions involved in signalling pathways from the text. Please only extract protein pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions. {lookup_prompt}"
 else:
-    ppi_prompt = "Extract ALL the relations between molecular entities from the text. Be as greedy as possible, we will filter the relations for correctness later in a second step"
+    ppi_prompt = f"{ppi_ner_list_prompt} {lookup_prompt} Extract ALL the relations between molecular entities from the text. Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup_prompt}"
 
 ppi_neg_ex = f"""
 Below you find some examples of false positives and the reason why you should not extract those:
@@ -187,9 +197,9 @@ chat_prompts = {
     "nerrel": {
         "oneshot": {
             "ppi": [
+                "Extract all the proteins that appear in the text.",
                 f"{ppi_prompt} " "Please stick to the desired OUTPUT FORMAT.",
                 f"{ppi_ex} "
-                "Look at the list above containing extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
                 "Use again the desired json OUTPUT FORMAT to format your answer. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Review one more time the transcription factor to gene relations  ",
@@ -204,9 +214,9 @@ chat_prompts = {
         },
         "stepwise": {
             "ppi": [
+                "Extract all the proteins that appear in the text.",
                 f"{ppi_prompt} " "Please stick to the desired OUTPUT FORMAT.",
                 f"{ppi_ex} "
-                "Look at the list above containing extracted proteins. Use it to extract all the protein-protein interactions involved in signalling pathways from the text. "
                 "Please stick to the desired OUTPUT FORMAT. "
                 f"{confidence_prompt}{cot_prompt}",
                 "Now review your extracted protein-protein interactions (PPI's) to determine if "
@@ -246,8 +256,9 @@ chat_prompts = {
     },
 }
 
-lookup = args.extractionmode if not args.all_ners_given else "nerrel"
-prompts = chat_prompts[lookup][args.chattype][args.target]
+mode_lookup = args.extractionmode if not args.all_ners_given else "nerrel"
+chat_lookup = "stepwise" if args.chattype == "lookup" else args.chattype
+prompts = chat_prompts[mode_lookup][chat_lookup][args.target]
 
 OUTPUT_FORMAT = """
 {

@@ -69,4 +69,9 @@ corrector_json_path = (
 
 finetune_data_path = Path("/prj/LINDA_LLM/outputs/datasets")
 regulatome_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/annotated_ppi_relations.txt"
-sft_model_path = Path("/prj/LINDA_LLM/outputs") / "finetunedmodels" / hf_model_id
+try:
+    sft_model_path = Path("/prj/LINDA_LLM/outputs") / "finetunedmodels" / hf_model_id
+except TypeError:
+    pass
+
+uniprot_path = "/prj/LINDA_LLM/resources/uniprot_description_and_interactors.txt"

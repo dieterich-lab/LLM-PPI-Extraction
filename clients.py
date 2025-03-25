@@ -15,23 +15,25 @@ ollama_client_names = [
     ("llama31", "llama3.1-128k:8b"),
     ("deepseek8b", "deepseek-r1-128k:8b"),
     ("deepseek70b", "deepseek-r1-128k:70b"),
-    # ("llama33regu", "llama3.3:70b_Q8_regu"),
+    ("gemma", "gemma3:27b"),
     ("llama33regu", "llama3.3:70b-regu_Q4_K_M"),
     # ("llama33regu", "llama3.3-70b-regu"),  # Q8
     ("llama31regu", "llama3.1-128k-8b-regu"),
 ]
 
 hf_client_names = {
-    "llama33": "unsloth/Llama-3.3-70B-Instruct",
+    "llama33": "meta-llama/Llama-3.3-70B-Instruct",
+    # "llama33": "unsloth/Llama-3.3-70B-Instruct",
     "llama31": "unsloth/Meta-Llama-3.1-8B",
     "deepseek8b": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     "deepseek70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
     "llama33regu": "",
     "llama31regu": "",
+    "gemma": "google/gemma-3-27b-it",
 }
 
 
-hf_model_id = hf_client_names[args.model]
+hf_model_id = hf_client_names.get(args.model)
 
 
 clients = list()
