@@ -24,7 +24,7 @@ if not args.noconfidence:
 
 if args.chattype == "lookup":
     with open(uniprot_path, "r") as lookupfile:
-        lookup = {
+        lookup_table = {
             line.split("\t")[0]: (line.split("\t")[1], line.split("\t")[2])
             for line in lookupfile.readlines()[1:]
         }
@@ -64,7 +64,7 @@ def extract_ners(messages, responses, text, doc, prompts):
 
 def extract_rels(messages, responses, text, prompts):
     for i, prompt in enumerate(prompts):
-        messages.append(Message(role="user", content=prompt))
+        messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
         try:
             response = b.GeneralChatExtractRelationships(
                 rel_system_prompt, text, messages, {"client_registry": cr, "tb": tb}
@@ -84,15 +84,15 @@ def lookup_infos(messages, responses):
             if ne in ent_set:
                 continue
             ent_set.add(ne)
-            if ne.lower() in lookup:
+            if ne.lower() in lookup_table:
                 infos[ne] = (
-                    f"Function: {lookup[ne.lower()][0].strip()}\nInteractions: {lookup[ne.lower()][1].strip()}"
+                    f"Function: {lookup_table[ne.lower()][0].strip()}\nInteractions: {lookup_table[ne.lower()][1].strip()}"
                 )
     messages.append(Message(role="user", content=f"BACKGROUND KNOWLEDGE: {infos}"))
 
 
 def main():
-    file = triple_pkl_file if not args.dev else tempfile.NamedTemporaryFile().name
+    file = triple_pkl_path if not args.dev else tempfile.NamedTemporaryFile().name
     with open(file, "wb") as triple_pkl_file:
         for i, doc in enumerate(texts):
             _prompts = prompts.copy()
