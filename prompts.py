@@ -63,7 +63,7 @@ lookup_prompt = (
 if not args.recall:
     ppi_prompt = f"{ppi_ner_list_prompt}  Extract all the protein-protein interactions involved in signalling pathways from the text. Please only extract protein pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions. {lookup_prompt}"
 else:
-    ppi_prompt = f"{ppi_ner_list_prompt} {lookup_prompt} Extract ALL the relations between molecular entities from the text. Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup_prompt}"
+    ppi_prompt = f"{ppi_ner_list_prompt}  Extract ALL the relations between molecular entities from the text. Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup_prompt}"
 
 ppi_neg_ex = f"""
 Below you find some examples of false positives and the reason why you should not extract those:
@@ -215,7 +215,7 @@ chat_prompts = {
         "stepwise": {
             "ppi": [
                 "Extract all the proteins that appear in the text.",
-                f"{ppi_prompt} " "Please stick to the desired OUTPUT FORMAT.",
+                f"{ppi_prompt} "
                 f"{ppi_ex} "
                 "Please stick to the desired OUTPUT FORMAT. "
                 f"{confidence_prompt}{cot_prompt}",
