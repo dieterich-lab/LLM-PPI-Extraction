@@ -85,10 +85,8 @@ def lookup_infos(messages, responses):
                 continue
             ent_set.add(ne)
             if ne.lower() in lookup_table:
-                infos[ne] = (
-                    f"Function: {lookup_table[ne.lower()][0].strip()}\nInteractions: {lookup_table[ne.lower()][1].strip()}"
-                )
-    messages.append(Message(role="user", content=f"BACKGROUND KNOWLEDGE: {infos}"))
+                infos[ne] = f"Function: {lookup_table[ne.lower()][0].strip()}"
+    messages.append(Message(role="user", content=f"BACKGROUND KNOWLEDGE: {infos}\n"))
 
 
 def main():
