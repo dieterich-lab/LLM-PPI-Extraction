@@ -41,7 +41,8 @@ tokenizer = get_chat_template(
     map_eos_token=True,  # Maps <|im_end|> to </s> instead
 )
 
-train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer)
+train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer, force_new=True)
+# train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer)
 
 model = FastLanguageModel.get_peft_model(
     model,
@@ -81,7 +82,8 @@ trainer = SFTTrainer(
         per_device_train_batch_size=2,
         gradient_accumulation_steps=4,
         warmup_steps=5,
-        eval_strategy="epoch",
+        # eval_strategy="epoch",
+        do_eval=False,
         num_train_epochs=2,
         # max_steps=10,
         learning_rate=2e-4,
@@ -98,7 +100,7 @@ trainer = SFTTrainer(
 )
 trainer.model.config.use_cache = False
 
-if True:
+if False:
     trainer_stats = trainer.train()
 
 # Loading
@@ -114,14 +116,12 @@ if False:
 # Saving
 if True:
     model.save_pretrained_gguf(
-        f"{sft_model_path}.GGUF",
-        tokenizer,
-        quantization_method="q8_0",
+        f"{sft_model_path}.GGUF", tokenizer, quantization_method=["q4_k_m", "q8_0"]
     )
     model.save_pretrained_gguf(
         f"{sft_model_path}.GGUF",
         tokenizer,
-        quantization_method="q4_k_m",
+        quantization_type="q4_k_m",
     )
 
 # Pushing

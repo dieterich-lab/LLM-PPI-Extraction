@@ -59,6 +59,10 @@ parser.add_argument(
     default="docs",
 )
 parser.add_argument(
+    "--dynex",
+    action="store_true",
+)
+parser.add_argument(
     "--all_ners_given",
     action="store_true",
 )

@@ -4,7 +4,7 @@ import torch
 from baml.baml_client.types import Triple, Triples
 from clients import hf_model_id
 from datasets import Dataset, load_from_disk
-from documents import docs
+from documents import all_docs
 from paths import finetune_data_path, regulatome_eval_path
 from peft import LoraConfig, prepare_model_for_kbit_training
 from prompts import OUTPUT_FORMAT, prompts, rel_system_prompt
@@ -70,16 +70,16 @@ def get_peft_config():
     return peft_config
 
 
-def get_dataset(tokenizer):
-    if not (finetune_data_path / "regulatome_train_dataset").exists():
+def get_dataset(tokenizer=None, force_new=False):
+    if not (finetune_data_path / "regulatome_train_dataset").exists() or force_new:
 
         def chat_conversion(test=False):
             def _chat_conversion(data):
                 doc = [
                     x
-                    for x in docs
-                    if x[0].metadata["file_path"].stem == data["file_stem"]
-                ][0][0].page_content
+                    for x in all_docs
+                    if x.metadata["file_path"].stem == data["file_stem"]
+                ][0].page_content
                 relations = [x.strip() for x in data["relations"].split(";")]
                 relations = [(x.split("=")[0], x.split("=")[1]) for x in relations]
                 triples = [
@@ -110,9 +110,14 @@ def get_dataset(tokenizer):
                         [assistant_msg], tokenize=False, add_generation_prompt=False
                     )
                 return (
-                    {"text": texts}
+                    {"text": texts, "doc": doc, "triples": formatted_triples}
                     if not test
-                    else {"text": texts, "assistant": assistant_msg}
+                    else {
+                        "text": texts,
+                        "assistant": assistant_msg,
+                        "doc": doc,
+                        "triples": formatted_triples,
+                    }
                 )
 
             return _chat_conversion

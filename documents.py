@@ -66,7 +66,7 @@ if args.data == "regulatome":
         {"file_stem": x[0], "relations": x[1], "split": x[2]} for x in eval_data
     ]
     test_data = [x["file_stem"] for x in eval_data if x["split"] == "Test"]
-    paper_paths = [x for x in paper_paths if x.stem in test_data]
+    test_paper_paths = [x for x in paper_paths if x.stem in test_data]
 
 
 chunk_pkl_path = Path(
@@ -81,10 +81,17 @@ paper_dict_path = Path(
 )
 os.makedirs(Path(paper_dict_path).parent, exist_ok=True)
 
+all_docs = list()
+for i, x in enumerate(paper_paths):
+    paper_dict[i] = str(x)
+    text = open(x, "r").read().strip()
+    if text:
+        all_docs.append(Document(page_content=text, metadata={"file_path": x}))
+
 f = open(chunk_pkl_path, "wb")
 wf = open(paper_pkl_path, "wb")
 with open(chunk_pkl_path, "wb") as chunk_file, open(paper_pkl_path, "wb") as doc_file:
-    for i, x in enumerate(paper_paths):
+    for i, x in enumerate(test_paper_paths):
         paper_dict[i] = str(x)
         text = open(x, "r").read().strip()
         if text:
@@ -98,22 +105,22 @@ with open(chunk_pkl_path, "wb") as chunk_file, open(paper_pkl_path, "wb") as doc
 with open(paper_dict_path, "w") as f:
     json.dump(paper_dict, f, indent=4)
 
-chunks = list()
+test_chunks = list()
 with open(chunk_pkl_path, "rb") as f:
     while 1:
         try:
-            chunks.append(pickle.load(f))
+            test_chunks.append(pickle.load(f))
         except EOFError:
             break
 
-docs = list()
+test_docs = list()
 with open(paper_pkl_path, "rb") as f:
     while 1:
         try:
-            docs.append(pickle.load(f))
+            test_docs.append(pickle.load(f))
         except EOFError:
             break
 
-texts = docs if args.doclevel == "docs" else chunks
+texts = test_docs if args.doclevel == "docs" else test_chunks
 
 print(f"Len texts: {len(texts)}")

@@ -55,13 +55,22 @@ ppi_ner_list_prompt = (
     if args.extractionmode in ["nerrel", "lookup"]
     else ""
 )
+
 lookup_prompt = (
-    "We also provided above some insightful BACKGROUND KNOWLEDGE for each extracted protein. Use it as additional support."
+    "We also provided above some insightful BACKGROUND KNOWLEDGE for each extracted protein. Use it as additional support. "
     if args.chattype == "lookup"
     else ""
 )
+
+dynex_prompt = (
+    "Following, you find an example of a similar texts and ground truth relations. Use it as support for your decision. "
+    if args.dynex
+    else ""
+)
+
+
 if not args.recall:
-    ppi_prompt = f"{ppi_ner_list_prompt}  Extract all the protein-protein interactions involved in signalling pathways from the text. Please only extract protein pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions. {lookup_prompt}"
+    ppi_prompt = f"{ppi_ner_list_prompt}  Extract all the protein-protein interactions involved in signalling pathways from the text. Please only extract protein pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions. {lookup_prompt}{dynex_prompt}"
 else:
     ppi_prompt = f"{ppi_ner_list_prompt}  Extract ALL the relations between molecular entities from the text. Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup_prompt}"
 
