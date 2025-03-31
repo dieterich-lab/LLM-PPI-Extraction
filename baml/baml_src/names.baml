@@ -6,7 +6,7 @@ class AltNames {
 function CreateAltNames(input: string) -> AltNames {
   client Llama38b // will be overruled by the client registry
   prompt #"
-    Generate up to 10 alternative short names for the following protein:
+    Generate up to 10 alternative names for the following protein:
 
     {{ ctx.output_format(prefix="Use the following OUTPUT FORMAT:") }}
 
