@@ -17,27 +17,28 @@ ip_dict = {
 dim = 384
 index_path = "/prj/LINDA_LLM/outputs/regulatome_train_idx.bin"
 
+embed_model = "all-minilm"
+client = Client(
+    host=f"http://{ip_dict[args.node]}:114{args.port}",
+)
+
 
 def save_index():
     train_dataset, dev_dataset, _ = get_dataset()
 
     # model = "mxbai-embed-large"
-    model = "all-minilm"
-    client = Client(
-        host=f"http://{ip_dict[args.node]}:114{args.port}",
-    )
 
     embeds = list()
     for sample in tqdm(train_dataset):
         embed = client.embed(
-            model=model,
+            model=embed_model,
             input=sample["doc"],
         ).embeddings
         embeds.append(embed[0])
 
     for sample in tqdm(dev_dataset):
         embed = client.embed(
-            model=model,
+            model=embed_model,
             input=sample["doc"],
         ).embeddings
         embeds.append(embed[0])

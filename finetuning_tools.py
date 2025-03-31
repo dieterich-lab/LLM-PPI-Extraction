@@ -71,7 +71,9 @@ def get_peft_config():
 
 
 def get_dataset(tokenizer=None, force_new=False):
-    if not (finetune_data_path / "regulatome_train_dataset").exists() or force_new:
+    if tokenizer and (
+        not (finetune_data_path / "regulatome_train_dataset").exists() or force_new
+    ):
 
         def chat_conversion(test=False):
             def _chat_conversion(data):

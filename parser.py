@@ -69,6 +69,7 @@ parser.add_argument(
 parser.add_argument(
     "--noconfidence",
     action="store_true",
+    default="true",
 )
 parser.add_argument(
     "--force_cot",

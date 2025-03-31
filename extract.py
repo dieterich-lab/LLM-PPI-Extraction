@@ -29,6 +29,15 @@ if args.chattype == "lookup":
             for line in lookupfile.readlines()[1:]
         }
 
+if args.dynex:
+    from datasets import concatenate_datasets
+    from embed import client, embed_model, load_index
+    from finetuning_tools import get_dataset
+
+    index = load_index()
+    train_dataset, dev_dataset, _ = get_dataset()
+    lookup_dataset = concatenate_datasets([train_dataset, dev_dataset])
+
 print(f"New run: {triple_pkl_path.parent}")
 
 
@@ -89,6 +98,17 @@ def lookup_infos(messages, responses):
     messages.append(Message(role="user", content=f"BACKGROUND KNOWLEDGE: {infos}\n"))
 
 
+def get_dynex(messages, text):
+    embed = client.embed(
+        model=embed_model,
+        input=text,
+    ).embeddings
+    labels, _ = index.knn_query(embed, k=1)
+    example = lookup_dataset[labels[0]]
+    example_text = "\n".join([example["doc"][0], example["triples"][0]])
+    messages.append(Message(role="user", content=f"EXAMPLE: {example_text}\n"))
+
+
 def main():
     file = triple_pkl_path if not args.dev else tempfile.NamedTemporaryFile().name
     with open(file, "wb") as triple_pkl_file:
@@ -102,6 +122,8 @@ def main():
                 _prompts = extract_ners(messages, responses, text, doc, _prompts)
             if args.chattype == "lookup":
                 lookup_infos(messages, responses)
+            if args.dynex:
+                get_dynex(messages, text)
             extract_rels(messages, responses, text, _prompts)
             if not args.dev:
                 pickle.dump(
