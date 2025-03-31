@@ -11,6 +11,8 @@ if args.examples:
     experiment_path /= f"{args.examples}_ex"
 if args.recall:
     experiment_path /= "recall"
+if args.dynex:
+    experiment_path /= "dynex"
 
 all_ners_given = "all_ners_given" if args.all_ners_given else ""
 slurm_path = Path(
