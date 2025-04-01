@@ -118,8 +118,10 @@ def main():
             text = doc[0].page_content
             messages = list()
             responses = list()
-            if args.extractionmode == "nerrel" or args.all_ners_given:
+            if args.extractionmode == "nerrel":
                 _prompts = extract_ners(messages, responses, text, doc, _prompts)
+            if args.all_ners_given:
+                _prompts.pop(0)
             if args.chattype == "lookup":
                 lookup_infos(messages, responses)
             if args.dynex:

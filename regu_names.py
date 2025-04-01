@@ -3,8 +3,6 @@ import os
 from parser import args
 from pathlib import Path
 
-from paths import triple_json_path
-
 os.environ["BAML_LOG"] = args.loglevel  # isort:skip
 from baml.baml_client.sync_client import b  # isort:skip
 from clients import cr
