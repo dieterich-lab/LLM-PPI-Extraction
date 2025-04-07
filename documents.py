@@ -67,6 +67,8 @@ if args.data == "regulatome":
     ]
     test_data = [x["file_stem"] for x in eval_data if x["split"] == "Test"]
     test_paper_paths = [x for x in paper_paths if x.stem in test_data]
+else:
+    test_paper_paths = paper_paths
 
 
 chunk_pkl_path = Path(

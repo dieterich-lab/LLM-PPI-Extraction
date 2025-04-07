@@ -8,6 +8,7 @@ parser.add_argument(
         "llama33",
         "deepseek8b",
         "gemma",
+        "gemmaregu",
         "deepseek70b",
         "llama31regu",
         "llama33regu",
@@ -23,7 +24,6 @@ parser.add_argument(
         "nerrel",
     ],
     default="direct",
-    # default="nerrel",
 )
 parser.add_argument(
     "--chattype",

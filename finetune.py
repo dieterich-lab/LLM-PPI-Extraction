@@ -22,31 +22,30 @@ from trl import SFTTrainer
 hf_key = os.getenv("HF_ACCESS_TOKEN")
 login(token=hf_key, add_to_git_credential=True)
 
-max_seq_length = 120_000  # Choose any! We auto support RoPE Scaling internally!
+max_seq_length = 120_000
 dtype = None
-load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be False.
+load_in_4bit = True
 
 
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=hf_model_id,
     max_seq_length=max_seq_length,
-    dtype=dtype,  # auto detection
+    dtype=dtype,
     load_in_4bit=load_in_4bit,
     token=hf_key,
 )
 
 tokenizer = get_chat_template(
     tokenizer,
-    chat_template="chatml",  # Supports zephyr, chatml, mistral, llama, alpaca, vicuna, vicuna_old, unsloth
-    map_eos_token=True,  # Maps <|im_end|> to </s> instead
+    chat_template="chatml",
+    map_eos_token=True,
 )
 
-train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer, force_new=True)
-# train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer)
+train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer)
 
 model = FastLanguageModel.get_peft_model(
     model,
-    r=16,  # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+    r=16,
     target_modules=[
         "q_proj",
         "k_proj",
@@ -57,12 +56,12 @@ model = FastLanguageModel.get_peft_model(
         "down_proj",
     ],
     lora_alpha=16,
-    lora_dropout=0,  # Supports any, but = 0 is optimized
-    bias="none",  # Supports any, but = "none" is optimized
-    use_gradient_checkpointing="unsloth",  # True or "unsloth" for very long context
+    lora_dropout=0,
+    bias="none",
+    use_gradient_checkpointing="unsloth",
     random_state=3407,
-    use_rslora=False,  # We support rank stabilized LoRA
-    loftq_config=None,  # And LoftQ
+    use_rslora=False,
+    loftq_config=None,
 )
 
 model.config.text_config.use_cache = False
@@ -76,7 +75,7 @@ trainer = SFTTrainer(
     dataset_text_field="text",
     max_seq_length=max_seq_length,
     dataset_num_proc=2,
-    packing=False,  # Can make training 5x faster for short sequences.
+    packing=False,
     args=TrainingArguments(
         disable_tqdm=True,
         per_device_train_batch_size=2,
@@ -95,41 +94,40 @@ trainer = SFTTrainer(
         lr_scheduler_type="linear",
         seed=3407,
         output_dir=sft_model_path,
-        report_to="none",  # Use this for WandB etc
+        report_to="none",
     ),
 )
 trainer.model.config.use_cache = False
 
+# Training
 if False:
     trainer_stats = trainer.train()
 
-# Loading
-if False:
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=str(sft_model_path),
-        max_seq_length=max_seq_length,
-        dtype=dtype,
-        load_in_4bit=load_in_4bit,
-    )
-    FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
-
 # Saving
 if True:
-    model.save_pretrained_gguf(
-        f"{sft_model_path}.GGUF", tokenizer, quantization_method=["q4_k_m", "q8_0"]
+    model.save_pretrained_merged(
+        sft_model_path,
+        tokenizer,
+        save_method="merged_16bit",
     )
+    # model.save_pretrained_gguf(
+    #     f"{sft_model_path}.GGUF", tokenizer, quantization_method=["q4_k_m", "q8_0"]
+    # )
     model.save_pretrained_gguf(
         f"{sft_model_path}.GGUF",
         tokenizer,
         quantization_type="q4_k_m",
     )
 
-# Pushing
-if False:
-    model.push_to_hub_gguf(
-        f"phiwi/{Path(hf_model_id).name}-regulatome", tokenizer, token=hf_key
+# Loading
+if True:
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name=str(sft_model_path),
+        max_seq_length=max_seq_length,
+        dtype=dtype,
+        load_in_4bit=load_in_4bit,
     )
-
+    FastLanguageModel.for_inference(model)
 
 if True:
     inputs = tokenizer(test_dataset[0]["text"], return_tensors="pt").to("cuda")

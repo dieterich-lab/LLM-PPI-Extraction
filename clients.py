@@ -16,6 +16,7 @@ ollama_client_names = [
     ("deepseek8b", "deepseek-r1-128k:8b"),
     ("deepseek70b", "deepseek-r1-128k:70b"),
     ("gemma", "gemma3:27b"),
+    ("gemmaregu", "gemma3:27b-regu-Q4_K_M"),
     ("llama33regu", "llama3.3:70b-regu_Q4_K_M"),
     ("llama31regu", "llama3.1-128k-8b-regu"),
 ]
@@ -26,6 +27,7 @@ ollama_client_dict = {
     "deepseek8b": "deepseek-r1-128k:8b",
     "deepseek70b": "deepseek-r1-128k:70b",
     "gemma": "gemma3:27b",
+    "gemmaregu": "gemma3:27b-regu-Q4_K_M",
     "llama33regu": "llama3.3:70b-regu_Q4_K_M",
     "llama31regu": "llama3.1-128k-8b-regu",
 }
@@ -38,7 +40,8 @@ hf_client_names = {
     "deepseek70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
     "llama33regu": "",
     "llama31regu": "",
-    "gemma": "google/gemma-3-27b-it",
+    "gemma": "google/gemma-3-27b-it/checkpoint-234",
+    # "gemma": "google/gemma-3-27b-it",
 }
 
 
@@ -51,14 +54,13 @@ for name, client in ollama_client_names:
     clients.append(
         {
             "name": name,
-            "provider": "openai-generic",
+            "provider": "openai-generic",  # ollama is finally openai capable (https://ollama.com/blog/openai-compatibility)
             "options": {
                 "base_url": f"http://{ip_dict[args.node]}:114{args.port}/v1",
                 "model": client,
                 "max_tokens": 10000,
                 "temperature": 0.0,
-                # "temperature": 0.6,  # from huggingface usage recommendations https://huggingface.co/deepseek-ai/DeepSeek-R1#usage-recommendations
-                "n_ctx": 10,
+                "n_ctx": 120_000,  # should be overruled by OLLAMA_CONTEXT_LENGTH (https://github.com/ollama/ollama/blob/main/docs/faq.md)
             },
         }
     )
