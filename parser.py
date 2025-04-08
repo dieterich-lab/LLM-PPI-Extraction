@@ -63,6 +63,11 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "--chunksize",
+    type=int,
+    default=2_000,
+)
+parser.add_argument(
     "--all_ners_given",
     action="store_true",
 )

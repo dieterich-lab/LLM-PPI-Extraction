@@ -11,7 +11,7 @@ from paths import regulatome_eval_path
 ending_dict = {"marker": "md", "llama_parse": "txt"}
 
 text_splitter = MarkdownTextSplitter(
-    chunk_size=1000,
+    chunk_size=args.chunksize,
     chunk_overlap=100,
     length_function=len,
     is_separator_regex=False,
@@ -72,7 +72,7 @@ else:
 
 
 chunk_pkl_path = Path(
-    f"/beegfs/prj/LINDA_LLM/outputs/docs/{args.data}/{args.target}/{args.parser}/paper_chunks.pkl"
+    f"/beegfs/prj/LINDA_LLM/outputs/docs/{args.data}/{args.target}/{args.parser}/paper_chunks_{args.chunksize}.pkl"
 )
 os.makedirs(chunk_pkl_path.parent, exist_ok=True)
 paper_pkl_path = chunk_pkl_path.parent / "papers.pkl"

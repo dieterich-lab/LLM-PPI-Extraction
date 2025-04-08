@@ -7,6 +7,8 @@ from clients import hf_model_id
 experiment_path = Path(
     f"/beegfs/prj/LINDA_LLM/outputs/triples/{args.data}/{args.target}/{args.model}/{args.extractionmode}/{args.chattype}/{args.doclevel}"
 )
+if args.doclevel == "chunks":
+    experiment_path /= f"{args.chunksize}"
 if args.examples:
     experiment_path /= f"{args.examples}_ex"
 if args.recall:
