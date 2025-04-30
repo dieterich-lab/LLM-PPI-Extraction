@@ -31,10 +31,10 @@ def get_dataset(tokenizer=None, force_new=False):
                 formatted_triples = f"```json\n{json.dumps(triples.model_dump(), default=pydantic_encoder, indent=2)}\n```"
 
                 conversations = [
-                    {"role": "system", "content": rel_system_prompt},
-                    {"role": "system", "content": f"TEXT: {doc}"},
+                    {"role": "user", "content": rel_system_prompt},
+                    {"role": "user", "content": f"TEXT: {doc}"},
                     {
-                        "role": "system",
+                        "role": "user",
                         "content": f"Use the following OUTPUT FORMAT:\n{OUTPUT_FORMAT}",
                     },
                     {"role": "user", "content": f"USER QUESTION {prompts[0]}"},

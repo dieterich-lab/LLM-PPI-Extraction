@@ -160,5 +160,21 @@ parser.add_argument(
     default="NEBIUS_API_KEY_PRP",
     help="If you use an external model provider, this is the API key that is used for it and read out from `os.env`.",
 )
+parser.add_argument(
+    "--train",
+    action="store_true",
+)
+parser.add_argument(
+    "--save",
+    action="store_true",
+)
+parser.add_argument(
+    "--push",
+    action="store_true",
+)
+parser.add_argument(
+    "--load",
+    action="store_true",
+)
 
 args = parser.parse_args()

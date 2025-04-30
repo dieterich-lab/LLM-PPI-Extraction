@@ -15,6 +15,8 @@ from trl import SFTTrainer  # isort:skip
 sys.path.append("..")  # isort:skip
 from parser import args
 
+args.noconfidence = True
+
 from dataset import get_dataset
 from huggingface_hub import login
 from transformers import TrainingArguments
@@ -49,14 +51,15 @@ chat_dict = {
 
 tokenizer = get_chat_template(
     tokenizer,
-    chat_template=chat_dict[args.model],
+    chat_template="chatml",
+    # chat_template=chat_dict[args.model],
     map_eos_token=True,
 )
 
-train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer)
+train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer, force_new=False)
 
 # Training
-if True:
+if args.train:
     model = FastLanguageModel.get_peft_model(
         model,
         r=16,
@@ -92,8 +95,8 @@ if True:
             per_device_train_batch_size=2,
             gradient_accumulation_steps=4,
             warmup_steps=5,
-            # eval_strategy="epoch",
-            do_eval=False,
+            eval_strategy="epoch",
+            do_eval=True,
             num_train_epochs=1,
             # max_steps=10,
             learning_rate=2e-4,
@@ -111,35 +114,54 @@ if True:
 
     trainer = train_on_responses_only(
         trainer,
-        instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-        response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
+        instruction_part="<|im_start|>user\n",
+        response_part="<|im_start|>assistant\n",
+        # instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
+        # response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
     )
 
     trainer_stats = trainer.train()
 
 # Saving
-if True:
+if args.save and not args.load:
     model.save_pretrained_merged(
-        f"{sft_model_path}.lora",
+        f"{sft_model_path}-lora",
         tokenizer,
         save_method="lora",
     )
-    model.push_to_hub_merged(
-        f"{sft_model_path}.lora", tokenizer, save_method="lora", token=""
-    )
     # model.save_pretrained_gguf(
-    #     f"{sft_model_path}.GGUF", tokenizer, quantization_method=["q4_k_m"]
+    #     f"{sft_model_path}-GGUF", tokenizer, quantization_method=["q4_k_m"]
     # )
+if args.push and not args.load:
+    model.push_to_hub_merged(
+        f"phiwi/{sft_model_path.stem}-lora", tokenizer, save_method="lora", token=hf_key
+    )
 
 
 # Loading
-if False:
+if args.load:
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=f"{sft_model_path}.lora",
+        model_name=f"{sft_model_path}-lora",
         max_seq_length=max_seq_length,
         dtype=dtype,
         load_in_4bit=load_in_4bit,
     )
+    if args.save:
+        model.save_pretrained_merged(
+            f"{sft_model_path}-lora",
+            tokenizer,
+            save_method="lora",
+        )
+    if args.push:
+        model.push_to_hub_merged(
+            f"phiwi/{sft_model_path.name}-lora",
+            tokenizer,
+            save_method="lora",
+            token=hf_key,
+        )
+        # model.save_pretrained_gguf(
+        #     f"{sft_model_path}.GGUF", tokenizer, quantization_method=["q4_k_m"]
+        # )
 
 FastLanguageModel.for_inference(model)
 
