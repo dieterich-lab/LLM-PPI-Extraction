@@ -34,13 +34,16 @@ ollama_client_dict = {
 
 
 hf_client_names = {
-    "llama33": "meta-llama/Llama-3.3-70B-Instruct",
-    "llama31": "unsloth/Meta-Llama-3.1-8B",
+    "llama33": "unsloth/Llama-3.3-70B-Instruct-bnb-4bit",
+    # "llama33": "meta-llama/Llama-3.3-70B-Instruct",
+    "llama31": "unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit",
+    # "llama31": "unsloth/Meta-Llama-3.1-8B",
     "deepseek8b": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     "deepseek70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
-    "llama33regu": "",
-    "llama31regu": "",
-    "gemma": "google/gemma-3-27b-it/checkpoint-234",
+    # "llama33regu": "",
+    # "llama31regu": "",
+    "gemma": "unsloth/gemma-3-27b-it-unsloth-bnb-4bit",
+    # "gemma": "google/gemma-3-27b-it/checkpoint-234",
     # "gemma": "google/gemma-3-27b-it",
 }
 
