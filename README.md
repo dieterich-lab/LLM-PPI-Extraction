@@ -1,126 +1,126 @@
 # LLM_Relations
 
-## LLM_Extractions
+## Installation
 
-This is the code that was used to extract the desired structured information from the LLMs.
-
-The folder structure is the following, import files being highlighted:
+Clone this project and install the requirements in a python environment of your choice.
 
 ```bash
-.
-├── check_hallucinations.py
-├── const.py
-├── generate_graph.py <--- main script to run the extractions
-├── get_documents.py
-├── graphdocs2json.py <--- script that can be run afterwards to convert the exraction objects into parsable json format
-├── graph_utils.py
-├── langchain_patch.py <--- a patch for langchain to be applied (see installation)
-├── llama_parse.ipynb <--- notebook used to parse your PDF papers with llama_parse
-├── llm.py
-├── parser.py <--- the argparser the will ask for the type of data, type of llm, API information and so on.
-├── paths.py
-├── README.md
-├── requirements.txt <--- requirements file to for the Pyhton environemnt (see installation)
-├── structured_classes.py
-├── style_templates.py
-├── templates.py
-└── utils.py
-```
-
-### Installation
-
-You can install the requirements after cloning the project:
-
-```
 git clone  https://github.com/dieterich-lab/LLM_Relations
 cd LLM_Relations/llm_extractions
-python3 -m venv ~/.venvs/linda  # or any other choice of directory # tested with Python 3.11.2
-. ~/.venvs/linda/bin/activate # or your choice of directory
+python3 -m venv ~/.venvs/llm  # or any other choice of directory # tested with Python 3.11.2
+. ~/.venvs/llm/bin/activate # or your choice of directory
 pip install -r requirements.txt
 ```
 
-### Usage
-
-0) Output folder structure
-
-The outputs are saved in a folder `outputs` in the same directoy as this code is located.
-
-```
-.
-├── graph_docs <-- here are the triples directly after extracting with generate_graph.py (as langchain_community.graphs.GraphDocument)
-├── graph_triples <-- here are the triples saved in json format after using graphdocs2json.py to convert them from the GraphDocument format
-├── paper_chunks <-- here are the papers saved together with their id, both as chunks and as whole documents (as langchain_core.documents.base.Document)
-├── paper_dicts <-- (for debugging purposes) a mapping from the number of the paper in read-in order to their parsed paper path
-└── parsed papers <-- here we save the papers after parsed with llama_parse
-```
-
-You can change the naming of the output folder and most of the subpaths to your desired needs in [paths](paths.py).
-
-1) Parse PDFs to Markdown
-
-Use the notebook llama_parse.ipynb to parse your bunch of PDFs into markdown format. To use llama_parse, you have to create your own APi key [here](https://docs.cloud.llamaindex.ai/llamaparse/getting_started/get_an_api_key).
-
-2) Extract Relations
-
-To extract relations we will use the [generate_graph](generate_graph.py) script that will output a collection of serialized [GraphDocuments](https://python.langchain.com/api_reference/community/graphs/langchain_community.graphs.graph_document.GraphDocument.html). To start the script with the correct information, we have to set up certain arguments and paths. The [parser](parser.py) was designed to our environment (paths and data names). 
-
-We first list those options that are essential for the algorithm and are valid in any environment:
-
-```
-  --style {1,2,3,4,5,6}
-                        Declare which of our predefined styles you want to chose (see `style_dict` in 'style_templates.py' for the individual prompts.)
-  --parser [{llama_parse,marker}]
-                        These are aliases pointing back to the folder of parsed PDF files (paths configured in 'get_documents.py' and 'paths.py')
-  --simple              If true, the simpler prompt if chosen from the `style_dict` in 'style_templates.py' for the current style. Otherwise we use the style denoted `complex`, which is a more elaborate variant of the prompt.
-  --onlyner             If true, only named entitiy recognition is carried out and the named entities are saved to 'ner.json' in the `graphdoc_pkl_path`.
-  --relgiventrueners    An option to only do RE. This sets `nerrel` automatically to `individual`. A list of the ground truth entities THAT PARTICIPATE IN RELATIONS is given to the chat model to let it classify relations between those. If you have those pre-annotations then
-                        you can add the path to in 'get_documents.py' to the variable `_true_ner_paths`. The path must containt txt-files for each document with the same filename as the document with newline separated entities.
-  --relgivenallners     An option to only do RE. This sets `nerrel` automatically to `individual`. A list of ALL the ground truth entities is given to the chat model to let it classify relations between those. If you have those pre-annotations then you can add the path to in
-                        'get_documents.py' to the variable `_all_ner_paths`. The path must containt txt-files for each document with the same filename as the document with newline separated entities.
-  --nerrel {conversational,individual}
-                        This is the option for doing NER first (extracting the entities) and then RE (classifying relations between those detected entities). 'conversational' means that the same model is used for NER and RE (such that the conversation starts with the NER)
-                        whereas 'individual' means that a dedicated chat is used to extract the entities and the actual chat is started by giving those entities to the chat model and ask for RE.
-  --doclevel            If true, whole documents are given as input to the llm instead of chunks. The the `text_splitter` in get_documents.py for information how documents are chunked.
-  --saveinbetweenoutputs
-                        If true, we save outputs for each step in multi-step conversational prompts. So for each document/chunk a list of lists is saved, the order of the outer list representing the order of the steps.
-  --filelist            If true, we append the filename of the current processed file to the list of entities that are extracted. So be careful when ever analysing the 'ner.json' in the `graphdoc_pkl_path` that the last element in a list will then be the filenmae
-```
-
-These are flags that you have to change in the code to suit your environment:
-
-```
-  --target [{tf,ppi,both,ppi_eval,tf_eval,lr_eval,biored,ppi_regulatome,tf_regulatome}]
-                        These are pre-defined aliases for certain task and entity combinations. You have to set those up for your own data and pathing and change loading and processing rules in 'const.py', 'generate_graph.py', 'get_documents.py', 'graph_docs2json.py'. and
-                        'paths.py'
-  --port {34,35,36}     Port where the local Ollama server is running.
-  --node {g2,g3,g4,g5,mk22d}
-                        Node alias that defines the ip where the Ollama server is running (see 'llm.py').
-  --nebius              We used Nebius (nebius.com) as provider to run external computations. This changes the Chat Wrapper API (see 'llm.py').
-  --curated             An extra alias that points to a local subset of data in our environment.
-  --model {8b,70b,405b}
-                        Alias pointing back to model names of the local Ollama server or the provider.
-  --apikey APIKEY       If you use an external model provider, this is the API key that is used for it and read out from `os.env`.
-```
-
-And finally debugging/experimental settings:
-
-```
-  --startfromdoc [STARTFROMDOC]
-                        To exclude the first n documents/chunks from the extraction.
-  --untildoc [UNTILDOC]
-                        To only parse untnil the nth document/chunk.
-  --printpaperpaths     Debugging option to print the paper paths while processing.
-  --dev                 A developing options that stops the scripts from actually saving/overwriting results.
-  --noexamples          Not yet implemented. Option for future experiments without giving examples to the model (exemplifying zero-shot inference.)
-```
-
-After having made yourself familiar with the options and have changed aliases in the code to point to your own data, you can then run the script with:
+We also use the [BAML](https://www.boundaryml.com/) framework as structured output parser to extract triples from the LLM's response. The library will already get installed with the requirements and we also prepared the according [baml](./baml/baml_src/) files. All you need to do now is to trigger the initiation of the src code by running from the command line:
 
 ```bash
-python generate_graph.py --target ... [...]
+baml-cli generate
 ```
 
-3) Conversation to json format
+## Folder Structure
 
-The relations are saved in the GraphDocument format (in our environment under `outputs/graph_docs`) and can now be converted to json format for easier analysis. To do so, you can use the script [`graphdocs2json](graphdocs2json.py). When you use the same flags as for extraction and have set your aliases correctly in the code, the script will load them and write them back in the correct subfolder (`outputs/graph_triples` in our environment).
+### Project Folders
 
+```bash
+.
+├── add_names.py # script to query an LLM for alternative names for extracted triples
+├── baml # we use boundary ml ("baml") to parse structured outputs (e.g. triples)
+│   └── baml_src                      
+│       ├── clients.baml # a dummy client, as all clients will be created live from a dictionary and added to the client registry (see clients.py)
+│       ├── generators.baml # standard file for baml that declares the language and version of baml
+│       ├── names.baml # function and classes for generating alt names for triples
+│       └── rel.baml # function and classes for extracting triples from text
+├── clients.py # here are aliases for the used models saved, ips for GPU nodes in our compute environment and the client registry for baml
+├── converter.py # containing a function to convert pydantic triples to json and save them
+├── data # containing the curated and pre-processed input data
+├── documents.py # script to prepare the input documents
+├── embed.py # function to embed the trainig and development set of regulatome in a vector store
+├── extract.py # main script to extract triples from texts
+├── finetune.py # main script to finetune a model
+├── finetuning_tools.py # outsourced configurations used for finetuning a model
+├── llama_parse.ipynb # notebook to parse papers via llama_parse
+├── parser.py # argparser for CLI
+├── paths.py # declaration of all the input and outpt pathes
+├── prompts.py # declaration of the prompts for the different styles and regimes
+├── README.md # this readme :-)
+├── regu_names.py # script to query an LLM for alternative names for the entities in the RegulaTome test dataset
+├── requirements.txt # installation requirements
+```
+
+### Output Folders
+
+The project will save the outputs in a folder `outputs` in the same directoy as this code is located:
+
+```bash
+├── outputs            
+│   ├── datasets # folder for the RegulaTome dataset saved as arrow files for fine-tuning
+│   ├── docs # here we save the input data documents
+│   ├── finetunedmodels # path for the finetuned models
+│   ├── parsed_papers # a folder for your custom parsed papers
+│   ├── regulatome_train_idx.bin # the train and development set of RegulaTome as vector store binary
+│   ├── regu_test_names.json # the alternative names and abbreviations for the entities in the RegulaTome test set
+│   └── triples # the actual extracted triples
+```
+
+### LLMs and Inference Server:
+
+As we used [Ollama](ollama.com) for inference and [huggingface](huggingface.co)/[unsloth](https://unsloth.ai/) for fine-tuning. All models can be acquired from the following sources:
+
+
+| model  | alias |huggingface  | ollama |
+|---|---|---|---|
+|llama3.1:8b   | llama31 | https://huggingface.co/unsloth/Meta-Llama-3.1-8B |https://ollama.com/library/llama3.1 |
+|llama3.3:70b   | llama33 | https://huggingface.co/meta-llama/Llama-3.3-70B  |https://ollama.com/library/llama3.3:70b |
+|llama3.1:8b (finetuned)  | llama31regu | _tbd_ | - |
+|llama3.3:70b (finetuned)  | llama33regu | _tbd_ | - |
+
+
+To set up the ip's and corresponding aliases for your Ollama server, customize the `ip_dict` in [clients.py](./clients.py) and don't forget to pull the models via `ollama pull [llama3.1 | llama3.3:70b]`.
+
+### Data
+
+We used the RegulaTome dataset for high throughput evaluation and cureated 5 cardiac research to analyze performance on real-world data.
+
+The regulatome corpus can be found [here](https://zenodo.org/records/10808330) under the [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/legalcode) licencse.
+
+The five curated papers are the following:
+
+@Enio: citations here
+
+We processed the corpus and the annotated papers to have easy access to the input texts and their according ground truths. They are automatically used by the scripts when choosing the option `--data [regulatome | 5curated]` and can be found here:
+
+```bash
+data/
+├── 5curated # containing the 5 chosen papers in plaintext format (parsed with llama_parse)
+├── regulatome # containing the regulatome texts in plaintext format
+├── transformers_datasets # the regulatome data as transformers datasets
+├── uniprot_lookup # a compiled list from the uniprot database containing related molecule information
+└── vector_index # the train and development set saved as a HNSW vector index
+```
+
+### Relation Extraction
+
+To extract relations, you can use [extract.py](./extract.py). To get all possible options, use the help of the argparser:
+
+```bash
+python extract.py -h
+```
+
+The most important parameters the following:
+
+```bash
+  --model {llama31,llama33,deepseek8b,gemma,gemmaregu,deepseek70b,llama31regu,llama33regu}
+                        Aliases pointing back to model names of the local Ollama server or the provider. More specifically defined in `clients.py`.
+  --extractionmode {direct,nerrel}
+                        `nerrel`: Extract entities first, from these, extract corresponding relations. `direct`: Extract relations (triples) in a single step.
+  --chattype {oneshot,stepwise,lookup}
+                        `oneshot`: extract relations in a single step (don't ask for revising). `stepwise`: Let the LLM revise the prompts in two additional steps. `lookup`: Sets `extractionmode` to `nerrel` and queries information about the entities from our uniprot
+                        database.
+  --data {5curated,regulatome}
+                        Aliases that point to the according txt/md files of the RegulaTome corpus or our 5 curated papaers.
+```
+
+### Fine-tuning
+
+For finetuning, you can use the [finetune.py](./finetune.py) script with either the `--model llama31` or the `--model llama33` flag, depending what model you want to fine-tune.
