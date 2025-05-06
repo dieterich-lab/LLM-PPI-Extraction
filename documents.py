@@ -45,6 +45,8 @@ elif args.data == "regulatome":
             "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_tf"
         )
         true_ner_paths = list(_true_ner_paths.glob(f"*"))
+elif args.data == "regulatomepapers":
+    _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
 elif args.data == "ours":
     _paper_paths = Path(
         f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/{args.target}/{args.parser}"
@@ -53,7 +55,8 @@ elif args.data == "5curated":
     _paper_paths = Path(
         f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
     )
-paper_paths = list(_paper_paths.glob(f"*.{ending_dict[args.parser]}"))
+ending = ending_dict[args.parser] if args.data != "regulatomepapers" else "md"
+paper_paths = list(_paper_paths.glob(f"*.{ending}"))
 
 if args.data == "regulatome":
     with open(regulatome_eval_path, "r") as f:

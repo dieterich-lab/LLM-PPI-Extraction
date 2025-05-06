@@ -42,15 +42,12 @@ def get_dataset(tokenizer=None, force_new=False):
                 assistant_msg = {"role": "assistant", "content": formatted_triples}
                 if not test:
                     conversations.append(assistant_msg)
-                texts = tokenizer.apply_chat_template(
-                    conversations, tokenize=False, add_generation_prompt=False
-                )
-                if test:
-                    assistant_msg = tokenizer.apply_chat_template(
-                        [assistant_msg],
-                        tokenize=False,
-                        add_generation_prompt=True,
-                        # [assistant_msg], tokenize=False, add_generation_prompt=False
+                    texts = tokenizer.apply_chat_template(
+                        conversations, tokenize=False, add_generation_prompt=False
+                    )
+                else:
+                    texts = tokenizer.apply_chat_template(
+                        conversations, tokenize=False, add_generation_prompt=True
                     )
                 return (
                     {"text": texts, "doc": doc, "triples": formatted_triples}

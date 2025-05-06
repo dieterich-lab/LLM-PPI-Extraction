@@ -48,7 +48,6 @@ chat_dict = {
     "gemma": "gemma-3",
 }
 
-
 tokenizer = get_chat_template(
     tokenizer,
     chat_template="chatml",
@@ -56,7 +55,7 @@ tokenizer = get_chat_template(
     map_eos_token=True,
 )
 
-train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer, force_new=False)
+train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer, force_new=True)
 
 # Training
 if args.train:
@@ -95,8 +94,8 @@ if args.train:
             per_device_train_batch_size=2,
             gradient_accumulation_steps=4,
             warmup_steps=5,
-            eval_strategy="epoch",
-            do_eval=True,
+            # eval_strategy="epoch",
+            do_eval=False,
             num_train_epochs=1,
             # max_steps=10,
             learning_rate=2e-4,
@@ -116,8 +115,6 @@ if args.train:
         trainer,
         instruction_part="<|im_start|>user\n",
         response_part="<|im_start|>assistant\n",
-        # instruction_part="<|start_header_id|>user<|end_header_id|>\n\n",
-        # response_part="<|start_header_id|>assistant<|end_header_id|>\n\n",
     )
 
     trainer_stats = trainer.train()
@@ -125,50 +122,50 @@ if args.train:
 # Saving
 if args.save and not args.load:
     model.save_pretrained_merged(
-        f"{sft_model_path}-lora",
+        f"{sft_model_path}_merged_16bit",
+        tokenizer,
+        save_method="merged_16bit",
+    )
+    model.save_pretrained_merged(
+        f"{sft_model_path}_lora",
         tokenizer,
         save_method="lora",
     )
     # model.save_pretrained_gguf(
     #     f"{sft_model_path}-GGUF", tokenizer, quantization_method=["q4_k_m"]
     # )
-if args.push and not args.load:
-    model.push_to_hub_merged(
-        f"phiwi/{sft_model_path.stem}-lora", tokenizer, save_method="lora", token=hf_key
-    )
-
+# if args.push and not args.load:
+#     model.push_to_hub_merged(
+#         f"phiwi/{sft_model_path.name}_lora", tokenizer, save_method="lora", token=hf_key
+#     )
 
 # Loading
 if args.load:
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=f"{sft_model_path}-lora",
+        model_name=f"{sft_model_path}_lora",
         max_seq_length=max_seq_length,
         dtype=dtype,
         load_in_4bit=load_in_4bit,
     )
     if args.save:
         model.save_pretrained_merged(
-            f"{sft_model_path}-lora",
+            f"{sft_model_path}_lora",
             tokenizer,
             save_method="lora",
         )
-    if args.push:
-        model.push_to_hub_merged(
-            f"phiwi/{sft_model_path.name}-lora",
-            tokenizer,
-            save_method="lora",
-            token=hf_key,
-        )
-        # model.save_pretrained_gguf(
-        #     f"{sft_model_path}.GGUF", tokenizer, quantization_method=["q4_k_m"]
-        # )
-
-FastLanguageModel.for_inference(model)
+    # if args.push:
+    #     model.push_to_hub_merged(
+    #         f"phiwi/{sft_model_path.name}-lora",
+    #         tokenizer,
+    #         save_method="lora",
+    #         token=hf_key,
+    #     )
 
 # Generation
 if True:
-    inputs = tokenizer(test_dataset[0]["text"], return_tensors="pt").to("cuda")
+    FastLanguageModel.for_inference(model)
 
+    inputs = tokenizer(test_dataset[0]["text"], return_tensors="pt").to("cuda")
     outputs = model.generate(**inputs, max_new_tokens=5_000, use_cache=True)
     print(tokenizer.batch_decode(outputs))
 

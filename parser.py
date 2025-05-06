@@ -40,6 +40,7 @@ parser.add_argument(
         "eval",
         "biored",
         "regulatome",
+        "regulatomepapers",
     ],
     default="regulatome",
     help="Which data to extract from.",

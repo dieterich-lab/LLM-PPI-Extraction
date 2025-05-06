@@ -17,9 +17,6 @@ if args.dynex:
     experiment_path /= "dynex"
 
 all_ners_given = "all_ners_given" if args.all_ners_given else ""
-slurm_path = Path(
-    f"/prj/LINDA_LLM/outputs/slurm/{args.data}_{args.model}{all_ners_given}.txt"
-)
 
 if args.all_ners_given:
     experiment_path /= "all_ners_given"

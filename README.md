@@ -68,12 +68,12 @@ The project will save the outputs in a folder `outputs` in the same directoy as 
 As we used [Ollama](ollama.com) for inference and [huggingface](huggingface.co)/[unsloth](https://unsloth.ai/) for fine-tuning. All models can be acquired from the following sources:
 
 
-| model  | alias |huggingface  | ollama |
+| model  | alias |unsloth  | ollama |
 |---|---|---|---|
-|llama3.1:8b   | llama31 | https://huggingface.co/unsloth/Meta-Llama-3.1-8B |https://ollama.com/library/llama3.1 |
-|llama3.3:70b   | llama33 | https://huggingface.co/meta-llama/Llama-3.3-70B  |https://ollama.com/library/llama3.3:70b |
-|llama3.1:8b (finetuned)  | llama31regu | _tbd_ | - |
-|llama3.3:70b (finetuned)  | llama33regu | _tbd_ | - |
+|llama3.1:8b | llama31 | https://hugginface.co/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit | https://ollama.com/library/llama3.1 |
+|llama3.3:70b | llama33 | https://hugginface.co/unsloth/Llama-3.3-70B-Instruct-bnb-4bit  | https://ollama.com/library/llama3.3:70b |
+|llama3.1:8b (finetuned lora adapter)  | llama31regu | https://huggingface.co/phiwi/Meta-Llama-3.1-8B-Instruct-bnb-4bit_regulatome-lora | - |
+|llama3.3:70b (finetuned lora adapter)  | llama33regu | _tbd_ | - |
 
 
 To set up the ip's and corresponding aliases for your Ollama server, customize the `ip_dict` in [clients.py](./clients.py) and don't forget to pull the models via `ollama pull [llama3.1 | llama3.3:70b]`.

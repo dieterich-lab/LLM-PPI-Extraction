@@ -30,9 +30,9 @@ if args.chattype == "lookup":
         }
 
 if args.dynex:
+    from dataset import get_dataset
     from datasets import concatenate_datasets
     from embed import client, embed_model, load_index
-    from finetuning_tools import get_dataset
 
     index = load_index()
     train_dataset, dev_dataset, _ = get_dataset()
