@@ -82,13 +82,6 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
-    "--port",
-    type=int,
-    choices=[32, 33, 34, 35],
-    default=34,
-    help="Port where the local Ollama server is running.",
-)
-parser.add_argument(
     "--node",
     type=str,
     choices=["g2", "g3", "g4", "g5", "mk22d"],

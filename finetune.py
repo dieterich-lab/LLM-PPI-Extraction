@@ -55,7 +55,7 @@ tokenizer = get_chat_template(
     map_eos_token=True,
 )
 
-train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer, force_new=True)
+train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer, force_new=False)
 
 # Training
 if args.train:
@@ -113,9 +113,21 @@ if args.train:
 
     trainer = train_on_responses_only(
         trainer,
-        instruction_part="<|im_start|>user\n",
+        instruction_part="<|im_start|>system\n",
         response_part="<|im_start|>assistant\n",
     )
+
+    # t1 = trainer.train_dataset[0]["input_ids"]
+    # d1 = tokenizer.decode(t1)
+    # print(d1)
+
+    # t2 = trainer.train_dataset[0]["labels"]
+    # d2 = tokenizer.decode(
+    #     [tokenizer.pad_token_id if x == -100 else x for x in t2]
+    # ).replace(tokenizer.pad_token, " ")
+    # print(d2)
+
+    # print(d1 == d2)
 
     trainer_stats = trainer.train()
 
@@ -134,10 +146,10 @@ if args.save and not args.load:
     # model.save_pretrained_gguf(
     #     f"{sft_model_path}-GGUF", tokenizer, quantization_method=["q4_k_m"]
     # )
-# if args.push and not args.load:
-#     model.push_to_hub_merged(
-#         f"phiwi/{sft_model_path.name}_lora", tokenizer, save_method="lora", token=hf_key
-#     )
+if args.push and not args.load:
+    model.push_to_hub_merged(
+        f"phiwi/{sft_model_path.name}_lora", tokenizer, save_method="lora", token=hf_key
+    )
 
 # Loading
 if args.load:
@@ -153,13 +165,13 @@ if args.load:
             tokenizer,
             save_method="lora",
         )
-    # if args.push:
-    #     model.push_to_hub_merged(
-    #         f"phiwi/{sft_model_path.name}-lora",
-    #         tokenizer,
-    #         save_method="lora",
-    #         token=hf_key,
-    #     )
+    if args.push:
+        model.push_to_hub_merged(
+            f"phiwi/{sft_model_path.name}-lora",
+            tokenizer,
+            save_method="lora",
+            token=hf_key,
+        )
 
 # Generation
 if True:

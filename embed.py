@@ -2,7 +2,7 @@ from parser import args
 
 import hnswlib
 import numpy as np
-from finetuning_tools import get_dataset
+from dataset import get_dataset
 from ollama import Client
 from tqdm import tqdm
 
@@ -18,8 +18,11 @@ dim = 384
 index_path = "/prj/LINDA_LLM/outputs/regulatome_train_idx.bin"
 
 embed_model = "all-minilm"
+port_dict = {"g2": 32, "g3": 33, "g4": 34, "g5": 35}
+port = port_dict[args.node]
+
 client = Client(
-    host=f"http://{ip_dict[args.node]}:114{args.port}",
+    host=f"http://{ip_dict[args.node]}:114{port}",
 )
 
 

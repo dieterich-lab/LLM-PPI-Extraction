@@ -45,6 +45,8 @@ hf_client_names = {
 model = ollama_client_dict[args.model]
 hf_model_id = hf_client_names.get(args.model)
 
+port_dict = {"g2": 32, "g3": 33, "g4": 34, "g5": 35}
+port = port_dict[args.node]
 
 clients = list()
 for name, client in ollama_client_names:
@@ -53,7 +55,7 @@ for name, client in ollama_client_names:
             "name": name,
             "provider": "openai-generic",  # ollama is finally openai capable (https://ollama.com/blog/openai-compatibility)
             "options": {
-                "base_url": f"http://{ip_dict[args.node]}:114{args.port}/v1",
+                "base_url": f"http://{ip_dict[args.node]}:114{port}/v1",
                 "model": client,
                 "max_tokens": 10000,
                 "temperature": 0.0,

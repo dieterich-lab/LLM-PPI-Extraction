@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import pickle
@@ -7,8 +8,6 @@ from pathlib import Path
 from langchain_core.documents.base import Document
 from langchain_text_splitters import MarkdownTextSplitter
 from paths import regulatome_eval_path
-
-ending_dict = {"marker": "md", "llama_parse": "txt"}
 
 text_splitter = MarkdownTextSplitter(
     chunk_size=args.chunksize,
@@ -55,10 +54,12 @@ elif args.data == "5curated":
     _paper_paths = Path(
         f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
     )
+
+ending_dict = {"marker": "md", "llama_parse": "txt"}
 ending = ending_dict[args.parser] if args.data != "regulatomepapers" else "md"
 paper_paths = list(_paper_paths.glob(f"*.{ending}"))
 
-if args.data == "regulatome":
+if args.data in ["regulatome", "regulatomepapers"]:
     with open(regulatome_eval_path, "r") as f:
         eval_data = [
             (x.split("\t")[0], x.split("\t")[1], x.split("\t")[2].strip())
@@ -69,7 +70,19 @@ if args.data == "regulatome":
         {"file_stem": x[0], "relations": x[1], "split": x[2]} for x in eval_data
     ]
     test_data = [x["file_stem"] for x in eval_data if x["split"] == "Test"]
-    test_paper_paths = [x for x in paper_paths if x.stem in test_data]
+    if args.data == "regulatomepapers":
+        csv_path = "/prj/LINDA_LLM/resources/pmid_to_pmcid_mapped_test.csv"
+
+        align_dict = dict()
+        with open(csv_path, mode="r") as file:
+            reader = csv.reader(file)
+            next(reader, None)
+            for id, pmc in reader:
+                if pmc:
+                    align_dict[pmc] = id
+        test_paper_paths = [x for x in paper_paths if align_dict[x.stem] in test_data]
+    elif args.data == "regulatome":
+        test_paper_paths = [x for x in paper_paths if x.stem in test_data]
 else:
     test_paper_paths = paper_paths
 
