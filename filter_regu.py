@@ -45,24 +45,23 @@ regu_paper_paths = [x for x in regu_paper_paths if align_dict[x.stem] in test_re
 print(len(regu_paper_paths))
 
 for j, rp in enumerate(regu_paper_paths):
-    # 37, 55, 79, 87
-    if j not in [55, 79, 87]:
+    if j in [55, 79, 87]:
         continue
-    print(j)
-    p = [x for x in regu_paths if align_dict[rp.stem] in str(x)]
-    if not p:
-        raise
-        continue
-    p = p[0]
-    rpt = rp.read_text()
-    pt = p.read_text()
-    for i in range(100, 20, -10):
-        res = regex.search("(?e)(" + regex.escape(pt[-i:].strip()) + "){e<=7}", rpt)
-        if res:
-            break
-    if not res:
-        raise
-    offset = res.span()[-1] + 1
-    rpt_without_abstract = rpt[offset:]
-    with open(test_regu_paper_without_abstracts_paths / rp.name, "w") as f:
-        f.write(rpt_without_abstract)
+    else:
+        p = [x for x in regu_paths if align_dict[rp.stem] in str(x)]
+        if not p:
+            raise
+            continue
+        p = p[0]
+        rpt = rp.read_text()
+        pt = p.read_text()
+        for i in range(100, 20, -10):
+            res = regex.search("(?e)(" + regex.escape(pt[-i:].strip()) + "){e<=7}", rpt)
+            if res:
+                break
+        if not res:
+            raise
+        offset = res.span()[-1] + 1
+        rpt_without_abstract = rpt[offset:]
+        with open(test_regu_paper_without_abstracts_paths / rp.name, "w") as f:
+            f.write(rpt_without_abstract)
