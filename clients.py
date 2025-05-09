@@ -46,7 +46,10 @@ model = ollama_client_dict[args.model]
 hf_model_id = hf_client_names.get(args.model)
 
 port_dict = {"g2": 32, "g3": 33, "g4": 34, "g5": 35}
-port = port_dict[args.node]
+if not args.port:
+    port = port_dict[args.node]
+else:
+    port = args.port
 
 clients = list()
 for name, client in ollama_client_names:

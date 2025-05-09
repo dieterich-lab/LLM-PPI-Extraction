@@ -89,6 +89,11 @@ parser.add_argument(
     help="Node alias that defines the ip where the Ollama server is running (see 'llm.py').",
 )
 parser.add_argument(
+    "--port",
+    type=int,
+    help="Port, if deviating from the standards defined in the `port_dict` of clients.py.",
+)
+parser.add_argument(
     "--parser",
     nargs="?",
     const="llama_parse",

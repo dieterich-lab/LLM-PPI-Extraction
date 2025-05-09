@@ -45,6 +45,9 @@ regu_paper_paths = [x for x in regu_paper_paths if align_dict[x.stem] in test_re
 print(len(regu_paper_paths))
 
 for j, rp in enumerate(regu_paper_paths):
+    # 37, 55, 79, 87
+    if j not in [55, 79, 87]:
+        continue
     print(j)
     p = [x for x in regu_paths if align_dict[rp.stem] in str(x)]
     if not p:
@@ -54,7 +57,7 @@ for j, rp in enumerate(regu_paper_paths):
     rpt = rp.read_text()
     pt = p.read_text()
     for i in range(100, 20, -10):
-        res = regex.search("(?e)(" + regex.escape(pt[-i:].strip()) + "){e<=10}", rpt)
+        res = regex.search("(?e)(" + regex.escape(pt[-i:].strip()) + "){e<=7}", rpt)
         if res:
             break
     if not res:
