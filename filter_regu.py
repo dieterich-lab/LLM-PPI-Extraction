@@ -48,11 +48,7 @@ for j, rp in enumerate(regu_paper_paths):
     if j in [55, 79, 87]:
         continue
     else:
-        p = [x for x in regu_paths if align_dict[rp.stem] in str(x)]
-        if not p:
-            raise
-            continue
-        p = p[0]
+        p = [x for x in regu_paths if align_dict[rp.stem] in str(x)][0]
         rpt = rp.read_text()
         pt = p.read_text()
         for i in range(100, 20, -10):
