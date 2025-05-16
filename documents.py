@@ -7,7 +7,7 @@ from pathlib import Path
 
 from langchain_core.documents.base import Document
 from langchain_text_splitters import MarkdownTextSplitter
-from paths import regulatome_eval_path
+from paths import regulatome_ppi_eval_path
 
 text_splitter = MarkdownTextSplitter(
     chunk_size=args.chunksize,
@@ -60,7 +60,7 @@ ending = ending_dict[args.parser] if args.data != "regulatomepapers" else "md"
 paper_paths = list(_paper_paths.glob(f"*.{ending}"))
 
 if args.data in ["regulatome", "regulatomepapers"]:
-    with open(regulatome_eval_path, "r") as f:
+    with open(regulatome_ppi_eval_path, "r") as f:
         eval_data = [
             (x.split("\t")[0], x.split("\t")[1], x.split("\t")[2].strip())
             for x in f.readlines()[1:]

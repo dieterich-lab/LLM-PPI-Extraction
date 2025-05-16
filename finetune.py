@@ -55,7 +55,9 @@ tokenizer = get_chat_template(
     map_eos_token=True,
 )
 
-train_dataset, dev_dataset, test_dataset = get_dataset(tokenizer, force_new=False)
+train_dataset, dev_dataset, test_dataset = get_dataset(
+    target=args.target, tokenizer=tokenizer, force_new=True
+)
 
 # Training
 if args.train:
@@ -117,57 +119,62 @@ if args.train:
         response_part="<|im_start|>assistant\n",
     )
 
-    # t1 = trainer.train_dataset[0]["input_ids"]
-    # d1 = tokenizer.decode(t1)
-    # print(d1)
+    t1 = trainer.train_dataset[0]["input_ids"]
+    d1 = tokenizer.decode(t1)
+    print(d1)
 
-    # t2 = trainer.train_dataset[0]["labels"]
-    # d2 = tokenizer.decode(
-    #     [tokenizer.pad_token_id if x == -100 else x for x in t2]
-    # ).replace(tokenizer.pad_token, " ")
-    # print(d2)
+    t2 = trainer.train_dataset[0]["labels"]
+    d2 = tokenizer.decode(
+        [tokenizer.pad_token_id if x == -100 else x for x in t2]
+    ).replace(tokenizer.pad_token, " ")
+    print(d2)
 
-    # print(d1 == d2)
+    print(d1 == d2)
 
     trainer_stats = trainer.train()
 
 # Saving
 if args.save and not args.load:
     model.save_pretrained_merged(
-        f"{sft_model_path}_merged_16bit",
+        f"{sft_model_path}_{args.target}_merged_16bit",
         tokenizer,
         save_method="merged_16bit",
     )
     model.save_pretrained_merged(
-        f"{sft_model_path}_lora",
+        f"{sft_model_path}_{args.target}_lora",
         tokenizer,
         save_method="lora",
     )
-    # model.save_pretrained_gguf(
-    #     f"{sft_model_path}-GGUF", tokenizer, quantization_method=["q4_k_m"]
-    # )
+    model.save_pretrained_gguf(
+        f"{sft_model_path}_{args.target}_GGUF",
+        tokenizer,
+        quantization_method=["q4_k_m"],
+    )
 if args.push and not args.load:
     model.push_to_hub_merged(
-        f"phiwi/{sft_model_path.name}_lora", tokenizer, save_method="lora", token=hf_key
+        f"phiwi/{sft_model_path.name}_{args.target}_lora",
+        tokenizer,
+        save_method="lora",
+        token=hf_key,
     )
 
 # Loading
 if args.load:
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=f"{sft_model_path}_lora",
+        model_name=f"{sft_model_path}_{args.target}_lora",
         max_seq_length=max_seq_length,
         dtype=dtype,
         load_in_4bit=load_in_4bit,
     )
     if args.save:
         model.save_pretrained_merged(
-            f"{sft_model_path}_lora",
+            f"{sft_model_path}_{args.target}_lora",
             tokenizer,
             save_method="lora",
         )
     if args.push:
         model.push_to_hub_merged(
-            f"phiwi/{sft_model_path.name}-lora",
+            f"phiwi/{sft_model_path.name}_{args.target}_lora",
             tokenizer,
             save_method="lora",
             token=hf_key,

@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 
 import regex
-from paths import regulatome_eval_path
+from paths import regulatome_ppi_eval_path
 
 regu_paths = Path(
     "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/corpus"
@@ -11,7 +11,7 @@ regu_paths = Path(
 ending_dict = {"marker": "md", "llama_parse": "txt"}
 regu_paths = list(regu_paths.glob("*.txt"))
 
-with open(regulatome_eval_path, "r") as f:
+with open(regulatome_ppi_eval_path, "r") as f:
     eval_regu_data = [
         (x.split("\t")[0], x.split("\t")[1], x.split("\t")[2].strip())
         for x in f.readlines()[1:]

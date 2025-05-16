@@ -3,14 +3,15 @@ import json
 from baml.baml_client.types import Triple, Triples
 from datasets import Dataset, load_from_disk
 from documents import all_docs
-from paths import finetune_data_path, regulatome_eval_path
+from paths import finetune_data_path, regulatome_ppi_eval_path, regulatome_tf_eval_path
 from prompts import OUTPUT_FORMAT, prompts, rel_system_prompt
 from pydantic.json import pydantic_encoder
 
 
-def get_dataset(tokenizer=None, force_new=False):
+def get_dataset(target, tokenizer=None, force_new=False):
     if tokenizer and (
-        not (finetune_data_path / "regulatome_train_dataset").exists() or force_new
+        not (finetune_data_path / f"regulatome_{target}_train_dataset").exists()
+        or force_new
     ):
 
         def chat_conversion(test=False):
@@ -62,7 +63,10 @@ def get_dataset(tokenizer=None, force_new=False):
 
             return _chat_conversion
 
-        with open(regulatome_eval_path, "r") as f:
+        eval_path = (
+            regulatome_ppi_eval_path if target == "ppi" else regulatome_tf_eval_path
+        )
+        with open(eval_path, "r") as f:
             eval_data = [
                 (x.split("\t")[0], x.split("\t")[1], x.split("\t")[2].strip())
                 for x in f.readlines()[1:]
@@ -80,11 +84,23 @@ def get_dataset(tokenizer=None, force_new=False):
         train_dataset = train_dataset.map(chat_conversion(), batched=False)
         dev_dataset = dev_dataset.map(chat_conversion(), batched=False)
         test_dataset = test_dataset.map(chat_conversion(test=True), batched=False)
-        train_dataset.save_to_disk(finetune_data_path / "regulatome_train_dataset")
-        dev_dataset.save_to_disk(finetune_data_path / "regulatome_dev_dataset")
-        test_dataset.save_to_disk(finetune_data_path / "regulatome_test_dataset")
+        train_dataset.save_to_disk(
+            finetune_data_path / f"regulatome_{target}_train_dataset"
+        )
+        dev_dataset.save_to_disk(
+            finetune_data_path / f"regulatome_{target}_dev_dataset"
+        )
+        test_dataset.save_to_disk(
+            finetune_data_path / f"regulatome_{target}_test_dataset"
+        )
 
-    train_dataset = load_from_disk(finetune_data_path / "regulatome_train_dataset")
-    dev_dataset = load_from_disk(finetune_data_path / "regulatome_dev_dataset")
-    test_dataset = load_from_disk(finetune_data_path / "regulatome_test_dataset")
+    train_dataset = load_from_disk(
+        finetune_data_path / f"regulatome_{target}_train_dataset"
+    )
+    dev_dataset = load_from_disk(
+        finetune_data_path / f"regulatome_{target}_dev_dataset"
+    )
+    test_dataset = load_from_disk(
+        finetune_data_path / f"regulatome_{target}_test_dataset"
+    )
     return train_dataset, dev_dataset, test_dataset
