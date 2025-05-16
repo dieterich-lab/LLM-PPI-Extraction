@@ -105,7 +105,7 @@ parser.add_argument(
 parser.add_argument(
     "--loglevel",
     choices=["error", "warn", "info", "debug", "trace", "off"],
-    default="info",
+    default="off",
 )
 parser.add_argument(
     "--recall",
