@@ -1,6 +1,7 @@
 import os
 import sys
 
+import torch
 from clients import hf_model_id
 
 from unsloth import FastLanguageModel  # isort:skip
@@ -59,6 +60,7 @@ train_dataset, dev_dataset, test_dataset = get_dataset(
     target=args.target, tokenizer=tokenizer, force_new=True
 )
 
+
 # Training
 if args.train:
     model = FastLanguageModel.get_peft_model(
@@ -99,7 +101,6 @@ if args.train:
             # eval_strategy="epoch",
             do_eval=False,
             num_train_epochs=1,
-            # max_steps=10,
             learning_rate=2e-4,
             fp16=not is_bfloat16_supported(),
             bf16=is_bfloat16_supported(),
@@ -130,6 +131,12 @@ if args.train:
     print(d2)
 
     print(d1 == d2)
+
+    gpu_stats = torch.cuda.get_device_properties(0)
+    start_gpu_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
+    max_memory = round(gpu_stats.total_memory / 1024 / 1024 / 1024, 3)
+    print(f"GPU = {gpu_stats.name}. Max memory = {max_memory} GB.")
+    print(f"{start_gpu_memory} GB of memory reserved.")
 
     trainer_stats = trainer.train()
 

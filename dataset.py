@@ -93,14 +93,15 @@ def get_dataset(target, tokenizer=None, force_new=False):
         test_dataset.save_to_disk(
             finetune_data_path / f"regulatome_{target}_test_dataset"
         )
+    else:
+        train_dataset = load_from_disk(
+            finetune_data_path / f"regulatome_{target}_train_dataset"
+        )
+        dev_dataset = load_from_disk(
+            finetune_data_path / f"regulatome_{target}_dev_dataset"
+        )
+        test_dataset = load_from_disk(
+            finetune_data_path / f"regulatome_{target}_test_dataset"
+        )
 
-    train_dataset = load_from_disk(
-        finetune_data_path / f"regulatome_{target}_train_dataset"
-    )
-    dev_dataset = load_from_disk(
-        finetune_data_path / f"regulatome_{target}_dev_dataset"
-    )
-    test_dataset = load_from_disk(
-        finetune_data_path / f"regulatome_{target}_test_dataset"
-    )
     return train_dataset, dev_dataset, test_dataset
