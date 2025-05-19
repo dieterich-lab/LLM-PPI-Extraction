@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-import pymupdf4llm
 from marker.config.parser import ConfigParser
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
@@ -39,6 +38,3 @@ for input_path, output_path in zip(input_paths, output_paths):
         rendered = converter(str(doc))
         text, _, images = text_from_rendered(rendered)
         (Path(output_path) / f"{doc.stem}.md").write_bytes(text.encode())
-
-        # md_text = pymupdf4llm.to_markdown(doc)
-        # (Path(output_path) / f"{doc.stem}.md").write_bytes(md_text.encode())
