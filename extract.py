@@ -39,6 +39,7 @@ if args.dynex:
     lookup_dataset = concatenate_datasets([train_dataset, dev_dataset])
 
 print(f"New run: {triple_pkl_path.parent}")
+print(f"Len texts: {len(texts)}")
 
 
 def extract_ners(messages, responses, text, doc, prompts):

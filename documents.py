@@ -140,5 +140,3 @@ with open(paper_pkl_path, "rb") as f:
             break
 
 texts = test_docs if args.doclevel == "docs" else test_chunks
-
-print(f"Len texts: {len(texts)}")
