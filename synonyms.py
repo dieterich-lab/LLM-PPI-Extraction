@@ -41,12 +41,14 @@ relations = [
     for rel in relations
 ]
 
-for rel in relations:
+print(f"Relations: {len(relations)}")
+for i, rel in enumerate(relations):
     for (
         head,
         tail,
     ) in rel:
         if head not in d:
+            print(i, head)
             try:
                 alt_names = b.CreateAltNames(
                     head,
@@ -56,6 +58,7 @@ for rel in relations:
             except:
                 pass
         if tail not in d:
+            print(i, tail)
             try:
                 alt_names = b.CreateAltNames(
                     tail,
