@@ -1,6 +1,6 @@
 
 class AltNames {
-  alt_names string[] @description("A list containing alternative names for a protein")
+  alt_names string[] @description("A list containing alternative names for a protein, gene or symbol.")
 }
 
 function CreateAltNames(input: string) -> AltNames {
