@@ -57,3 +57,36 @@ dependencies = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+multi_line_output=3
+include_trailing_comma=true
+force_grid_wrap=0
+use_parentheses=true
+line_length=88
+
+[tool.flake8]
+ignore ="""
+E203, E266, E501, W503
+"""
+max-line-length = 88
+max-complexity = 18
+select = """
+B,C,E,F,W,T4
+"""
+
+[tool.mypy]
+files= """
+extract.py
+"""
+ignore_missing_imports=true
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+isort = "^6.0.1"
+flake8 = "^7.2.0"
+mypy = "^1.15.0"
+
