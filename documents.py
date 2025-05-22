@@ -7,6 +7,7 @@ from pathlib import Path
 
 from langchain_core.documents.base import Document
 from langchain_text_splitters import MarkdownTextSplitter
+
 from paths import regulatome_ppi_eval_path
 
 text_splitter = MarkdownTextSplitter(

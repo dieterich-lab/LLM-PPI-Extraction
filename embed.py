@@ -2,9 +2,10 @@ from parser import args
 
 import hnswlib
 import numpy as np
-from dataset import get_dataset
 from ollama import Client
 from tqdm import tqdm
+
+from dataset import get_dataset
 
 ip_dict = {
     "g4": "10.250.135.153",
