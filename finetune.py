@@ -62,6 +62,8 @@ train_dataset, dev_dataset, test_dataset = get_dataset(
     target=args.target, tokenizer=tokenizer, force_new=True
 )
 
+print(f"Len train set: {len(train_dataset)}, len dev set: {len(dev_dataset)}")
+
 
 # Training
 if args.train:
@@ -102,7 +104,7 @@ if args.train:
             warmup_steps=5,
             # eval_strategy="epoch",
             do_eval=False,
-            num_train_epochs=1,
+            num_train_epochs=2,
             learning_rate=2e-4,
             fp16=not is_bfloat16_supported(),
             bf16=is_bfloat16_supported(),
@@ -144,6 +146,7 @@ if args.train:
 
 # Saving
 if args.save and not args.load:
+    print(f"Saving model to {sft_model_path}_{args.target}_merged_16bit")
     model.save_pretrained_merged(
         f"{sft_model_path}_{args.target}_merged_16bit",
         tokenizer,

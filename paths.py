@@ -70,7 +70,7 @@ corrector_json_path = (
 
 finetune_data_path = Path("/prj/LINDA_LLM/outputs/datasets")
 regulatome_ppi_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/annotated_ppi_relations_dedup.txt"
-regulatome_tf_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_tf_annotations/annotated_tf_relations_dedup.txt"
+regulatome_tf_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_tf_annotations/annotated_tf_relations_dedup_new.txt"
 try:
     sft_model_path = (
         Path("/prj/LINDA_LLM/outputs") / "finetunedmodels" / f"{hf_model_id}_regulatome"
