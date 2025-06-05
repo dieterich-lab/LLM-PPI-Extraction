@@ -20,6 +20,10 @@ ollama_client_names = [
     ("llama31regu", "llama3.1-128k-8b-regu"),
     ("llama33regutf", "llama3.3-70b-regu_tf"),
     ("llama31regutf", "llama3.1-8b-regu_tf"),
+    ("qwen3", "qwen3:8b"),
+    ("qwen34", "qwen3:14b"),
+    ("qwen330", "qwen3:30b"),
+    ("qwen332", "qwen3:32b"),
 ]
 
 ollama_client_dict = {
@@ -32,6 +36,10 @@ ollama_client_dict = {
     "llama31regu": "llama3.1-128k-8b-regu",
     "llama33regutf": "llama3.3-70b-regu_tf",
     "llama31regutf": "llama3.1-8b-regu_tf",
+    "qwen3": "qwen3:8b",
+    "qwen314": "qwen3:14b",
+    "qwen330": "qwen3:30b",
+    "qwen332": "qwen3:32b",
 }
 
 

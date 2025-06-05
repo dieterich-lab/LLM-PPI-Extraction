@@ -59,7 +59,7 @@ tokenizer = get_chat_template(
 )
 
 train_dataset, dev_dataset, test_dataset = get_dataset(
-    target=args.target, tokenizer=tokenizer, force_new=True
+    target=args.target, data=args.data, tokenizer=tokenizer, force_new=True
 )
 
 print(f"Len train set: {len(train_dataset)}, len dev set: {len(dev_dataset)}")

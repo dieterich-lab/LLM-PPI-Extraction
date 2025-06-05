@@ -9,9 +9,9 @@ from paths import finetune_data_path, regulatome_ppi_eval_path, regulatome_tf_ev
 from prompts import OUTPUT_FORMAT, prompts, rel_system_prompt
 
 
-def get_dataset(target, tokenizer=None, force_new=False):
+def get_dataset(target, data, tokenizer=None, force_new=False):
     if tokenizer and (
-        not (finetune_data_path / f"regulatome_{target}_train_dataset").exists()
+        not (finetune_data_path / f"{data}_{target}_train_dataset").exists()
         or force_new
     ):
 
@@ -64,9 +64,12 @@ def get_dataset(target, tokenizer=None, force_new=False):
 
             return _chat_conversion
 
+        # if data == "regulatome":
         eval_path = (
             regulatome_ppi_eval_path if target == "ppi" else regulatome_tf_eval_path
         )
+        # elif data == "biored":
+        #     eval_path = biored_eval_path
         with open(eval_path, "r") as f:
             eval_data = [
                 (x.split("\t")[0], x.split("\t")[1], x.split("\t")[2].strip())
@@ -86,23 +89,19 @@ def get_dataset(target, tokenizer=None, force_new=False):
         dev_dataset = dev_dataset.map(chat_conversion(), batched=False)
         test_dataset = test_dataset.map(chat_conversion(test=True), batched=False)
         train_dataset.save_to_disk(
-            finetune_data_path / f"regulatome_{target}_train_dataset"
+            finetune_data_path / f"{data}_{target}_train_dataset"
         )
-        dev_dataset.save_to_disk(
-            finetune_data_path / f"regulatome_{target}_dev_dataset"
-        )
-        test_dataset.save_to_disk(
-            finetune_data_path / f"regulatome_{target}_test_dataset"
-        )
+        dev_dataset.save_to_disk(finetune_data_path / f"{data}_{target}_dev_dataset")
+        test_dataset.save_to_disk(finetune_data_path / f"{data}_{target}_test_dataset")
     else:
         train_dataset = load_from_disk(
-            finetune_data_path / f"regulatome_{target}_train_dataset"
+            finetune_data_path / f"{data}_{target}_train_dataset"
         )
         dev_dataset = load_from_disk(
-            finetune_data_path / f"regulatome_{target}_dev_dataset"
+            finetune_data_path / f"{data}_{target}_dev_dataset"
         )
         test_dataset = load_from_disk(
-            finetune_data_path / f"regulatome_{target}_test_dataset"
+            finetune_data_path / f"{data}_{target}_test_dataset"
         )
 
     return train_dataset, dev_dataset, test_dataset
