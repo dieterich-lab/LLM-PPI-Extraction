@@ -43,28 +43,39 @@ print(f"New run: {triple_pkl_path.parent}")
 print(f"Len texts: {len(texts)}")
 
 
+def get_ners(messages, responses, doc, prompts):
+    ner_prompt = prompts.pop(0)
+    message = Message(role="user", content=ner_prompt)
+    messages.append(message)
+    try:
+        ner_path = [
+            x for x in all_ner_paths if doc[0].metadata["file_path"].stem == x.stem
+        ][0]
+        if ner_path:
+            ners = open(ner_path, "r").readlines()
+            ners = [x.strip() for x in ners]
+        else:
+            ners = []
+        response = Entities(entities=ners)
+    except:
+        print(f"Exception at Entity extraction")
+        response = Entities(entities=[])
+    responses.append(response)
+    messages.append(Message(role="assistant", content=f"{str(response)}"))
+    return prompts
+
+
 def extract_ners(messages, responses, text, doc, prompts):
     ner_prompt = prompts.pop(0)
     message = Message(role="user", content=ner_prompt)
     messages.append(message)
     try:
-        if not args.all_ners_given:
-            response = b.ExtractNEs(
-                rel_system_prompt,
-                text,
-                message,
-                {"client_registry": cr, "tb": tb},
-            )
-        else:
-            ner_path = [
-                x for x in all_ner_paths if doc[0].metadata["file_path"].stem == x.stem
-            ][0]
-            if ner_path:
-                ners = open(ner_path, "r").readlines()
-                ners = [x.strip() for x in ners]
-            else:
-                ners = []
-            response = Entities(entities=ners)
+        response = b.ExtractNEs(
+            rel_system_prompt,
+            text,
+            message,
+            {"client_registry": cr, "tb": tb},
+        )
     except:
         print(f"Exception at Entity extraction")
         response = Entities(entities=[])
@@ -120,10 +131,10 @@ def main():
             text = doc[0].page_content
             messages = list()
             responses = list()
-            if args.extractionmode == "nerrel":
-                _prompts = extract_ners(messages, responses, text, doc, _prompts)
             if args.all_ners_given:
-                _prompts.pop(0)
+                _prompts = get_ners(messages, responses, doc, _prompts)
+            elif args.extractionmode == "nerrel":
+                _prompts = extract_ners(messages, responses, text, doc, _prompts)
             if args.chattype == "lookup":
                 lookup_infos(messages, responses)
             if args.dynex:

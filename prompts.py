@@ -65,7 +65,7 @@ target = (
 )
 interactions_type = (
     "protein-protein"
-    if target == "ppi"
+    if args.target == "ppi"
     else (
         "transcription factor-to-gene"
         if args.target == "tf"
@@ -77,7 +77,7 @@ anti_interactions_type = (
 )
 ner_list_prompt = (
     f"Now look at the list of extracted {targets} above and use it for the following task:"
-    if args.extractionmode in ["nerrel", "lookup"]
+    if args.extractionmode in ["nerrel", "lookup"] or args.all_ners_given
     else ""
 )
 
@@ -94,9 +94,9 @@ dynex_prompt = (
 )
 
 if not args.recall:
-    prompt = f"{ner_list_prompt}  Extract all the {interactions_type} interactions involved in signalling pathways from the text. Please only extract {target} pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions. {lookup_prompt}{dynex_prompt}"
+    prompt = f"{ner_list_prompt} Extract all the {interactions_type} interactions involved in signalling pathways from the text. Please only extract {target} pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions. {lookup_prompt}{dynex_prompt}"
 else:
-    prompt = f"{ner_list_prompt}  Extract ALL the relations between molecular entities from the text. Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup_prompt}"
+    prompt = f"{ner_list_prompt} Extract ALL the relations between molecular entities from the text. Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup_prompt}"
 
 ppi_pos_ex = """
 Below you find some positive examples between protein-protein relations that give you an idea of what we are looking for:

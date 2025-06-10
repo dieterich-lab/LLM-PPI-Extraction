@@ -75,6 +75,10 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "--true_ners_given",
+    action="store_true",
+)
+parser.add_argument(
     "--noconfidence",
     action="store_true",
     default="true",
@@ -87,7 +91,7 @@ parser.add_argument(
     "--node",
     type=str,
     choices=["g2", "g3", "g4", "g5", "mk22d"],
-    default="g4",
+    default="g3",
     help="Node alias that defines the ip where the Ollama server is running (see 'llm.py').",
 )
 parser.add_argument(
