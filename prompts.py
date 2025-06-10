@@ -77,7 +77,9 @@ anti_interactions_type = (
 )
 ner_list_prompt = (
     f"Now look at the list of extracted {targets} above and use it for the following task:"
-    if args.extractionmode in ["nerrel", "lookup"] or args.all_ners_given
+    if args.extractionmode in ["nerrel", "lookup"]
+    or args.all_ners_given
+    or args.true_ners_given
     else ""
 )
 
@@ -253,7 +255,11 @@ chat_prompts = {
     },
 }
 
-mode_lookup = args.extractionmode if not args.all_ners_given else "nerrel"
+mode_lookup = (
+    args.extractionmode
+    if not (args.all_ners_given or args.true_ners_given)
+    else "nerrel"
+)
 chat_lookup = "stepwise" if args.chattype == "lookup" else args.chattype
 prompts = chat_prompts[mode_lookup][chat_lookup]
 if args.target == "ppitf" and chat_lookup == "stepwise":
