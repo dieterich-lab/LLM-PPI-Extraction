@@ -12,7 +12,13 @@ from baml.baml_client.types import Entities, Message, Triples  # isort:skip
 from baml.baml_client.type_builder import TypeBuilder
 from clients import cr
 from converter import convert_and_save_triples_to_json
-from documents import all_ner_paths, texts
+from documents import (
+    _all_ner_paths,
+    _true_ner_paths,
+    all_ner_paths,
+    texts,
+    true_ner_paths,
+)
 from paths import triple_json_path, triple_pkl_path, uniprot_path
 from prompts import prompts, rel_system_prompt
 
@@ -42,6 +48,13 @@ if args.dynex:
 print(f"New run: {triple_pkl_path.parent}")
 print(f"Len texts: {len(texts)}")
 
+if args.all_ners_given:
+    ner_paths = all_ner_paths
+    print(f"Setting ner path (all_ners_given) to: {_all_ner_paths}")
+if args.true_ners_given:
+    ner_paths = true_ner_paths
+    print(f"Setting ner path (true_ners_given) to: {_true_ner_paths}")
+
 
 def get_ners(messages, responses, doc, prompts):
     ner_prompt = prompts.pop(0)
@@ -49,7 +62,7 @@ def get_ners(messages, responses, doc, prompts):
     messages.append(message)
     try:
         ner_path = [
-            x for x in all_ner_paths if doc[0].metadata["file_path"].stem == x.stem
+            x for x in ner_paths if doc[0].metadata["file_path"].stem == x.stem
         ][0]
         if ner_path:
             ners = open(ner_path, "r").readlines()
@@ -131,7 +144,7 @@ def main():
             text = doc[0].page_content
             messages = list()
             responses = list()
-            if args.all_ners_given:
+            if args.all_ners_given or args.true_ners_given:
                 _prompts = get_ners(messages, responses, doc, _prompts)
             elif args.extractionmode == "nerrel":
                 _prompts = extract_ners(messages, responses, text, doc, _prompts)

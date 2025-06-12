@@ -75,13 +75,17 @@ interactions_type = (
 anti_interactions_type = (
     "transcription factor/gene" if args.target == "ppi" else "protein-protein"
 )
-ner_list_prompt = (
-    f"Now look at the list of extracted {targets} above and use it for the following task:"
-    if args.extractionmode in ["nerrel", "lookup"]
-    or args.all_ners_given
-    or args.true_ners_given
-    else ""
-)
+
+if args.extractionmode in ["nerrel", "lookup"]:
+    ner_list_prompt = (
+        f"Now look at your extracted {targets} above and use it for the following task:"
+    )
+elif args.all_ners_given:
+    ner_list_prompt = f"Look at the list above. These are the ground truth {targets} that are found in the abstract. But be wary, not all of them will neccessarily be a particpant in {interactions_type} relations. Use this list for the following task:"
+elif args.true_ners_given:
+    ner_list_prompt = f"Look at the list above. These are the ground truth {targets} that are found in the abstract and also take part in {interactions_type} relations. Use this list for the following task:"
+else:
+    ner_list_prompt = ""
 
 lookup_prompt = (
     "We also provided above some insightful BACKGROUND KNOWLEDGE for each extracted protein. Use it as additional support. "
