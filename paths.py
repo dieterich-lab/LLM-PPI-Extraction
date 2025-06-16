@@ -22,8 +22,12 @@ elif args.true_ners_given:
     experiment_path /= "true_ners_given"
 os.makedirs(experiment_path, exist_ok=True)
 
-triple_pkl_path = experiment_path / "triples.pkl"
-triple_json_path = experiment_path / "triples.json"
+if not args.ext:
+    triple_pkl_path = experiment_path / "triples.pkl"
+    triple_json_path = experiment_path / "triples.json"
+else:
+    triple_pkl_path = experiment_path / f"triples_{args.ext}.pkl"
+    triple_json_path = experiment_path / f"triples_{args.ext}.json"
 
 
 # try:

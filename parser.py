@@ -149,6 +149,12 @@ parser.add_argument(
     help="A developing options that stops the scripts from actually saving/overwriting results.",
 )
 parser.add_argument(
+    "--ext",
+    type=str,
+    default="",
+    help="An extension to the saved filename as a special denominator.",
+)
+parser.add_argument(
     "--filelist",
     action="store_true",
     default=True,

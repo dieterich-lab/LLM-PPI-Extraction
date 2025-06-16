@@ -78,7 +78,7 @@ def get_ners(messages, responses, doc, prompts):
     return prompts
 
 
-def extract_ners(messages, responses, text, doc, prompts):
+def extract_ners(messages, responses, text, prompts):
     ner_prompt = prompts.pop(0)
     message = Message(role="user", content=ner_prompt)
     messages.append(message)
