@@ -9,6 +9,8 @@ from parser import args
 os.environ["BAML_LOG"] = args.loglevel  # isort:skip
 from baml.baml_client.sync_client import b  # isort:skip
 from baml.baml_client.types import Entities, Message, Triples  # isort:skip
+from baml_py import Collector
+
 from baml.baml_client.type_builder import TypeBuilder
 from clients import cr
 from converter import convert_and_save_triples_to_json
@@ -22,6 +24,7 @@ from documents import (
 from paths import triple_json_path, triple_pkl_path, uniprot_path
 from prompts import prompts, rel_system_prompt
 
+collector = Collector(name="my-collector")
 tb = TypeBuilder()
 if not args.noconfidence:
     tb.Triple.add_property(
@@ -87,7 +90,7 @@ def extract_ners(messages, responses, text, prompts):
             rel_system_prompt,
             text,
             message,
-            {"client_registry": cr, "tb": tb},
+            baml_options={"client_registry": cr, "tb": tb, "collector": collector},
         )
     except:
         print(f"Exception at Entity extraction")
@@ -102,7 +105,10 @@ def extract_rels(messages, responses, text, prompts):
         messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
         try:
             response = b.GeneralChatExtractRelationships(
-                rel_system_prompt, text, messages, {"client_registry": cr, "tb": tb}
+                rel_system_prompt,
+                text,
+                messages,
+                baml_options={"client_registry": cr, "tb": tb, "collector": collector},
             )
         except Exception as e:
             print(f"Exception at step {i}")
