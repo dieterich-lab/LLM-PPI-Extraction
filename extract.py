@@ -14,13 +14,7 @@ from baml_py import Collector
 from baml.baml_client.type_builder import TypeBuilder
 from clients import cr
 from converter import convert_and_save_triples_to_json
-from documents import (
-    _all_ner_paths,
-    _true_ner_paths,
-    all_ner_paths,
-    texts,
-    true_ner_paths,
-)
+from documents import texts
 from paths import triple_json_path, triple_pkl_path, uniprot_path
 from prompts import prompts, rel_system_prompt
 
@@ -50,13 +44,6 @@ if args.dynex:
 
 print(f"New run: {triple_pkl_path.parent}")
 print(f"Len texts: {len(texts)}")
-
-if args.all_ners_given:
-    ner_paths = all_ner_paths
-    print(f"Setting ner path (all_ners_given) to: {_all_ner_paths}")
-if args.true_ners_given:
-    ner_paths = true_ner_paths
-    print(f"Setting ner path (true_ners_given) to: {_true_ner_paths}")
 
 
 def get_ners(messages, responses, doc, prompts):
