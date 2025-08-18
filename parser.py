@@ -15,7 +15,7 @@ parser.add_argument(
         "qwen330",
         "qwen332",
     ],
-    default="llama31",
+    default="llama33",
     help="Alias pointing back to model names of the local Ollama server or the provider.",
 )
 parser.add_argument(
@@ -31,7 +31,7 @@ parser.add_argument(
     "--chattype",
     type=str,
     choices=["oneshot", "stepwise", "lookup"],
-    default="stepwise",
+    default="oneshot",
 )
 parser.add_argument(
     "--data",
@@ -44,14 +44,13 @@ parser.add_argument(
         "regulatome",
         "regulatomepapers",
     ],
-    default="regulatome",
+    default="ours",
     help="Which data to extract from.",
 )
 parser.add_argument(
     "--target",
     type=str,
     choices=["ppi", "tf", "lr", "ppitf"],
-    default="ppi",
     help="Which entity type you want to extract.",
 )
 parser.add_argument("--re_evaluate", choices=["judge", "corrector"])
@@ -84,6 +83,11 @@ parser.add_argument(
     default="true",
 )
 parser.add_argument(
+    "--force_new",
+    action="store_true",
+    help="If set, the script will overwrite existing extraction files.",
+)
+parser.add_argument(
     "--force_cot",
     action="store_true",
 )
@@ -102,10 +106,10 @@ parser.add_argument(
 parser.add_argument(
     "--parser",
     nargs="?",
-    const="llama_parse",
+    const="pymupdf4llm",
     type=str,
-    default="llama_parse",
-    choices=["llama_parse", "marker"],
+    default="pymupdf4llm",
+    choices=["pymupdf4llm", "docling"],
     help="These are aliases pointing back to the folder of parsed PDF files (paths configured in 'get_documents.py' and 'paths.py')",
 )
 parser.add_argument(

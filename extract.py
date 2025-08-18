@@ -133,32 +133,54 @@ def get_dynex(messages, text):
     messages.append(Message(role="user", content=f"EXAMPLE: {example_text}\n"))
 
 
+def load_file_paths(file):
+    file_paths = []
+    try:
+        with open(file, "rb") as triple_pkl_file:
+            while True:
+                try:
+                    tuple = pickle.load(triple_pkl_file)
+                    file_path = str(tuple[2])
+                    file_paths.append(file_path)
+                except EOFError:
+                    break
+    except FileNotFoundError:
+        print(f"File {file} not found, starting fresh.")
+    return file_paths
+
+
 def main():
     file = triple_pkl_path if not args.dev else tempfile.NamedTemporaryFile().name
-    with open(file, "wb") as triple_pkl_file:
-        for i, doc in enumerate(texts):
-            _prompts = prompts.copy()
-            print(f"Doc {i}")
-            text = doc[0].page_content
-            messages = list()
-            responses = list()
-            if args.all_ners_given or args.true_ners_given:
-                _prompts = get_ners(messages, responses, doc, _prompts)
-            elif args.extractionmode == "nerrel":
-                _prompts = extract_ners(messages, responses, text, doc, _prompts)
-            if args.chattype == "lookup":
-                lookup_infos(messages, responses)
-            if args.dynex:
-                get_dynex(messages, text)
-            extract_rels(messages, responses, text, _prompts)
-            if not args.dev:
-                pickle.dump(
-                    (responses, doc[0].page_content, doc[0].metadata["file_path"]),
-                    triple_pkl_file,
-                )
-
-    if not args.dev:
-        convert_and_save_triples_to_json(triple_pkl_path, triple_json_path)
+    file_paths = load_file_paths(file)
+    try:
+        with open(file, "ab+") as triple_pkl_file:
+            for i, doc in enumerate(texts):
+                file_path = doc[0].metadata["file_path"]
+                if not args.force_new and str(file_path) in file_paths:
+                    continue
+                file_paths.append(str(file_path))
+                _prompts = prompts.copy()
+                print(f"Doc {i}")
+                text = doc[0].page_content
+                messages = list()
+                responses = list()
+                if args.all_ners_given or args.true_ners_given:
+                    _prompts = get_ners(messages, responses, doc, _prompts)
+                elif args.extractionmode == "nerrel":
+                    _prompts = extract_ners(messages, responses, text, doc, _prompts)
+                if args.chattype == "lookup":
+                    lookup_infos(messages, responses)
+                if args.dynex:
+                    get_dynex(messages, text)
+                extract_rels(messages, responses, text, _prompts)
+                if not args.dev:
+                    pickle.dump(
+                        (responses, doc[0].page_content, doc[0].metadata["file_path"]),
+                        triple_pkl_file,
+                    )
+    finally:
+        if not args.dev:
+            convert_and_save_triples_to_json(triple_pkl_path, triple_json_path)
 
 
 if __name__ == "__main__":

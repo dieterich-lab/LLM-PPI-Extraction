@@ -1,5 +1,6 @@
 import csv
-import json
+
+# Utility functions
 import os
 import pickle
 from parser import args
@@ -16,132 +17,175 @@ text_splitter = MarkdownTextSplitter(
     length_function=len,
     is_separator_regex=False,
 )
-paper_dict = dict()
-all_ner_paths = None
-true_ner_paths = None
-if args.data == "biored":
-    _paper_paths = Path(
-        "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/BIORED/BIORED/src/corpus/test"
-    )
-elif args.data == "regulatome":
-    _paper_paths = Path(
-        "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/corpus"
-    )
-    if args.target == "ppi":
-        _all_ner_paths = Path(
-            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
-        )
-        all_ner_paths = list(_all_ner_paths.glob(f"*"))
-        _true_ner_paths = Path(
-            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_ppi"
-        )
-        true_ner_paths = list(_true_ner_paths.glob(f"*"))
-    elif args.target == "tf":
-        _all_ner_paths = Path(
-            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
-        )
-        all_ner_paths = list(_all_ner_paths.glob(f"*"))
-        _true_ner_paths = Path(
-            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_tf"
-        )
-        true_ner_paths = list(_true_ner_paths.glob(f"*"))
-elif args.data == "regulatomepapers":
-    _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
-elif args.data == "ours":
-    _paper_paths = Path(
-        f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/{args.target}/{args.parser}"
-    )
-elif args.data == "5curated":
-    _paper_paths = Path(
-        f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
-    )
 
-ending_dict = {"marker": "md", "llama_parse": "txt"}
-ending = ending_dict[args.parser] if args.data != "regulatomepapers" else "md"
-paper_paths = list(_paper_paths.glob(f"*.{ending}"))
 
-if args.data in ["regulatome", "regulatomepapers"]:
-    if args.target == "ppi":
-        regulatome_eval_path = regulatome_ppi_eval_path
-    elif args.target == "tf":
-        regulatome_eval_path = regulatome_tf_eval_path
-    with open(regulatome_eval_path, "r") as f:
+def load_pickle_objects(path, as_set=False):
+    """Load all objects from a pickle file. If as_set, return set of file paths."""
+    result = set() if as_set else []
+    try:
+        with open(path, "rb") as f:
+            while True:
+                try:
+                    obj = pickle.load(f)
+                    if as_set:
+                        result.add(str(obj[0].metadata["file_path"]))
+                    else:
+                        result.append(obj)
+                except EOFError:
+                    break
+    except FileNotFoundError:
+        pass
+    return result
+
+
+def load_eval_data(eval_path):
+    """Load evaluation data from a tab-separated file."""
+    with open(eval_path, "r") as f:
         eval_data = [
             (x.split("\t")[0], x.split("\t")[1], x.split("\t")[2].strip())
             for x in f.readlines()[1:]
         ]
-
     eval_data = [
         {"file_stem": x[0], "relations": x[1], "split": x[2]} for x in eval_data
     ]
-    test_data = [x["file_stem"] for x in eval_data if x["split"] == "Test"]
-    if args.data == "regulatomepapers":
-        csv_path = "/prj/LINDA_LLM/resources/pmid_to_pmcid_mapped_test.csv"
+    return eval_data
 
-        align_dict = dict()
-        with open(csv_path, mode="r") as file:
-            reader = csv.reader(file)
-            next(reader, None)
-            for id, pmc in reader:
-                if pmc:
-                    align_dict[pmc] = id
-        test_paper_paths = [x for x in paper_paths if align_dict[x.stem] in test_data]
+
+def load_align_dict(csv_path):
+    """Load alignment dictionary from a CSV file."""
+    align_dict = dict()
+    with open(csv_path, mode="r") as file:
+        reader = csv.reader(file)
+        next(reader, None)
+        for id, pmc in reader:
+            if pmc:
+                align_dict[pmc] = id
+    return align_dict
+
+
+def write_documents(
+    chunk_pkl_path, paper_pkl_path, test_paper_paths, chunk_file_paths, paper_file_paths
+):
+    """Write chunked and full documents to pickle files if not already present."""
+    with (
+        open(chunk_pkl_path, "ab+") as chunk_file,
+        open(paper_pkl_path, "ab+") as doc_file,
+    ):
+        for i, test_paper_path in enumerate(test_paper_paths):
+            if (
+                str(test_paper_path) in paper_file_paths
+                and str(test_paper_path) in chunk_file_paths
+            ) and not args.force_new:
+                continue
+            text = open(test_paper_path, "r").read().strip()
+            if text:
+                texts = text_splitter.create_documents([text])
+                doc = Document(
+                    page_content=text, metadata={"file_path": test_paper_path}
+                )
+                for chunk in texts:
+                    chunk.metadata = {"file_path": test_paper_path}
+                    pickle.dump((chunk, i), chunk_file)
+                pickle.dump((doc, i), doc_file)
+
+
+def get_config():
+    """Return all configuration variables for paths and ner files."""
+    all_ner_paths = None
+    true_ner_paths = None
+    if args.data == "biored":
+        _paper_paths = Path(
+            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/BIORED/BIORED/src/corpus/test"
+        )
     elif args.data == "regulatome":
-        test_paper_paths = [x for x in paper_paths if x.stem in test_data]
-else:
-    test_paper_paths = paper_paths
+        _paper_paths = Path(
+            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/corpus"
+        )
+        if args.target == "ppi":
+            _all_ner_paths = Path(
+                "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
+            )
+            all_ner_paths = list(_all_ner_paths.glob(f"*"))
+            _true_ner_paths = Path(
+                "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_ppi"
+            )
+            true_ner_paths = list(_true_ner_paths.glob(f"*"))
+        elif args.target == "tf":
+            _all_ner_paths = Path(
+                "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
+            )
+            all_ner_paths = list(_all_ner_paths.glob(f"*"))
+            _true_ner_paths = Path(
+                "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_tf"
+            )
+            true_ner_paths = list(_true_ner_paths.glob(f"*"))
+    elif args.data == "regulatomepapers":
+        _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
+    elif args.data == "ours":
+        if args.target == "ppi":
+            _paper_paths = Path(
+                "/prj/LINDA_LLM/outputs/parsed_papers/Papers_Human_Cardiac_Signaling"
+            )
+        elif args.target == "tf":
+            _paper_paths = Path(
+                "/prj/LINDA_LLM/outputs/parsed_papers/Papers_Human_Cardiac_GRN"
+            )
+    elif args.data == "5curated":
+        _paper_paths = Path(
+            f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
+        )
+    ending_dict = {"marker": "md", "llama_parse": "txt", "pymupdf4llm": "md"}
+    ending = ending_dict[args.parser] if args.data != "regulatomepapers" else "md"
+    paper_paths = list(_paper_paths.glob(f"*.{ending}"))
+    return all_ner_paths, true_ner_paths, paper_paths
 
 
-chunk_pkl_path = Path(
-    f"/beegfs/prj/LINDA_LLM/outputs/docs/{args.data}/{args.target}/{args.parser}/paper_chunks_{args.chunksize}.pkl"
-)
-os.makedirs(chunk_pkl_path.parent, exist_ok=True)
-paper_pkl_path = chunk_pkl_path.parent / "papers.pkl"
-os.makedirs(paper_pkl_path.parent, exist_ok=True)
+def main():
+    all_ner_paths, true_ner_paths, paper_paths = get_config()
 
-paper_dict_path = Path(
-    f"/beegfs/prj/LINDA_LLM/outputs/paper_dicts/{args.data}/{args.target}/{args.parser}/paper_dict.pkl"
-)
-os.makedirs(Path(paper_dict_path).parent, exist_ok=True)
+    if args.data in ["regulatome", "regulatomepapers"]:
+        if args.target == "ppi":
+            regulatome_eval_path = regulatome_ppi_eval_path
+        elif args.target == "tf":
+            regulatome_eval_path = regulatome_tf_eval_path
+        eval_data = load_eval_data(regulatome_eval_path)
+        test_data = [x["file_stem"] for x in eval_data if x["split"] == "Test"]
+        if args.data == "regulatomepapers":
+            csv_path = "/prj/LINDA_LLM/resources/pmid_to_pmcid_mapped_test.csv"
+            align_dict = load_align_dict(csv_path)
+            test_paper_paths = [
+                x for x in paper_paths if align_dict.get(x.stem) in test_data
+            ]
+        elif args.data == "regulatome":
+            test_paper_paths = [x for x in paper_paths if x.stem in test_data]
+    else:
+        test_paper_paths = paper_paths
 
-all_docs = list()
-for i, x in enumerate(paper_paths):
-    paper_dict[i] = str(x)
-    text = open(x, "r").read().strip()
-    if text:
-        all_docs.append(Document(page_content=text, metadata={"file_path": x}))
+    chunk_pkl_path = Path(
+        f"/beegfs/prj/LINDA_LLM/outputs/docs/{args.data}/{args.target}/{args.parser}/paper_chunks_{args.chunksize}.pkl"
+    )
+    os.makedirs(chunk_pkl_path.parent, exist_ok=True)
+    paper_pkl_path = chunk_pkl_path.parent / "papers.pkl"
+    os.makedirs(paper_pkl_path.parent, exist_ok=True)
 
-f = open(chunk_pkl_path, "wb")
-wf = open(paper_pkl_path, "wb")
-with open(chunk_pkl_path, "wb") as chunk_file, open(paper_pkl_path, "wb") as doc_file:
-    for i, x in enumerate(test_paper_paths):
-        paper_dict[i] = str(x)
-        text = open(x, "r").read().strip()
-        if text:
-            texts = text_splitter.create_documents([text])
-            doc = Document(page_content=text, metadata={"file_path": x})
-            for chunk in texts:
-                chunk.metadata = {"file_path": x}
-                pickle.dump((chunk, i), chunk_file)
-            pickle.dump((doc, i), doc_file)
+    chunk_file_paths = load_pickle_objects(chunk_pkl_path, as_set=True)
+    paper_file_paths = load_pickle_objects(paper_pkl_path, as_set=True)
 
-with open(paper_dict_path, "w") as f:
-    json.dump(paper_dict, f, indent=4)
+    write_documents(
+        chunk_pkl_path,
+        paper_pkl_path,
+        test_paper_paths,
+        chunk_file_paths,
+        paper_file_paths,
+    )
 
-test_chunks = list()
-with open(chunk_pkl_path, "rb") as f:
-    while 1:
-        try:
-            test_chunks.append(pickle.load(f))
-        except EOFError:
-            break
+    test_chunks = load_pickle_objects(chunk_pkl_path)
+    test_docs = load_pickle_objects(paper_pkl_path)
 
-test_docs = list()
-with open(paper_pkl_path, "rb") as f:
-    while 1:
-        try:
-            test_docs.append(pickle.load(f))
-        except EOFError:
-            break
+    texts = test_docs if args.doclevel == "docs" else test_chunks
+    return texts
 
-texts = test_docs if args.doclevel == "docs" else test_chunks
+
+# Make variables importable
+all_ner_paths, true_ner_paths, paper_paths = get_config()
+texts = main()
