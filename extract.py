@@ -15,7 +15,7 @@ from baml_py import Collector
 from baml.baml_client.type_builder import TypeBuilder
 from clients import cr
 from documents import all_ner_paths, texts, true_ner_paths
-from paths import triple_json_path, triple_pkl_path, uniprot_path
+from paths import triple_jsonl_path, uniprot_path
 from prompts import prompts, rel_system_prompt
 
 collector = Collector(name="my-collector")
@@ -42,7 +42,7 @@ if args.dynex:
     train_dataset, dev_dataset, _ = get_dataset()
     lookup_dataset = concatenate_datasets([train_dataset, dev_dataset])
 
-print(f"New run: {triple_pkl_path.parent}")
+print(f"New run: {triple_jsonl_path.parent}")
 print(f"Len texts: {len(texts)}")
 
 if args.all_ners_given:
@@ -133,31 +133,14 @@ def get_dynex(messages, text):
     messages.append(Message(role="user", content=f"EXAMPLE: {example_text}\n"))
 
 
-def load_file_paths(file):
-    file_paths = []
-    try:
-        with open(file, "rb") as triple_pkl_file:
-            while True:
-                try:
-                    tuple = pickle.load(triple_pkl_file)
-                    file_path = str(tuple[2])
-                    file_paths.append(file_path)
-                except EOFError:
-                    break
-    except FileNotFoundError:
-        print(f"File {file} not found, starting fresh.")
-    return file_paths
-
-
 def main():
-    jsonl_path = str(triple_pkl_path) + ".jsonl"
     for i, doc in enumerate(texts):
         file_path = doc[0].metadata["file_path"]
         if not args.force_new:
             try:
-                with open(jsonl_path, "r") as f:
+                with open(triple_jsonl_path, "r") as f:
                     if any(
-                        json.loads(line)["file_path"] == str(file_path) for line in f
+                        json.loads(line)["filename"] == str(file_path) for line in f
                     ):
                         continue
             except FileNotFoundError:
@@ -178,11 +161,11 @@ def main():
         extract_rels(messages, responses, text, _prompts)
         if not args.dev:
             result = {
-                "responses": [str(r) for r in responses],
-                "page_content": doc[0].page_content,
-                "file_path": str(doc[0].metadata["file_path"]),
+                "responses": [r.model_dump()["triples"] for r in responses],
+                "text": doc[0].page_content,
+                "filename": str(doc[0].metadata["file_path"]),
             }
-            with open(jsonl_path, "a") as f:
+            with open(triple_jsonl_path, "a") as f:
                 f.write(json.dumps(result) + "\n")
                 f.flush()
 
