@@ -1,8 +1,7 @@
 import json
 import os
-import pickle
 import sys
-import tempfile
+from pathlib import Path
 
 sys.path.append("..")  # isort:skip
 from parser import args
@@ -136,11 +135,12 @@ def get_dynex(messages, text):
 def main():
     for i, doc in enumerate(texts):
         file_path = doc[0].metadata["file_path"]
-        if not args.force_new:
+        if not args.force_new and not args.dev:
             try:
                 with open(triple_jsonl_path, "r") as f:
                     if any(
-                        json.loads(line)["filename"] == str(file_path) for line in f
+                        Path(json.loads(line)["filename"]).stem == file_path.stem
+                        for line in f
                     ):
                         continue
             except FileNotFoundError:
