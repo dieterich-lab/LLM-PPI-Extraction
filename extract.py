@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 import sys
@@ -13,7 +14,6 @@ from baml_py import Collector
 
 from baml.baml_client.type_builder import TypeBuilder
 from clients import cr
-from converter import convert_and_save_triples_to_json
 from documents import all_ner_paths, texts, true_ner_paths
 from paths import triple_json_path, triple_pkl_path, uniprot_path
 from prompts import prompts, rel_system_prompt
@@ -150,37 +150,41 @@ def load_file_paths(file):
 
 
 def main():
-    file = triple_pkl_path if not args.dev else tempfile.NamedTemporaryFile().name
-    file_paths = load_file_paths(file)
-    try:
-        with open(file, "ab+") as triple_pkl_file:
-            for i, doc in enumerate(texts):
-                file_path = doc[0].metadata["file_path"]
-                if not args.force_new and str(file_path) in file_paths:
-                    continue
-                file_paths.append(str(file_path))
-                _prompts = prompts.copy()
-                print(f"Doc {i}")
-                text = doc[0].page_content
-                messages = list()
-                responses = list()
-                if args.all_ners_given or args.true_ners_given:
-                    _prompts = get_ners(messages, responses, doc, _prompts)
-                elif args.extractionmode == "nerrel":
-                    _prompts = extract_ners(messages, responses, text, doc, _prompts)
-                if args.chattype == "lookup":
-                    lookup_infos(messages, responses)
-                if args.dynex:
-                    get_dynex(messages, text)
-                extract_rels(messages, responses, text, _prompts)
-                if not args.dev:
-                    pickle.dump(
-                        (responses, doc[0].page_content, doc[0].metadata["file_path"]),
-                        triple_pkl_file,
-                    )
-    finally:
+    jsonl_path = str(triple_pkl_path) + ".jsonl"
+    for i, doc in enumerate(texts):
+        file_path = doc[0].metadata["file_path"]
+        if not args.force_new:
+            try:
+                with open(jsonl_path, "r") as f:
+                    if any(
+                        json.loads(line)["file_path"] == str(file_path) for line in f
+                    ):
+                        continue
+            except FileNotFoundError:
+                pass
+        _prompts = prompts.copy()
+        print(f"Doc {i}")
+        text = doc[0].page_content
+        messages = list()
+        responses = list()
+        if args.all_ners_given or args.true_ners_given:
+            _prompts = get_ners(messages, responses, doc, _prompts)
+        elif args.extractionmode == "nerrel":
+            _prompts = extract_ners(messages, responses, text, doc, _prompts)
+        if args.chattype == "lookup":
+            lookup_infos(messages, responses)
+        if args.dynex:
+            get_dynex(messages, text)
+        extract_rels(messages, responses, text, _prompts)
         if not args.dev:
-            convert_and_save_triples_to_json(triple_pkl_path, triple_json_path)
+            result = {
+                "responses": [str(r) for r in responses],
+                "page_content": doc[0].page_content,
+                "file_path": str(doc[0].metadata["file_path"]),
+            }
+            with open(jsonl_path, "a") as f:
+                f.write(json.dumps(result) + "\n")
+                f.flush()
 
 
 if __name__ == "__main__":
