@@ -37,14 +37,14 @@ parser.add_argument(
     "--data",
     type=str,
     choices=[
-        "ours",
+        "cardio",
         "5curated",
         "eval",
         "biored",
         "regulatome",
         "regulatomepapers",
     ],
-    default="ours",
+    default="cardio",
     help="Which data to extract from.",
 )
 parser.add_argument(

@@ -67,15 +67,21 @@ def write_documents(
     chunk_pkl_path, paper_pkl_path, test_paper_paths, chunk_file_paths, paper_file_paths
 ):
     """Write chunked and full documents to pickle files if not already present."""
+    if args.force_new:
+        with (
+            open(chunk_pkl_path, "wb") as chunk_file,
+            open(paper_pkl_path, "wb") as doc_file,
+        ):
+            pass
     with (
         open(chunk_pkl_path, "ab+") as chunk_file,
         open(paper_pkl_path, "ab+") as doc_file,
     ):
         for i, test_paper_path in enumerate(test_paper_paths):
-            if (
+            if not args.force_new and (
                 str(test_paper_path) in paper_file_paths
                 and str(test_paper_path) in chunk_file_paths
-            ) and not args.force_new:
+            ):
                 continue
             text = open(test_paper_path, "r").read().strip()
             if text:
@@ -121,15 +127,11 @@ def get_config():
             true_ner_paths = list(_true_ner_paths.glob(f"*"))
     elif args.data == "regulatomepapers":
         _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
-    elif args.data == "ours":
+    elif args.data == "cardio":
         if args.target == "ppi":
-            _paper_paths = Path(
-                "/prj/LINDA_LLM/outputs/parsed_papers/Papers_Human_Cardiac_Signaling"
-            )
+            _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/CardioPrior/ppi")
         elif args.target == "tf":
-            _paper_paths = Path(
-                "/prj/LINDA_LLM/outputs/parsed_papers/Papers_Human_Cardiac_GRN"
-            )
+            _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/CardioPrior/tf")
     elif args.data == "5curated":
         _paper_paths = Path(
             f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
@@ -140,8 +142,8 @@ def get_config():
     return all_ner_paths, true_ner_paths, paper_paths
 
 
-def main():
-    all_ner_paths, true_ner_paths, paper_paths = get_config()
+def get_texts():
+    _, _, paper_paths = get_config()
 
     if args.data in ["regulatome", "regulatomepapers"]:
         if args.target == "ppi":
@@ -188,4 +190,4 @@ def main():
 
 # Make variables importable
 all_ner_paths, true_ner_paths, paper_paths = get_config()
-texts = main()
+texts = get_texts()

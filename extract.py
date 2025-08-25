@@ -133,6 +133,9 @@ def get_dynex(messages, text):
 
 
 def main():
+    if args.force_new:
+        with open(triple_jsonl_path, "w") as f:
+            pass
     for i, doc in enumerate(texts):
         file_path = doc[0].metadata["file_path"]
         if not args.force_new and not args.dev:
@@ -142,6 +145,7 @@ def main():
                         Path(json.loads(line)["filename"]).stem == file_path.stem
                         for line in f
                     ):
+                        print(f"Skipping {file_path.stem}")
                         continue
             except FileNotFoundError:
                 pass
