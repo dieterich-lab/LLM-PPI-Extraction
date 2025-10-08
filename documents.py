@@ -101,28 +101,28 @@ def get_config():
     true_ner_paths = None
     if args.data == "biored":
         _paper_paths = Path(
-            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/BIORED/BIORED/src/corpus/test"
+            "/beegfs/prj/LINDA_LLM/RegulaTome/BIORED/BIORED/src/corpus/test"
         )
     elif args.data == "regulatome":
         _paper_paths = Path(
-            "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/corpus"
+            "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/corpus"
         )
         if args.target == "ppi":
             _all_ner_paths = Path(
-                "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
+                "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
             )
             all_ner_paths = list(_all_ner_paths.glob(f"*"))
             _true_ner_paths = Path(
-                "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_ppi"
+                "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_ppi"
             )
             true_ner_paths = list(_true_ner_paths.glob(f"*"))
         elif args.target == "tf":
             _all_ner_paths = Path(
-                "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
+                "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
             )
             all_ner_paths = list(_all_ner_paths.glob(f"*"))
             _true_ner_paths = Path(
-                "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_tf"
+                "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_tf"
             )
             true_ner_paths = list(_true_ner_paths.glob(f"*"))
     elif args.data == "regulatomepapers":
@@ -136,9 +136,10 @@ def get_config():
         _paper_paths = Path(
             f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
         )
-    ending_dict = {"marker": "md", "llama_parse": "txt", "pymupdf4llm": "md"}
-    ending = ending_dict[args.parser] if args.data != "regulatomepapers" else "md"
-    paper_paths = list(_paper_paths.glob(f"*.{ending}"))
+    # ending_dict = {"marker": "md", "llama_parse": "txt", "pymupdf4llm": "md"}
+    # ending = ending_dict[args.parser] if args.data != "regulatomepapers" else "md"
+    # paper_paths = list(_paper_paths.glob(f"*.{ending}"))
+    paper_paths = list(_paper_paths.glob("*.txt"))
     return all_ner_paths, true_ner_paths, paper_paths
 
 

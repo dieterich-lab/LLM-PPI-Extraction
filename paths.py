@@ -13,6 +13,8 @@ if args.examples:
     experiment_path /= f"{args.examples}_ex"
 if args.recall:
     experiment_path /= "recall"
+if args.ensemble:
+    experiment_path /= f"ensemble_n{args.ensemble}_t{args.ensemble_temp}"
 if args.dynex:
     experiment_path /= "dynex"
 
@@ -33,8 +35,8 @@ else:
 # try:
 #     fp_paths = {
 #         "deepseek8b": {
-#             "nerrel": "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/FalsePositives_DeepSeek8b_Stepwise_NoEntities_Step1_AllRel.txt",
-#             "all_ners_given": "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/FalsePositives_DeepSeek8b_Stepwise_AllEntities_Step1_AllRel.txt",
+#             "nerrel": "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/FalsePositives_DeepSeek8b_Stepwise_NoEntities_Step1_AllRel.txt",
+#             "all_ners_given": "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/FalsePositives_DeepSeek8b_Stepwise_AllEntities_Step1_AllRel.txt",
 #         }
 #     }
 # except:
@@ -73,8 +75,8 @@ else:
 # )
 
 finetune_data_path = Path("/prj/LINDA_LLM/outputs/datasets")
-regulatome_ppi_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_ppi_annotations/annotated_ppi_relations_dedup.txt"
-regulatome_tf_eval_path = "/beegfs/prj/LINDA_LLM/CardioPriorKnowledge/test_tf_annotations/annotated_tf_relations_dedup_new.txt"
+regulatome_ppi_eval_path = "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/annotated_ppi_relations_dedup.txt"
+regulatome_tf_eval_path = "/beegfs/prj/LINDA_LLM/RegulaTome/test_tf_annotations/annotated_tf_relations_dedup_new.txt"
 try:
     sft_model_path = (
         Path("/prj/LINDA_LLM/outputs") / "finetunedmodels" / f"{hf_model_id}_regulatome"

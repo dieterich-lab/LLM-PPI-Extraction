@@ -92,6 +92,7 @@ def extract_ners(messages, responses, text, prompts):
 
 
 def extract_rels(messages, responses, text, prompts):
+    """Standard single-pass extraction"""
     for i, prompt in enumerate(prompts):
         messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
         try:
@@ -106,6 +107,73 @@ def extract_rels(messages, responses, text, prompts):
             response = Triples(triples=[])
         responses.append(response)
         messages.append(Message(role="assistant", content=str(response)))
+
+
+def extract_rels_ensemble(
+    messages, responses, text, prompts, n_samples=5, temperature=0.7
+):
+    """Self-consistency ensemble extraction with voting"""
+    print(f"  Running ensemble extraction with n={n_samples}, temp={temperature}")
+
+    for i, prompt in enumerate(prompts):
+        all_triples = []
+
+        # Generate n predictions with temperature > 0
+        for sample_idx in range(n_samples):
+            # Create a copy of messages for each sample
+            messages_copy = messages.copy()
+            messages_copy.append(
+                Message(role="user", content=f"\nUSER QUESTION: {prompt}")
+            )
+
+            try:
+                response = b.GeneralChatExtractRelationships(
+                    rel_system_prompt,
+                    text,
+                    messages_copy,
+                    baml_options={
+                        "client_registry": cr,
+                        "tb": tb,
+                        "collector": collector,
+                        "temperature": temperature,
+                    },
+                )
+                all_triples.extend(response.triples)
+                print(
+                    f"    Sample {sample_idx + 1}/{n_samples}: {len(response.triples)} triples"
+                )
+            except Exception as e:
+                print(f"    Exception at sample {sample_idx + 1}: {e}")
+                continue
+
+        # Vote: keep triples appearing in ≥50% of samples
+        triple_counts = {}
+        for triple in all_triples:
+            # Create a unique key for each triple (case-insensitive to handle variations)
+            key = (
+                f"{triple.head.lower()}|{triple.relation.lower()}|{triple.tail.lower()}"
+            )
+            if key not in triple_counts:
+                triple_counts[key] = {"count": 0, "example": triple}
+            triple_counts[key]["count"] += 1
+
+        # Select triples that appear in at least half of the samples
+        threshold = n_samples // 2
+        consensus_triples = [
+            data["example"]
+            for key, data in triple_counts.items()
+            if data["count"] >= threshold
+        ]
+
+        print(
+            f"    Consensus: {len(consensus_triples)} triples (threshold: {threshold}/{n_samples})"
+        )
+
+        # Create response with consensus triples
+        consensus_response = Triples(triples=consensus_triples)
+        responses.append(consensus_response)
+        messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
+        messages.append(Message(role="assistant", content=str(consensus_response)))
 
 
 def lookup_infos(messages, responses):
@@ -134,9 +202,21 @@ def get_dynex(messages, text):
 
 def main():
     if args.force_new:
-        with open(triple_jsonl_path, "w") as f:
+        with open(triple_jsonl_path, "w") as f:  # delete the content
             pass
-    for i, doc in enumerate(texts):
+
+    # Apply document slicing based on startfromdoc and untildoc
+    docs_to_process = texts
+    if args.untildoc > 0:
+        docs_to_process = texts[args.startfromdoc : args.untildoc]
+    elif args.startfromdoc > 0:
+        docs_to_process = texts[args.startfromdoc :]
+
+    print(
+        f"Processing documents {args.startfromdoc} to {args.untildoc if args.untildoc > 0 else len(texts)} (total: {len(docs_to_process)})"
+    )
+
+    for i, doc in enumerate(docs_to_process, start=args.startfromdoc):
         file_path = doc[0].metadata["file_path"]
         if not args.force_new and not args.dev:
             try:
@@ -162,7 +242,20 @@ def main():
             lookup_infos(messages, responses)
         if args.dynex:
             get_dynex(messages, text)
-        extract_rels(messages, responses, text, _prompts)
+
+        # Choose extraction method based on ensemble flag
+        if args.ensemble:
+            extract_rels_ensemble(
+                messages,
+                responses,
+                text,
+                _prompts,
+                n_samples=args.ensemble,
+                temperature=args.ensemble_temp,
+            )
+        else:
+            extract_rels(messages, responses, text, _prompts)
+
         if not args.dev:
             result = {
                 "responses": [r.model_dump()["triples"] for r in responses],

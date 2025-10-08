@@ -15,7 +15,7 @@ parser.add_argument(
         "qwen330",
         "qwen332",
     ],
-    default="llama33",
+    default="llama31",
     help="Alias pointing back to model names of the local Ollama server or the provider.",
 )
 parser.add_argument(
@@ -95,7 +95,7 @@ parser.add_argument(
     "--node",
     type=str,
     choices=["g2", "g3", "g4", "g5", "mk22d"],
-    default="g3",
+    default="g5",
     help="Node alias that defines the ip where the Ollama server is running (see 'llm.py').",
 )
 parser.add_argument(
@@ -120,6 +120,20 @@ parser.add_argument(
 parser.add_argument(
     "--recall",
     action="store_true",
+)
+parser.add_argument(
+    "--ensemble",
+    nargs="?",
+    const=5,
+    type=int,
+    default=0,
+    help="Enable self-consistency ensemble with n samples (default=5). Set to 0 to disable.",
+)
+parser.add_argument(
+    "--ensemble_temp",
+    type=float,
+    default=0.8,
+    help="Temperature for ensemble sampling (default=0.8). Only used when --ensemble is enabled.",
 )
 parser.add_argument(
     "--startfromdoc",
