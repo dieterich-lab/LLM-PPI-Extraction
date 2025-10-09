@@ -13,6 +13,8 @@ if args.examples:
     experiment_path /= f"{args.examples}_ex"
 if args.recall:
     experiment_path /= "recall"
+if args.tot:
+    experiment_path /= f"tot_n{args.tot}_{args.tot_strategy}"
 if args.ensemble:
     experiment_path /= f"ensemble_n{args.ensemble}_t{args.ensemble_temp}"
 if args.dynex:

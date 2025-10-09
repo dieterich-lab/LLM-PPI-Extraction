@@ -80,7 +80,7 @@ parser.add_argument(
 parser.add_argument(
     "--noconfidence",
     action="store_true",
-    default="true",
+    # default="true",
 )
 parser.add_argument(
     "--force_new",
@@ -134,6 +134,21 @@ parser.add_argument(
     type=float,
     default=0.8,
     help="Temperature for ensemble sampling (default=0.8). Only used when --ensemble is enabled.",
+)
+parser.add_argument(
+    "--tot",
+    nargs="?",
+    const=3,
+    type=int,
+    default=0,
+    help="Enable Tree-of-Thoughts with n reasoning paths (default=3). Set to 0 to disable.",
+)
+parser.add_argument(
+    "--tot_strategy",
+    type=str,
+    choices=["vote", "best", "merge"],
+    default="vote",
+    help="Strategy for combining ToT paths: 'vote' (majority voting), 'best' (highest scored path), 'merge' (union of high-confidence).",
 )
 parser.add_argument(
     "--startfromdoc",

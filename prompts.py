@@ -285,3 +285,89 @@ OUTPUT_FORMAT = """
     ],
 }
 """
+
+# ============================================================================
+# Tree-of-Thoughts (ToT) Prompts
+# ============================================================================
+
+tot_strategy_generation_prompt = """
+You are designing extraction strategies for identifying {interactions_type} interactions from scientific text.
+
+Generate {n_paths} different reasoning approaches/strategies for extracting these relations. Each strategy should focus on a different aspect:
+- Strategy 1: Focus on explicit interaction verbs (binds, phosphorylates, activates, etc.)
+- Strategy 2: Focus on experimental evidence (co-IP, pull-down, reporter assays, etc.)
+- Strategy 3: Focus on functional descriptions and mechanistic details
+{extra_strategy}
+
+For each strategy, provide:
+1. A brief name (3-5 words)
+2. What textual patterns to look for
+3. What to avoid (common false positives for this approach)
+
+Output your strategies in this JSON format:
+{{
+    "strategies": [
+        {{
+            "name": "Strategy name",
+            "focus": "What to focus on",
+            "avoid": "What to avoid"
+        }}
+    ]
+}}
+"""
+
+tot_path_extraction_prompt = """
+Now, using ONLY the following extraction strategy, extract {interactions_type} interactions:
+
+STRATEGY: {strategy_name}
+FOCUS ON: {strategy_focus}
+AVOID: {strategy_avoid}
+
+Apply this strategy systematically to the text. {confidence_prompt}
+"""
+
+tot_evaluation_prompt = """
+You have extracted {interactions_type} interactions using a specific strategy.
+
+Review your extracted relations and evaluate:
+1. How many relations did you find?
+2. How confident are you in each relation (based on textual evidence)?
+3. Are there any potential false positives?
+
+For each triple, assign a quality score from 1-10 where:
+- 10 = Explicit, clear interaction with strong textual evidence
+- 7-9 = Clear interaction but less explicit evidence
+- 4-6 = Possible interaction but ambiguous
+- 1-3 = Weak evidence, likely false positive
+
+Output in this JSON format:
+{{
+    "evaluation": [
+        {{
+            "head": "protein1",
+            "relation": "INTERACTS_WITH",
+            "tail": "protein2",
+            "score": 9,
+            "evidence": "Brief quote from text supporting this relation"
+        }}
+    ],
+    "summary": "Brief assessment of this extraction path"
+}}
+"""
+
+tot_merge_prompt = """
+You have extracted {interactions_type} interactions using {n_paths} different reasoning strategies.
+
+Below are the results from each strategy with quality scores:
+
+{all_extractions}
+
+Now, combine these results using the following approach:
+- Include relations that appear in multiple strategies (higher confidence)
+- Include relations with score ≥ 8 even if only found by one strategy
+- Exclude relations with score < 5 unless they appear in ≥2 strategies
+- Resolve conflicts (e.g., different relation types for same entity pair)
+
+Output the final merged set of relations using the standard OUTPUT FORMAT.
+{confidence_prompt}
+"""
