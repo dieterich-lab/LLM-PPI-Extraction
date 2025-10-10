@@ -95,7 +95,7 @@ lookup_prompt = (
 
 dynex_prompt = (
     "Following, you find an EXAMPLE of a similar texts and ground truth relations. Use it as support for your decision. "
-    if args.dynex
+    if args.dynex_k > 0
     else ""
 )
 

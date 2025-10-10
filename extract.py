@@ -1,7 +1,10 @@
 import json
 import os
+import re
 import sys
 from pathlib import Path
+
+import numpy as np
 
 sys.path.append("..")  # isort:skip
 from parser import args
@@ -10,9 +13,7 @@ os.environ["BAML_LOG"] = args.loglevel  # isort:skip
 from baml.baml_client.sync_client import b  # isort:skip
 from baml.baml_client.types import (  # isort:skip
     Entities,
-    ExtractionStrategies,
     Message,
-    PathEvaluation,
     Triples,
 )
 from baml_py import Collector
@@ -26,10 +27,7 @@ from prompts import (
     interactions_type,
     prompts,
     rel_system_prompt,
-    tot_evaluation_prompt,
-    tot_merge_prompt,
     tot_path_extraction_prompt,
-    tot_strategy_generation_prompt,
 )
 
 collector = Collector(name="my-collector")
@@ -46,14 +44,38 @@ if args.chattype == "lookup":
             for line in lookupfile.readlines()[1:]
         }
 
-if args.dynex:
+string_db = {}
+if args.string_db:
+    # Load STRING database for knowledge decoration
+    string_db_path = "/prj/LINDA_LLM/resources/string_interactions.tsv"  # Placeholder path; update as needed
+    try:
+        with open(string_db_path, "r") as f:
+            for line in f:
+                parts = line.strip().split("\t")
+                if len(parts) >= 4:
+                    protein1, protein2, score, interaction_type = (
+                        parts[0],
+                        parts[1],
+                        float(parts[2]),
+                        parts[3],
+                    )
+                    pair = tuple(sorted([protein1, protein2]))
+                    string_db[pair] = {"score": score, "type": interaction_type}
+        print(f"Loaded {len(string_db)} STRING interactions.")
+    except FileNotFoundError:
+        print(
+            f"STRING database not found at {string_db_path}. Proceeding without STRING decoration."
+        )
+
+if args.dynex_k > 0:
     from datasets import concatenate_datasets
 
     from dataset import get_dataset
-    from embed import client, embed_model, load_index
+    from embed import client, embed_model, embeddings_path, load_index
 
     index = load_index()
-    train_dataset, dev_dataset, _ = get_dataset()
+    embeddings = np.load(embeddings_path)
+    train_dataset, dev_dataset, _ = get_dataset(args.target, args.data)
     lookup_dataset = concatenate_datasets([train_dataset, dev_dataset])
 
 print(f"New run: {triple_jsonl_path.parent}")
@@ -63,6 +85,20 @@ if args.all_ners_given:
     ner_paths = all_ner_paths
 if args.true_ners_given:
     ner_paths = true_ner_paths
+
+
+def get_string_info(proteins):
+    """Fetch STRING info for a list of proteins (bonus: decorate with PPI knowledge)."""
+    info = []
+    for i in range(len(proteins)):
+        for j in range(i + 1, len(proteins)):
+            pair = tuple(sorted([proteins[i], proteins[j]]))
+            if pair in string_db:
+                data = string_db[pair]
+                info.append(
+                    f"STRING PPI ({pair[0]} ↔ {pair[1]}): Score {data['score']:.2f} ({data['type']})"
+                )
+    return " | ".join(info) if info else "No STRING data available."
 
 
 def get_ners(messages, responses, doc, prompts):
@@ -106,10 +142,13 @@ def extract_ners(messages, responses, text, prompts):
     return prompts
 
 
-def extract_rels(messages, responses, text, prompts):
+def extract_rels(messages, responses, text, prompts, examples_content=""):
     """Standard single-pass extraction"""
     for i, prompt in enumerate(prompts):
-        messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
+        content = f"\nUSER QUESTION: {prompt}"
+        if examples_content:
+            content += f"\n{examples_content}"
+        messages.append(Message(role="user", content=content))
         try:
             response = b.GeneralChatExtractRelationships(
                 rel_system_prompt,
@@ -125,7 +164,13 @@ def extract_rels(messages, responses, text, prompts):
 
 
 def extract_rels_ensemble(
-    messages, responses, text, prompts, n_samples=5, temperature=0.7
+    messages,
+    responses,
+    text,
+    prompts,
+    n_samples=5,
+    temperature=0.7,
+    examples_content="",
 ):
     """Self-consistency ensemble extraction with voting"""
     print(f"  Running ensemble extraction with n={n_samples}, temp={temperature}")
@@ -137,9 +182,10 @@ def extract_rels_ensemble(
         for sample_idx in range(n_samples):
             # Create a copy of messages for each sample
             messages_copy = messages.copy()
-            messages_copy.append(
-                Message(role="user", content=f"\nUSER QUESTION: {prompt}")
-            )
+            content = f"\nUSER QUESTION: {prompt}"
+            if examples_content:
+                content += f"\n{examples_content}"
+            messages_copy.append(Message(role="user", content=content))
 
             try:
                 response = b.GeneralChatExtractRelationships(
@@ -205,17 +251,58 @@ def lookup_infos(messages, responses):
 
 
 def get_dynex(messages, text):
+    """Enhanced RAG: Retrieve top-k diverse examples, format nicely, and decorate with STRING knowledge."""
+    k = args.dynex_k  # Number of examples to retrieve; configurable via args
     embed = client.embed(
         model=embed_model,
         input=text,
     ).embeddings
-    labels, _ = index.knn_query(embed, k=1)
-    example = lookup_dataset[labels[0]]
-    example_text = "\n".join([example["doc"][0], example["triples"][0]])
-    messages.append(Message(role="user", content=f"EXAMPLE: {example_text}\n"))
+
+    # Retrieve 2x candidates for diversity filtering
+    labels, distances = index.knn_query(embed, k=k * 2)
+
+    # Diversity filtering: Select k diverse examples using embedding distance
+    selected_examples = []
+    selected_embeds = []
+
+    for idx, dist in zip(labels[0], distances[0]):
+        example = lookup_dataset[int(idx)]
+        example_embed = embeddings[int(idx)]
+
+        # Skip if too similar to already selected (cosine similarity > 0.8, i.e., distance < 0.2)
+        if any(np.dot(example_embed, sel_embed) > 0.8 for sel_embed in selected_embeds):
+            continue
+
+        selected_examples.append(example)
+        selected_embeds.append(example_embed)
+
+        if len(selected_examples) == k:
+            break
+
+    examples_text = ""
+    for i, example in enumerate(selected_examples, start=1):
+        example_doc = example["doc"]
+        example_triples = example["triples"]
+
+        example_line = (
+            f"EXAMPLE {i}:\nText: {example_doc}\nRelations: {example_triples}"
+        )
+        if string_db:
+            # Extract proteins from doc/triples for STRING lookup (simple regex; refine as needed)
+            proteins = re.findall(
+                r"\b[A-Z]{2,}\b", example_doc + " " + example_triples
+            )  # E.g., match uppercase protein names
+            string_info = get_string_info(proteins)
+            example_line += f"\nKnowledge: {string_info}"
+        example_line += "\n\n"
+        examples_text += example_line
+
+    messages.append(Message(role="user", content=f"SIMILAR EXAMPLES:\n{examples_text}"))
 
 
-def extract_rels_tot(messages, responses, text, prompts, n_paths=3, strategy="vote"):
+def extract_rels_tot(
+    messages, responses, text, prompts, n_paths=3, strategy="vote", examples_content=""
+):
     """
     Tree-of-Thoughts extraction with multiple reasoning paths.
 
@@ -239,21 +326,17 @@ def extract_rels_tot(messages, responses, text, prompts, n_paths=3, strategy="vo
             f"Extract {interactions_type} interactions from biomedical text"
         )
 
-        try:
-            strategies_response = b.GenerateToTStrategies(
-                task_description=task_description,
-                n_paths=n_paths,
-                text=text[:1000],  # Use first 1000 chars for strategy generation
-                baml_options={"client_registry": cr, "tb": tb, "collector": collector},
-            )
-            strategies = [
-                {"name": s.name, "focus": s.focus, "avoid": s.avoid}
-                for s in strategies_response.strategies
-            ]
-            print(f"    Generated {len(strategies)} strategies successfully")
-        except Exception as e:
-            print(f"    Error generating strategies via LLM: {e}, using defaults")
-            strategies = generate_default_strategies(n_paths)
+        strategies_response = b.GenerateToTStrategies(
+            task_description=task_description,
+            n_paths=n_paths,
+            text=text[:1000],  # Use first 1000 chars for strategy generation
+            baml_options={"client_registry": cr, "tb": tb, "collector": collector},
+        )
+        strategies = [
+            {"name": s.name, "focus": s.focus, "avoid": s.avoid}
+            for s in strategies_response.strategies
+        ]
+        print(f"    Generated {len(strategies)} strategies successfully")
 
         # Step 2: Extract relations using each strategy
         all_path_results = []
@@ -272,9 +355,10 @@ def extract_rels_tot(messages, responses, text, prompts, n_paths=3, strategy="vo
                 strategy_avoid=strategy_dict["avoid"],
                 confidence_prompt=confidence_prompt,
             )
-            path_messages.append(
-                Message(role="user", content=f"\n{prompt}\n\n{extraction_prompt}")
-            )
+            content = f"\n{prompt}\n\n{extraction_prompt}"
+            if examples_content:
+                content += f"\n{examples_content}"
+            path_messages.append(Message(role="user", content=content))
 
             try:
                 path_response = b.GeneralChatExtractRelationships(
@@ -376,39 +460,6 @@ def extract_rels_tot(messages, responses, text, prompts, n_paths=3, strategy="vo
         messages.append(Message(role="assistant", content=str(final_response)))
 
 
-def generate_default_strategies(n_paths):
-    """Generate default extraction strategies for ToT"""
-    all_strategies = [
-        {
-            "name": "Explicit Interaction Verbs",
-            "focus": "Look for explicit molecular interaction verbs like 'binds', 'phosphorylates', 'activates', 'inhibits', 'methylates', 'ubiquitinates', 'forms complex with'",
-            "avoid": "General co-occurrence, pathway membership, or functional similarity without direct interaction evidence",
-        },
-        {
-            "name": "Experimental Evidence",
-            "focus": "Look for experimental methods that demonstrate direct interactions: co-immunoprecipitation, pull-down assays, Y2H, surface plasmon resonance, crosslinking, co-localization studies",
-            "avoid": "Correlative evidence, expression patterns, or genetic interactions without biochemical validation",
-        },
-        {
-            "name": "Mechanistic Details",
-            "focus": "Look for mechanistic descriptions of how proteins interact: domain-domain interactions, substrate-enzyme relationships, complex stoichiometry, specific residues/sites involved",
-            "avoid": "High-level functional relationships or regulatory effects that may be indirect",
-        },
-        {
-            "name": "Signaling Cascade Context",
-            "focus": "Look for interactions explicitly described within signaling pathways: upstream-downstream relationships, cascade components, scaffold proteins, adaptor proteins",
-            "avoid": "Proteins merely mentioned together in pathway context without direct interaction evidence",
-        },
-        {
-            "name": "Post-translational Modifications",
-            "focus": "Look for PTM relationships: kinase-substrate, E3 ligase-target, methyltransferase-substrate, deubiquitinase-target, with specific modification sites when mentioned",
-            "avoid": "Indirect regulatory effects or transcriptional regulation",
-        },
-    ]
-
-    return all_strategies[:n_paths]
-
-
 def combine_by_voting(all_path_results, threshold=None):
     """Combine ToT paths by majority voting
 
@@ -429,10 +480,6 @@ def combine_by_voting(all_path_results, threshold=None):
                 triple_counts[key] = {"count": 0, "example": triple}
             triple_counts[key]["count"] += 1
 
-    # Default threshold: majority (ceil(n_paths / 2))
-    # For n=3: ceil(3/2) = 2 (not 1!)
-    # For n=4: ceil(4/2) = 2
-    # For n=5: ceil(5/2) = 3
     if threshold is None:
         n_paths = len(all_path_results)
         threshold = math.ceil(n_paths / 2)
@@ -500,6 +547,7 @@ def combine_by_merging(all_path_results, all_path_evaluations):
 
 
 def main():
+    examples_content = ""  # Store examples content for inclusion in prompts
     if args.force_new:
         with open(triple_jsonl_path, "w") as f:  # delete the content
             pass
@@ -539,8 +587,10 @@ def main():
             _prompts = extract_ners(messages, responses, text, doc, _prompts)
         if args.chattype == "lookup":
             lookup_infos(messages, responses)
-        if args.dynex:
+        if args.dynex_k > 0:
             get_dynex(messages, text)
+            examples_content = messages[-1].content  # Get the examples content
+            messages.pop()  # Remove it from messages, will be included in prompts
 
         # Choose extraction method based on flags
         if args.tot:
@@ -551,6 +601,7 @@ def main():
                 _prompts,
                 n_paths=args.tot,
                 strategy=args.tot_strategy,
+                examples_content=examples_content,
             )
         elif args.ensemble:
             extract_rels_ensemble(
@@ -560,9 +611,12 @@ def main():
                 _prompts,
                 n_samples=args.ensemble,
                 temperature=args.ensemble_temp,
+                examples_content=examples_content,
             )
         else:
-            extract_rels(messages, responses, text, _prompts)
+            extract_rels(
+                messages, responses, text, _prompts, examples_content=examples_content
+            )
 
         if not args.dev:
             result = {

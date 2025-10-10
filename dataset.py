@@ -4,7 +4,8 @@ from datasets import Dataset, load_from_disk
 from pydantic.json import pydantic_encoder
 
 from baml.baml_client.types import Triple, Triples
-from documents import all_docs
+
+# from documents import all_docs
 from paths import finetune_data_path, regulatome_ppi_eval_path, regulatome_tf_eval_path
 from prompts import OUTPUT_FORMAT, prompts, rel_system_prompt
 
@@ -14,6 +15,7 @@ def get_dataset(target, data, tokenizer=None, force_new=False):
         not (finetune_data_path / f"{data}_{target}_train_dataset").exists()
         or force_new
     ):
+        raise
 
         def chat_conversion(test=False):
             def _chat_conversion(data):

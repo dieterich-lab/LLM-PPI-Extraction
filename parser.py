@@ -44,13 +44,14 @@ parser.add_argument(
         "regulatome",
         "regulatomepapers",
     ],
-    default="cardio",
+    default="regulatome",
     help="Which data to extract from.",
 )
 parser.add_argument(
     "--target",
     type=str,
     choices=["ppi", "tf", "lr", "ppitf"],
+    default="ppi",
     help="Which entity type you want to extract.",
 )
 parser.add_argument("--re_evaluate", choices=["judge", "corrector"])
@@ -61,8 +62,15 @@ parser.add_argument(
     default="docs",
 )
 parser.add_argument(
-    "--dynex",
+    "--dynex_k",
+    type=int,
+    default=0,
+    help="Number of diverse examples to retrieve for dynex (0 to disable).",
+)
+parser.add_argument(
+    "--string_db",
     action="store_true",
+    help="Enable STRING database lookup for PPI knowledge decoration.",
 )
 parser.add_argument(
     "--chunksize",

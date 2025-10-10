@@ -17,8 +17,8 @@ if args.tot:
     experiment_path /= f"tot_n{args.tot}_{args.tot_strategy}"
 if args.ensemble:
     experiment_path /= f"ensemble_n{args.ensemble}_t{args.ensemble_temp}"
-if args.dynex:
-    experiment_path /= "dynex"
+if args.dynex_k > 0:
+    experiment_path /= f"dynex_k{args.dynex_k}"
 
 if args.all_ners_given:
     experiment_path /= "all_ners_given"
