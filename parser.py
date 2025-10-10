@@ -103,7 +103,7 @@ parser.add_argument(
     "--node",
     type=str,
     choices=["g2", "g3", "g4", "g5", "mk22d"],
-    default="g5",
+    default="g4",
     help="Node alias that defines the ip where the Ollama server is running (see 'llm.py').",
 )
 parser.add_argument(
@@ -230,3 +230,7 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
+# Force extractionmode to nerrel when chattype is lookup
+if args.chattype == "lookup":
+    args.extractionmode = "nerrel"

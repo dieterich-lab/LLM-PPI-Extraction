@@ -38,11 +38,64 @@ if not args.noconfidence:
     ).description("if this relation was extracted with high confidence or not")
 
 if args.chattype == "lookup":
-    with open(uniprot_path, "r") as lookupfile:
-        lookup_table = {
-            line.split("\t")[0]: (line.split("\t")[1], line.split("\t")[2])
-            for line in lookupfile.readlines()[1:]
-        }
+    from collections import defaultdict
+
+    protein_to_ppis = defaultdict(list)
+    string_ppi_path = "/prj/LINDA_LLM/STRING/string_ppi.tsv"
+    try:
+        with open(string_ppi_path, "r") as f:
+            header_skipped = False
+            for line in f:
+                if not header_skipped:
+                    header_skipped = True
+                    continue  # skip header
+                parts = line.strip().split("\t")
+                if len(parts) >= 10:
+                    protein1, protein2 = parts[0], parts[1]
+                    try:
+                        combined_score = float(parts[9])
+                        if combined_score > 400:  # only high confidence
+                            protein_to_ppis[protein1.lower()].append(
+                                (protein2, combined_score)
+                            )
+                            protein_to_ppis[protein2.lower()].append(
+                                (protein1, combined_score)
+                            )
+                    except ValueError:
+                        continue  # skip invalid lines
+        print(f"Loaded STRING PPIs for {len(protein_to_ppis)} proteins.")
+    except FileNotFoundError:
+        print(f"STRING PPI file not found at {string_ppi_path}.")
+        protein_to_ppis = {}
+
+    # Load synonyms for fuzzy matching
+    synonyms_path = "/prj/LINDA_LLM/outputs/regu_test_names.json"
+    try:
+        import json
+
+        with open(synonyms_path, "r") as f:
+            synonyms = json.load(f)
+        print(f"Loaded synonyms for {len(synonyms)} terms.")
+    except FileNotFoundError:
+        print(f"Synonyms file not found at {synonyms_path}.")
+        synonyms = {}
+
+    # Create Whoosh index for fuzzy protein name search
+    import os
+    import tempfile
+
+    from whoosh import index
+    from whoosh.analysis import StandardAnalyzer
+    from whoosh.fields import TEXT, Schema
+
+    schema = Schema(name=TEXT(stored=True, analyzer=StandardAnalyzer()))
+    index_dir = tempfile.mkdtemp()
+    ix = index.create_in(index_dir, schema)
+    writer = ix.writer()
+    for protein in protein_to_ppis:
+        writer.add_document(name=protein)
+    writer.commit()
+    print(f"Created Whoosh index with {len(protein_to_ppis)} proteins.")
 
 string_db = {}
 if args.string_db:
@@ -134,8 +187,8 @@ def extract_ners(messages, responses, text, prompts):
             message,
             baml_options={"client_registry": cr, "tb": tb, "collector": collector},
         )
-    except:
-        print(f"Exception at Entity extraction")
+    except Exception as e:
+        print(f"Exception at Entity extraction: {e}")
         response = Entities(entities=[])
     responses.append(response)
     messages.append(Message(role="assistant", content=f"{str(response)}"))
@@ -157,7 +210,7 @@ def extract_rels(messages, responses, text, prompts, examples_content=""):
                 baml_options={"client_registry": cr, "tb": tb, "collector": collector},
             )
         except Exception as e:
-            print(f"Exception at step {i}")
+            print(f"Exception at step {i}: {e}")
             response = Triples(triples=[])
         responses.append(response)
         messages.append(Message(role="assistant", content=str(response)))
@@ -245,8 +298,53 @@ def lookup_infos(messages, responses):
             if ne in ent_set:
                 continue
             ent_set.add(ne)
-            if ne.lower() in lookup_table:
-                infos[ne] = f"Function: {lookup_table[ne.lower()][0].strip()}"
+            print(f"Extracted NE: '{ne}', lower: '{ne.lower()}'")
+            matched = False
+            # First try direct match
+            if ne.lower() in protein_to_ppis:
+                print(f"Direct match found for {ne.lower()}")
+                ppis = protein_to_ppis[ne.lower()]
+                matched = True
+            # Then try synonyms
+            elif ne in synonyms:
+                for syn in synonyms[ne]:
+                    syn_lower = syn.lower()
+                    if syn_lower in protein_to_ppis:
+                        print(f"Synonym match found: {ne} -> {syn} ({syn_lower})")
+                        ppis = protein_to_ppis[syn_lower]
+                        matched = True
+                        break
+            # Fuzzy match using Whoosh
+            if not matched:
+                import re
+
+                from whoosh.qparser import FuzzyTermPlugin, QueryParser
+
+                clean_ne = re.sub(r"\d+", "", ne.lower())  # remove digits
+                clean_ne = re.sub(r"[^\w]+", "", clean_ne)  # remove punctuation
+                if clean_ne:
+                    with ix.searcher() as searcher:
+                        parser = QueryParser("name", ix.schema)
+                        parser.add_plugin(FuzzyTermPlugin())
+                        query = parser.parse(
+                            clean_ne + "~2"
+                        )  # fuzzy with edit distance 2
+                        results = searcher.search(query, limit=5)
+                        if results:
+                            matched_protein = results[0]["name"]  # take top match
+                            print(
+                                f"Whoosh fuzzy match found: {ne} -> {matched_protein} (query: {clean_ne})"
+                            )
+                            ppis = protein_to_ppis[matched_protein]
+                            matched = True
+            if matched:
+                # Sort by score desc, take top 5
+                ppis_sorted = sorted(ppis, key=lambda x: x[1], reverse=True)[:5]
+                ppi_str = ", ".join(f"{p} ({s:.0f})" for p, s in ppis_sorted)
+                infos[ne] = f"Known PPIs: {ppi_str}"
+            else:
+                print(f"No match for {ne.lower()}")
+    print(f"Background infos: {infos}")
     messages.append(Message(role="user", content=f"BACKGROUND KNOWLEDGE: {infos}\n"))
 
 
@@ -584,7 +682,7 @@ def main():
         if args.all_ners_given or args.true_ners_given:
             _prompts = get_ners(messages, responses, doc, _prompts)
         elif args.extractionmode == "nerrel":
-            _prompts = extract_ners(messages, responses, text, doc, _prompts)
+            _prompts = extract_ners(messages, responses, text, _prompts)
         if args.chattype == "lookup":
             lookup_infos(messages, responses)
         if args.dynex_k > 0:
