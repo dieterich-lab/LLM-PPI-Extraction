@@ -76,7 +76,7 @@ anti_interactions_type = (
     "transcription factor/gene" if args.target == "ppi" else "protein-protein"
 )
 
-if args.extractionmode in ["nerrel", "lookup"]:
+if args.extractionmode == "nerrel":
     ner_list_prompt = (
         f"Now look at your extracted {targets} above and use it for the following task:"
     )
@@ -89,7 +89,7 @@ else:
 
 lookup_prompt = (
     "We also provided above some insightful BACKGROUND KNOWLEDGE for each extracted protein. Use it as additional support. "
-    if args.chattype == "lookup"
+    if args.lookup
     else ""
 )
 
@@ -232,13 +232,32 @@ chat_prompts = {
     },
     "nerrel": {
         "oneshot": [
-            f"Extract all the {targets} that appear in the text.",
-            f"{prompt} " "Please stick to the desired OUTPUT FORMAT.",
+            f"Extract all the {targets} that appear in the text. "
+            "Please stick to the desired OUTPUT FORMAT. ",
+            f"{prompt} "
             f"{ex} "
-            "Use again the desired json OUTPUT FORMAT to format your answer. "
+            "Please stick to the desired OUTPUT FORMAT. "
             f"{confidence_prompt}{cot_prompt}",
         ],
         "stepwise": [
+            f"Extract all the {targets} that appear in the text.",
+            f"{prompt} "
+            f"{ex} "
+            "Please stick to the desired OUTPUT FORMAT. "
+            f"{confidence_prompt}{cot_prompt}",
+            f"Now review your extracted {interactions_type} interactions to determine if "
+            "they are specific to signaling pathways. Retain only signalling pathway interactions "
+            "and remove the rest. "
+            "Use again the desired json OUTPUT FORMAT to format your answer. "
+            f"{confidence_prompt}{cot_prompt}",
+            f"Review one more time the {interactions_type} interactions to  "
+            f"determine whether there are in the list regulations that are of a {anti_interactions_type} "
+            f"regulatory nature. Retain those interactions that are only specific to {interactions_type} interactions in cell  "
+            f"signalling and remove those relations that represent relations between {anti_targets}. "
+            "Use again the desired json OUTPUT FORMAT to format your answer. "
+            f"{confidence_prompt}{cot_prompt}",
+        ],
+        "lookup": [  # Same as stepwise but with background knowledge
             f"Extract all the {targets} that appear in the text.",
             f"{prompt} "
             f"{ex} "
@@ -264,9 +283,9 @@ mode_lookup = (
     if not (args.all_ners_given or args.true_ners_given)
     else "nerrel"
 )
-chat_lookup = "stepwise" if args.chattype == "lookup" else args.chattype
-prompts = chat_prompts[mode_lookup][chat_lookup]
-if args.target == "ppitf" and chat_lookup == "stepwise":
+# chat_lookup = "stepwise" if args.chattype == "lookup" else args.chattype
+prompts = chat_prompts[mode_lookup][args.chattype]
+if args.target == "ppitf" and args.chattype == "stepwise":
     prompts = prompts[:-1]
 
 

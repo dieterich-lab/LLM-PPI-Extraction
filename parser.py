@@ -68,9 +68,9 @@ parser.add_argument(
     help="Number of diverse examples to retrieve for dynex (0 to disable).",
 )
 parser.add_argument(
-    "--string_db",
+    "--lookup",
     action="store_true",
-    help="Enable STRING database lookup for PPI knowledge decoration.",
+    help="Enable lookup for additional context in the STRING database.",
 )
 parser.add_argument(
     "--chunksize",
@@ -231,6 +231,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-# Force extractionmode to nerrel when chattype is lookup
-if args.chattype == "lookup":
+# Force extractionmode to nerrel when chattype is lookup or when lookup is enabled
+if args.chattype == "lookup" or args.lookup:
     args.extractionmode = "nerrel"

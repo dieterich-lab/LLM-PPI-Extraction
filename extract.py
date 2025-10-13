@@ -21,7 +21,7 @@ from baml_py import Collector
 from baml.baml_client.type_builder import TypeBuilder
 from clients import cr
 from documents import all_ner_paths, texts, true_ner_paths
-from paths import triple_jsonl_path, uniprot_path
+from paths import triple_jsonl_path
 from prompts import (
     confidence_prompt,
     interactions_type,
@@ -37,7 +37,7 @@ if not args.noconfidence:
         "confidence", tb.union([tb.literal_string("high"), tb.literal_string("low")])
     ).description("if this relation was extracted with high confidence or not")
 
-if args.chattype == "lookup":
+if args.lookup:
     from collections import defaultdict
 
     protein_to_ppis = defaultdict(list)
@@ -68,17 +68,19 @@ if args.chattype == "lookup":
         print(f"STRING PPI file not found at {string_ppi_path}.")
         protein_to_ppis = {}
 
-    # Load synonyms for fuzzy matching
-    synonyms_path = "/prj/LINDA_LLM/outputs/regu_test_names.json"
-    try:
-        import json
+    # Load synonyms for fuzzy matching (only needed for lookup)
+    synonyms = {}
+    if args.lookup:
+        synonyms_path = "/prj/LINDA_LLM/outputs/regu_test_names.json"
+        try:
+            import json
 
-        with open(synonyms_path, "r") as f:
-            synonyms = json.load(f)
-        print(f"Loaded synonyms for {len(synonyms)} terms.")
-    except FileNotFoundError:
-        print(f"Synonyms file not found at {synonyms_path}.")
-        synonyms = {}
+            with open(synonyms_path, "r") as f:
+                synonyms = json.load(f)
+            print(f"Loaded synonyms for {len(synonyms)} terms.")
+        except FileNotFoundError:
+            print(f"Synonyms file not found at {synonyms_path}.")
+            synonyms = {}
 
     # Create Whoosh index for fuzzy protein name search
     import os
@@ -96,29 +98,6 @@ if args.chattype == "lookup":
         writer.add_document(name=protein)
     writer.commit()
     print(f"Created Whoosh index with {len(protein_to_ppis)} proteins.")
-
-string_db = {}
-if args.string_db:
-    # Load STRING database for knowledge decoration
-    string_db_path = "/prj/LINDA_LLM/resources/string_interactions.tsv"  # Placeholder path; update as needed
-    try:
-        with open(string_db_path, "r") as f:
-            for line in f:
-                parts = line.strip().split("\t")
-                if len(parts) >= 4:
-                    protein1, protein2, score, interaction_type = (
-                        parts[0],
-                        parts[1],
-                        float(parts[2]),
-                        parts[3],
-                    )
-                    pair = tuple(sorted([protein1, protein2]))
-                    string_db[pair] = {"score": score, "type": interaction_type}
-        print(f"Loaded {len(string_db)} STRING interactions.")
-    except FileNotFoundError:
-        print(
-            f"STRING database not found at {string_db_path}. Proceeding without STRING decoration."
-        )
 
 if args.dynex_k > 0:
     from datasets import concatenate_datasets
@@ -141,16 +120,45 @@ if args.true_ners_given:
 
 
 def get_string_info(proteins):
-    """Fetch STRING info for a list of proteins (bonus: decorate with PPI knowledge)."""
+    """Fetch STRING info for a list of proteins using Whoosh fuzzy matching."""
     info = []
-    for i in range(len(proteins)):
-        for j in range(i + 1, len(proteins)):
-            pair = tuple(sorted([proteins[i], proteins[j]]))
-            if pair in string_db:
-                data = string_db[pair]
-                info.append(
-                    f"STRING PPI ({pair[0]} ↔ {pair[1]}): Score {data['score']:.2f} ({data['type']})"
-                )
+    matched_proteins = []
+
+    # First, fuzzy match each protein name to STRING database
+    for protein in proteins:
+        if protein.lower() in protein_to_ppis:
+            matched_proteins.append(protein.lower())
+        else:
+            # Try fuzzy matching with Whoosh
+            import re
+
+            from whoosh.qparser import FuzzyTermPlugin, QueryParser
+
+            clean_protein = re.sub(r"\d+", "", protein.lower())
+            clean_protein = re.sub(r"[^\w]+", "", clean_protein)
+            if clean_protein:
+                try:
+                    with ix.searcher() as searcher:
+                        parser = QueryParser("name", ix.schema)
+                        parser.add_plugin(FuzzyTermPlugin())
+                        query = parser.parse(clean_protein + "~2")
+                        results = searcher.search(query, limit=1)
+                        if results:
+                            matched_protein = results[0]["name"]
+                            matched_proteins.append(matched_protein)
+                except:
+                    pass  # Skip if Whoosh search fails
+
+    # Find interactions between matched proteins
+    for i in range(len(matched_proteins)):
+        for j in range(i + 1, len(matched_proteins)):
+            prot1, prot2 = matched_proteins[i], matched_proteins[j]
+            # Check if prot1 has prot2 in its PPI list
+            for partner, score in protein_to_ppis[prot1]:
+                if partner == prot2:
+                    info.append(f"STRING PPI ({prot1} ↔ {prot2}): Score {score:.0f}")
+                    break
+
     return " | ".join(info) if info else "No STRING data available."
 
 
@@ -210,7 +218,7 @@ def extract_rels(messages, responses, text, prompts, examples_content=""):
                 baml_options={"client_registry": cr, "tb": tb, "collector": collector},
             )
         except Exception as e:
-            print(f"Exception at step {i}: {e}")
+            print(f"Exception at step {i}")
             response = Triples(triples=[])
         responses.append(response)
         messages.append(Message(role="assistant", content=str(response)))
@@ -291,65 +299,59 @@ def extract_rels_ensemble(
 
 
 def lookup_infos(messages, responses):
-    infos = dict()
-    ent_set = set()
-    for nes in responses[-1]:
-        for ne in nes[1]:
-            if ne in ent_set:
-                continue
-            ent_set.add(ne)
-            print(f"Extracted NE: '{ne}', lower: '{ne.lower()}'")
-            matched = False
-            # First try direct match
-            if ne.lower() in protein_to_ppis:
-                print(f"Direct match found for {ne.lower()}")
-                ppis = protein_to_ppis[ne.lower()]
-                matched = True
-            # Then try synonyms
-            elif ne in synonyms:
-                for syn in synonyms[ne]:
-                    syn_lower = syn.lower()
-                    if syn_lower in protein_to_ppis:
-                        print(f"Synonym match found: {ne} -> {syn} ({syn_lower})")
-                        ppis = protein_to_ppis[syn_lower]
-                        matched = True
-                        break
-            # Fuzzy match using Whoosh
-            if not matched:
-                import re
+    infos = {}
+    nes = responses[-1]  # Get the last response (Entities)
 
-                from whoosh.qparser import FuzzyTermPlugin, QueryParser
+    for ne in nes.entities:
+        # Check direct match in STRING db
+        if ne.lower() in protein_to_ppis:
+            ppis = protein_to_ppis[ne.lower()]
+        # Check synonyms
+        elif ne in synonyms and any(
+            syn.lower() in protein_to_ppis for syn in synonyms[ne]
+        ):
+            syn_match = next(
+                syn for syn in synonyms[ne] if syn.lower() in protein_to_ppis
+            )
+            ppis = protein_to_ppis[syn_match.lower()]
+        # Fuzzy match
+        else:
+            ppis = fuzzy_match(ne)
 
-                clean_ne = re.sub(r"\d+", "", ne.lower())  # remove digits
-                clean_ne = re.sub(r"[^\w]+", "", clean_ne)  # remove punctuation
-                if clean_ne:
-                    with ix.searcher() as searcher:
-                        parser = QueryParser("name", ix.schema)
-                        parser.add_plugin(FuzzyTermPlugin())
-                        query = parser.parse(
-                            clean_ne + "~2"
-                        )  # fuzzy with edit distance 2
-                        results = searcher.search(query, limit=5)
-                        if results:
-                            matched_protein = results[0]["name"]  # take top match
-                            print(
-                                f"Whoosh fuzzy match found: {ne} -> {matched_protein} (query: {clean_ne})"
-                            )
-                            ppis = protein_to_ppis[matched_protein]
-                            matched = True
-            if matched:
-                # Sort by score desc, take top 5
-                ppis_sorted = sorted(ppis, key=lambda x: x[1], reverse=True)[:5]
-                ppi_str = ", ".join(f"{p} ({s:.0f})" for p, s in ppis_sorted)
-                infos[ne] = f"Known PPIs: {ppi_str}"
-            else:
-                print(f"No match for {ne.lower()}")
-    print(f"Background infos: {infos}")
+        if ppis:
+            # Sort by score desc, take top 5
+            ppis_sorted = sorted(ppis, key=lambda x: x[1], reverse=True)[:5]
+            ppi_str = ", ".join(f"{p} ({s:.0f})" for p, s in ppis_sorted)
+            infos[ne] = f"Known PPIs: {ppi_str}"
+
     messages.append(Message(role="user", content=f"BACKGROUND KNOWLEDGE: {infos}\n"))
 
 
+def fuzzy_match(ne):
+    """Fuzzy match entity against STRING proteins using Whoosh."""
+    import re
+
+    from whoosh.qparser import FuzzyTermPlugin, QueryParser
+
+    clean_ne = re.sub(r"[^\w]", "", ne.lower())
+    if not clean_ne:
+        return None
+
+    with ix.searcher() as searcher:
+        parser = QueryParser("name", ix.schema)
+        parser.add_plugin(FuzzyTermPlugin())
+        query = parser.parse(clean_ne + "~2")
+        results = searcher.search(query, limit=1)
+
+        if results:
+            matched_protein = results[0]["name"]
+            return protein_to_ppis[matched_protein]
+
+    return None
+
+
 def get_dynex(messages, text):
-    """Enhanced RAG: Retrieve top-k diverse examples, format nicely, and decorate with STRING knowledge."""
+    """Enhanced RAG: Retrieve top-k diverse examples from training data."""
     k = args.dynex_k  # Number of examples to retrieve; configurable via args
     embed = client.embed(
         model=embed_model,
@@ -385,13 +387,6 @@ def get_dynex(messages, text):
         example_line = (
             f"EXAMPLE {i}:\nText: {example_doc}\nRelations: {example_triples}"
         )
-        if string_db:
-            # Extract proteins from doc/triples for STRING lookup (simple regex; refine as needed)
-            proteins = re.findall(
-                r"\b[A-Z]{2,}\b", example_doc + " " + example_triples
-            )  # E.g., match uppercase protein names
-            string_info = get_string_info(proteins)
-            example_line += f"\nKnowledge: {string_info}"
         example_line += "\n\n"
         examples_text += example_line
 
@@ -683,7 +678,7 @@ def main():
             _prompts = get_ners(messages, responses, doc, _prompts)
         elif args.extractionmode == "nerrel":
             _prompts = extract_ners(messages, responses, text, _prompts)
-        if args.chattype == "lookup":
+        if args.lookup:
             lookup_infos(messages, responses)
         if args.dynex_k > 0:
             get_dynex(messages, text)
@@ -717,11 +712,20 @@ def main():
             )
 
         if not args.dev:
-            result = {
-                "responses": [r.model_dump()["triples"] for r in responses],
-                "text": doc[0].page_content,
-                "filename": str(doc[0].metadata["file_path"]),
-            }
+            if args.extractionmode == "nerrel":
+                NE_list = [r.model_dump()["entities"] for r in responses[:1]]
+                result = {
+                    "responses": NE_list
+                    + [r.model_dump()["triples"] for r in responses[1:]],
+                    "text": doc[0].page_content,
+                    "filename": str(doc[0].metadata["file_path"]),
+                }
+            else:
+                result = {
+                    "responses": [r.model_dump()["triples"] for r in responses],
+                    "text": doc[0].page_content,
+                    "filename": str(doc[0].metadata["file_path"]),
+                }
             with open(triple_jsonl_path, "a") as f:
                 f.write(json.dumps(result) + "\n")
                 f.flush()
