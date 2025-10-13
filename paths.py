@@ -19,11 +19,15 @@ if args.ensemble:
     experiment_path /= f"ensemble_n{args.ensemble}_t{args.ensemble_temp}"
 if args.dynex_k > 0:
     experiment_path /= f"dynex_k{args.dynex_k}"
+if args.lookup:
+    experiment_path /= f"lookup"
 
-if args.all_ners_given:
-    experiment_path /= "all_ners_given"
-elif args.true_ners_given:
-    experiment_path /= "true_ners_given"
+if args.all_nes_given:
+    experiment_path /= "all_nes_given"
+elif args.true_nes_given:
+    experiment_path /= "true_nes_given"
+elif args.spacy_nes_given:
+    experiment_path /= "spacy_nes_given"
 os.makedirs(experiment_path, exist_ok=True)
 
 if not args.ext:

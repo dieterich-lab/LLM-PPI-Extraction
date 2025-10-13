@@ -78,11 +78,15 @@ parser.add_argument(
     default=2_000,
 )
 parser.add_argument(
-    "--all_ners_given",
+    "--all_nes_given",
     action="store_true",
 )
 parser.add_argument(
-    "--true_ners_given",
+    "--true_nes_given",
+    action="store_true",
+)
+parser.add_argument(
+    "--spacy_nes_given",
     action="store_true",
 )
 parser.add_argument(
@@ -232,5 +236,11 @@ parser.add_argument(
 args = parser.parse_args()
 
 # Force extractionmode to nerrel when chattype is lookup or when lookup is enabled
-if args.chattype == "lookup" or args.lookup:
+if (
+    args.lookup
+    or args.all_nes_given
+    or args.true_nes_given
+    or args.spacy_nes_given
+    or args.chattype == "lookup"
+):
     args.extractionmode = "nerrel"

@@ -76,16 +76,22 @@ anti_interactions_type = (
     "transcription factor/gene" if args.target == "ppi" else "protein-protein"
 )
 
-if args.extractionmode == "nerrel":
-    ner_list_prompt = (
-        f"Now look at your extracted {targets} above and use it for the following task:"
-    )
-elif args.all_ners_given:
+if args.all_nes_given:
     ner_list_prompt = f"Look at the list above. These are the ground truth {targets} that are found in the abstract. But be wary, not all of them will neccessarily be a particpant in {interactions_type} relations. Use this list for the following task:"
-elif args.true_ners_given:
+elif args.true_nes_given:
     ner_list_prompt = f"Look at the list above. These are the ground truth {targets} that are found in the abstract and also take part in {interactions_type} relations. Use this list for the following task:"
+elif args.spacy_nes_given:
+    ner_list_prompt = f"Look at the list above. These are {targets} that have been extracted by a ScispaCy biomedical NER model. Use this list for the following task:"
+elif args.extractionmode == "nerrel":
+    if not args.all_nes_given and not args.true_nes_given and not args.spacy_nes_given:
+        ner_list_prompt = f"Now look at your extracted {targets} above and use it for the following task:"
 else:
     ner_list_prompt = ""
+
+if args.true_nes_given or args.all_nes_given or args.spacy_nes_given:
+    ner_prompt = "for the entities in the NE LIST above that are "
+else:
+    ner_prompt = ""
 
 lookup_prompt = (
     "We also provided above some insightful BACKGROUND KNOWLEDGE for each extracted protein. Use it as additional support. "
@@ -100,7 +106,7 @@ dynex_prompt = (
 )
 
 if not args.recall:
-    prompt = f"{ner_list_prompt} Extract all the {interactions_type} interactions involved in signalling pathways from the text. Please only extract {target} pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions. {lookup_prompt}{dynex_prompt}"
+    prompt = f"{ner_list_prompt} Extract all the {interactions_type} interactions {ner_prompt}involved in signalling pathways from the text. Please only extract {target} pairs which directly interact with each other (i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect regulatory effects for direct interactions. {lookup_prompt}{dynex_prompt}"
 else:
     prompt = f"{ner_list_prompt} Extract ALL the relations between molecular entities from the text. Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup_prompt}"
 
@@ -279,9 +285,7 @@ chat_prompts = {
 }
 
 mode_lookup = (
-    args.extractionmode
-    if not (args.all_ners_given or args.true_ners_given)
-    else "nerrel"
+    args.extractionmode if not (args.all_nes_given or args.true_nes_given) else "nerrel"
 )
 # chat_lookup = "stepwise" if args.chattype == "lookup" else args.chattype
 prompts = chat_prompts[mode_lookup][args.chattype]

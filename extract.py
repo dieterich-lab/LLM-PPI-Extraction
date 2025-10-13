@@ -19,8 +19,19 @@ from baml.baml_client.types import (  # isort:skip
 from baml_py import Collector
 
 from baml.baml_client.type_builder import TypeBuilder
+from brat_utils import parse_brat_annotations
 from clients import cr
-from documents import all_ner_paths, texts, true_ner_paths
+from documents import all_nes_paths, spacy_ne_paths, texts, true_ne_paths
+from extraction_utils import (
+    combine_by_best_path,
+    combine_by_merging,
+    combine_by_voting,
+    extract_nes,
+    extract_rels,
+    extract_rels_ensemble,
+    extract_rels_tot,
+    get_nes,
+)
 from paths import triple_jsonl_path
 from prompts import (
     confidence_prompt,
@@ -37,73 +48,31 @@ if not args.noconfidence:
         "confidence", tb.union([tb.literal_string("high"), tb.literal_string("low")])
     ).description("if this relation was extracted with high confidence or not")
 
+# Initialize PPI lookup components if needed
+protein_to_ppis = None
+synonyms = None
+ix = None
+
 if args.lookup:
-    from collections import defaultdict
+    from ppi_lookup import create_whoosh_index, load_string_data, load_synonyms
 
-    protein_to_ppis = defaultdict(list)
-    string_ppi_path = "/prj/LINDA_LLM/STRING/string_ppi.tsv"
-    try:
-        with open(string_ppi_path, "r") as f:
-            header_skipped = False
-            for line in f:
-                if not header_skipped:
-                    header_skipped = True
-                    continue  # skip header
-                parts = line.strip().split("\t")
-                if len(parts) >= 10:
-                    protein1, protein2 = parts[0], parts[1]
-                    try:
-                        combined_score = float(parts[9])
-                        if combined_score > 400:  # only high confidence
-                            protein_to_ppis[protein1.lower()].append(
-                                (protein2, combined_score)
-                            )
-                            protein_to_ppis[protein2.lower()].append(
-                                (protein1, combined_score)
-                            )
-                    except ValueError:
-                        continue  # skip invalid lines
-        print(f"Loaded STRING PPIs for {len(protein_to_ppis)} proteins.")
-    except FileNotFoundError:
-        print(f"STRING PPI file not found at {string_ppi_path}.")
-        protein_to_ppis = {}
+    protein_to_ppis = load_string_data()
+    synonyms = load_synonyms()
+    ix = create_whoosh_index(protein_to_ppis)
 
-    # Load synonyms for fuzzy matching (only needed for lookup)
-    synonyms = {}
-    if args.lookup:
-        synonyms_path = "/prj/LINDA_LLM/outputs/regu_test_names.json"
-        try:
-            import json
-
-            with open(synonyms_path, "r") as f:
-                synonyms = json.load(f)
-            print(f"Loaded synonyms for {len(synonyms)} terms.")
-        except FileNotFoundError:
-            print(f"Synonyms file not found at {synonyms_path}.")
-            synonyms = {}
-
-    # Create Whoosh index for fuzzy protein name search
-    import os
-    import tempfile
-
-    from whoosh import index
-    from whoosh.analysis import StandardAnalyzer
-    from whoosh.fields import TEXT, Schema
-
-    schema = Schema(name=TEXT(stored=True, analyzer=StandardAnalyzer()))
-    index_dir = tempfile.mkdtemp()
-    ix = index.create_in(index_dir, schema)
-    writer = ix.writer()
-    for protein in protein_to_ppis:
-        writer.add_document(name=protein)
-    writer.commit()
-    print(f"Created Whoosh index with {len(protein_to_ppis)} proteins.")
+# Initialize RAG components if needed
+index = None
+embeddings = None
+lookup_dataset = None
+client = None
+embed_model = None
 
 if args.dynex_k > 0:
     from datasets import concatenate_datasets
 
     from dataset import get_dataset
     from embed import client, embed_model, embeddings_path, load_index
+    from rag_utils import get_dynex
 
     index = load_index()
     embeddings = np.load(embeddings_path)
@@ -113,530 +82,10 @@ if args.dynex_k > 0:
 print(f"New run: {triple_jsonl_path.parent}")
 print(f"Len texts: {len(texts)}")
 
-if args.all_ners_given:
-    ner_paths = all_ner_paths
-if args.true_ners_given:
-    ner_paths = true_ner_paths
-
-
-def get_string_info(proteins):
-    """Fetch STRING info for a list of proteins using Whoosh fuzzy matching."""
-    info = []
-    matched_proteins = []
-
-    # First, fuzzy match each protein name to STRING database
-    for protein in proteins:
-        if protein.lower() in protein_to_ppis:
-            matched_proteins.append(protein.lower())
-        else:
-            # Try fuzzy matching with Whoosh
-            import re
-
-            from whoosh.qparser import FuzzyTermPlugin, QueryParser
-
-            clean_protein = re.sub(r"\d+", "", protein.lower())
-            clean_protein = re.sub(r"[^\w]+", "", clean_protein)
-            if clean_protein:
-                try:
-                    with ix.searcher() as searcher:
-                        parser = QueryParser("name", ix.schema)
-                        parser.add_plugin(FuzzyTermPlugin())
-                        query = parser.parse(clean_protein + "~2")
-                        results = searcher.search(query, limit=1)
-                        if results:
-                            matched_protein = results[0]["name"]
-                            matched_proteins.append(matched_protein)
-                except:
-                    pass  # Skip if Whoosh search fails
-
-    # Find interactions between matched proteins
-    for i in range(len(matched_proteins)):
-        for j in range(i + 1, len(matched_proteins)):
-            prot1, prot2 = matched_proteins[i], matched_proteins[j]
-            # Check if prot1 has prot2 in its PPI list
-            for partner, score in protein_to_ppis[prot1]:
-                if partner == prot2:
-                    info.append(f"STRING PPI ({prot1} ↔ {prot2}): Score {score:.0f}")
-                    break
-
-    return " | ".join(info) if info else "No STRING data available."
-
-
-def get_ners(messages, responses, doc, prompts):
-    ner_prompt = prompts.pop(0)
-    message = Message(role="user", content=ner_prompt)
-    messages.append(message)
-    try:
-        ner_path = [
-            x for x in ner_paths if doc[0].metadata["file_path"].stem == x.stem
-        ][0]
-        if ner_path:
-            ners = open(ner_path, "r").readlines()
-            ners = [x.strip() for x in ners]
-        else:
-            ners = []
-        response = Entities(entities=ners)
-    except:
-        print(f"Exception at Entity extraction")
-        response = Entities(entities=[])
-    responses.append(response)
-    messages.append(Message(role="assistant", content=f"{str(response)}"))
-    return prompts
-
-
-def extract_ners(messages, responses, text, prompts):
-    ner_prompt = prompts.pop(0)
-    message = Message(role="user", content=ner_prompt)
-    messages.append(message)
-    try:
-        response = b.ExtractNEs(
-            rel_system_prompt,
-            text,
-            message,
-            baml_options={"client_registry": cr, "tb": tb, "collector": collector},
-        )
-    except Exception as e:
-        print(f"Exception at Entity extraction: {e}")
-        response = Entities(entities=[])
-    responses.append(response)
-    messages.append(Message(role="assistant", content=f"{str(response)}"))
-    return prompts
-
-
-def extract_rels(messages, responses, text, prompts, examples_content=""):
-    """Standard single-pass extraction"""
-    for i, prompt in enumerate(prompts):
-        content = f"\nUSER QUESTION: {prompt}"
-        if examples_content:
-            content += f"\n{examples_content}"
-        messages.append(Message(role="user", content=content))
-        try:
-            response = b.GeneralChatExtractRelationships(
-                rel_system_prompt,
-                text,
-                messages,
-                baml_options={"client_registry": cr, "tb": tb, "collector": collector},
-            )
-        except Exception as e:
-            print(f"Exception at step {i}")
-            response = Triples(triples=[])
-        responses.append(response)
-        messages.append(Message(role="assistant", content=str(response)))
-
-
-def extract_rels_ensemble(
-    messages,
-    responses,
-    text,
-    prompts,
-    n_samples=5,
-    temperature=0.7,
-    examples_content="",
-):
-    """Self-consistency ensemble extraction with voting"""
-    print(f"  Running ensemble extraction with n={n_samples}, temp={temperature}")
-
-    for i, prompt in enumerate(prompts):
-        all_triples = []
-
-        # Generate n predictions with temperature > 0
-        for sample_idx in range(n_samples):
-            # Create a copy of messages for each sample
-            messages_copy = messages.copy()
-            content = f"\nUSER QUESTION: {prompt}"
-            if examples_content:
-                content += f"\n{examples_content}"
-            messages_copy.append(Message(role="user", content=content))
-
-            try:
-                response = b.GeneralChatExtractRelationships(
-                    rel_system_prompt,
-                    text,
-                    messages_copy,
-                    baml_options={
-                        "client_registry": cr,
-                        "tb": tb,
-                        "collector": collector,
-                        "temperature": temperature,
-                    },
-                )
-                all_triples.extend(response.triples)
-                print(
-                    f"    Sample {sample_idx + 1}/{n_samples}: {len(response.triples)} triples"
-                )
-            except Exception as e:
-                print(f"    Exception at sample {sample_idx + 1}: {e}")
-                continue
-
-        # Vote: keep triples appearing in ≥50% of samples
-        triple_counts = {}
-        for triple in all_triples:
-            # Create a unique key for each triple (case-insensitive to handle variations)
-            key = (
-                f"{triple.head.lower()}|{triple.relation.lower()}|{triple.tail.lower()}"
-            )
-            if key not in triple_counts:
-                triple_counts[key] = {"count": 0, "example": triple}
-            triple_counts[key]["count"] += 1
-
-        # Select triples that appear in at least half of the samples
-        threshold = n_samples // 2
-        consensus_triples = [
-            data["example"]
-            for key, data in triple_counts.items()
-            if data["count"] >= threshold
-        ]
-
-        print(
-            f"    Consensus: {len(consensus_triples)} triples (threshold: {threshold}/{n_samples})"
-        )
-
-        # Create response with consensus triples
-        consensus_response = Triples(triples=consensus_triples)
-        responses.append(consensus_response)
-        messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
-        messages.append(Message(role="assistant", content=str(consensus_response)))
-
-
-def lookup_infos(messages, responses):
-    infos = {}
-    nes = responses[-1]  # Get the last response (Entities)
-
-    for ne in nes.entities:
-        # Check direct match in STRING db
-        if ne.lower() in protein_to_ppis:
-            ppis = protein_to_ppis[ne.lower()]
-        # Check synonyms
-        elif ne in synonyms and any(
-            syn.lower() in protein_to_ppis for syn in synonyms[ne]
-        ):
-            syn_match = next(
-                syn for syn in synonyms[ne] if syn.lower() in protein_to_ppis
-            )
-            ppis = protein_to_ppis[syn_match.lower()]
-        # Fuzzy match
-        else:
-            ppis = fuzzy_match(ne)
-
-        if ppis:
-            # Sort by score desc, take top 5
-            ppis_sorted = sorted(ppis, key=lambda x: x[1], reverse=True)[:5]
-            ppi_str = ", ".join(f"{p} ({s:.0f})" for p, s in ppis_sorted)
-            infos[ne] = f"Known PPIs: {ppi_str}"
-
-    messages.append(Message(role="user", content=f"BACKGROUND KNOWLEDGE: {infos}\n"))
-
-
-def fuzzy_match(ne):
-    """Fuzzy match entity against STRING proteins using Whoosh."""
-    import re
-
-    from whoosh.qparser import FuzzyTermPlugin, QueryParser
-
-    clean_ne = re.sub(r"[^\w]", "", ne.lower())
-    if not clean_ne:
-        return None
-
-    with ix.searcher() as searcher:
-        parser = QueryParser("name", ix.schema)
-        parser.add_plugin(FuzzyTermPlugin())
-        query = parser.parse(clean_ne + "~2")
-        results = searcher.search(query, limit=1)
-
-        if results:
-            matched_protein = results[0]["name"]
-            return protein_to_ppis[matched_protein]
-
-    return None
-
-
-def get_dynex(messages, text):
-    """Enhanced RAG: Retrieve top-k diverse examples from training data."""
-    k = args.dynex_k  # Number of examples to retrieve; configurable via args
-    embed = client.embed(
-        model=embed_model,
-        input=text,
-    ).embeddings
-
-    # Retrieve 2x candidates for diversity filtering
-    labels, distances = index.knn_query(embed, k=k * 2)
-
-    # Diversity filtering: Select k diverse examples using embedding distance
-    selected_examples = []
-    selected_embeds = []
-
-    for idx, dist in zip(labels[0], distances[0]):
-        example = lookup_dataset[int(idx)]
-        example_embed = embeddings[int(idx)]
-
-        # Skip if too similar to already selected (cosine similarity > 0.8, i.e., distance < 0.2)
-        if any(np.dot(example_embed, sel_embed) > 0.8 for sel_embed in selected_embeds):
-            continue
-
-        selected_examples.append(example)
-        selected_embeds.append(example_embed)
-
-        if len(selected_examples) == k:
-            break
-
-    examples_text = ""
-    for i, example in enumerate(selected_examples, start=1):
-        example_doc = example["doc"]
-        example_triples = example["triples"]
-
-        example_line = (
-            f"EXAMPLE {i}:\nText: {example_doc}\nRelations: {example_triples}"
-        )
-        example_line += "\n\n"
-        examples_text += example_line
-
-    messages.append(Message(role="user", content=f"SIMILAR EXAMPLES:\n{examples_text}"))
-
-
-def extract_rels_tot(
-    messages, responses, text, prompts, n_paths=3, strategy="vote", examples_content=""
-):
-    """
-    Tree-of-Thoughts extraction with multiple reasoning paths.
-
-    Args:
-        messages: Message history
-        responses: Response list to append to
-        text: Document text
-        prompts: Extraction prompts
-        n_paths: Number of reasoning paths to explore (default=3)
-        strategy: How to combine results - 'vote', 'best', or 'merge'
-    """
-    print(f"  Running ToT extraction with n={n_paths} paths, strategy={strategy}")
-
-    for prompt_idx, prompt in enumerate(prompts):
-        print(f"  ToT Step {prompt_idx + 1}/{len(prompts)}: {prompt[:60]}...")
-
-        # Step 1: Generate reasoning strategies using BAML
-        print(f"    Generating {n_paths} reasoning strategies via LLM...")
-
-        task_description = (
-            f"Extract {interactions_type} interactions from biomedical text"
-        )
-
-        strategies_response = b.GenerateToTStrategies(
-            task_description=task_description,
-            n_paths=n_paths,
-            text=text[:1000],  # Use first 1000 chars for strategy generation
-            baml_options={"client_registry": cr, "tb": tb, "collector": collector},
-        )
-        strategies = [
-            {"name": s.name, "focus": s.focus, "avoid": s.avoid}
-            for s in strategies_response.strategies
-        ]
-        print(f"    Generated {len(strategies)} strategies successfully")
-
-        # Step 2: Extract relations using each strategy
-        all_path_results = []
-        all_path_evaluations = []
-
-        for path_idx, strategy_dict in enumerate(strategies):
-            print(f"    Path {path_idx + 1}/{n_paths}: {strategy_dict['name']}")
-
-            # Extract using this strategy
-            # Use messages.copy() to prevent each path from polluting other paths' message history
-            path_messages = messages.copy()
-            extraction_prompt = tot_path_extraction_prompt.format(
-                interactions_type=interactions_type,
-                strategy_name=strategy_dict["name"],
-                strategy_focus=strategy_dict["focus"],
-                strategy_avoid=strategy_dict["avoid"],
-                confidence_prompt=confidence_prompt,
-            )
-            content = f"\n{prompt}\n\n{extraction_prompt}"
-            if examples_content:
-                content += f"\n{examples_content}"
-            path_messages.append(Message(role="user", content=content))
-
-            try:
-                path_response = b.GeneralChatExtractRelationships(
-                    rel_system_prompt,
-                    text,
-                    path_messages,
-                    baml_options={
-                        "client_registry": cr,
-                        "tb": tb,
-                        "collector": collector,
-                    },
-                )
-                print(f"      Extracted: {len(path_response.triples)} triples")
-                all_path_results.append(path_response.triples)
-
-                # Step 3: Evaluate this path using BAML
-                try:
-                    path_eval_response = b.EvaluateToTPath(
-                        text=text,
-                        extracted_triples=path_response,
-                        strategy_name=strategy_dict["name"],
-                        task_description=task_description,
-                        baml_options={
-                            "client_registry": cr,
-                            "tb": tb,
-                            "collector": collector,
-                        },
-                    )
-
-                    # Convert BAML evaluation to our internal format
-                    path_eval = []
-                    for eval_triple in path_eval_response.evaluated_triples:
-                        # Find matching triple from extraction
-                        matching_triple = None
-                        for triple in path_response.triples:
-                            if (
-                                triple.head.lower() == eval_triple.head.lower()
-                                and triple.tail.lower() == eval_triple.tail.lower()
-                            ):
-                                matching_triple = triple
-                                break
-
-                        if matching_triple:
-                            path_eval.append(
-                                {
-                                    "triple": matching_triple,
-                                    "score": eval_triple.score,
-                                    "evidence": eval_triple.evidence,
-                                    "path": path_idx,
-                                }
-                            )
-
-                    print(
-                        f"      Evaluated: avg score = {sum(e['score'] for e in path_eval) / len(path_eval):.1f}"
-                        if path_eval
-                        else "      Evaluated: no matches"
-                    )
-                    all_path_evaluations.append(path_eval)
-
-                except Exception as e:
-                    print(f"      Evaluation failed: {e}, using default scores")
-                    # Fallback to simple scoring based on confidence attribute
-                    path_eval = []
-                    for triple in path_response.triples:
-                        score = (
-                            8
-                            if not hasattr(triple, "confidence")
-                            or triple.confidence == "high"
-                            else 5
-                        )
-                        path_eval.append(
-                            {"triple": triple, "score": score, "path": path_idx}
-                        )
-                    all_path_evaluations.append(path_eval)
-
-            except Exception as e:
-                print(f"      Exception in path {path_idx + 1}: {e}")
-                all_path_results.append([])
-                all_path_evaluations.append([])
-
-        # Step 4: Combine results based on strategy
-        if strategy == "vote":
-            # Use default threshold (majority = ceil(n/2))
-            final_triples = combine_by_voting(all_path_results)
-        elif strategy == "best":
-            final_triples = combine_by_best_path(all_path_results, all_path_evaluations)
-        elif strategy == "merge":
-            final_triples = combine_by_merging(all_path_results, all_path_evaluations)
-        else:
-            # Default to voting
-            final_triples = combine_by_voting(all_path_results)
-
-        print(f"    Final result: {len(final_triples)} triples")
-
-        # Create final response
-        final_response = Triples(triples=final_triples)
-        responses.append(final_response)
-        messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
-        messages.append(Message(role="assistant", content=str(final_response)))
-
-
-def combine_by_voting(all_path_results, threshold=None):
-    """Combine ToT paths by majority voting
-
-    Args:
-        all_path_results: List of triple lists from each path
-        threshold: Minimum number of paths that must agree (default: ceil(n/2) for majority)
-    """
-    import math
-
-    triple_counts = {}
-
-    for path_triples in all_path_results:
-        for triple in path_triples:
-            key = (
-                f"{triple.head.lower()}|{triple.relation.lower()}|{triple.tail.lower()}"
-            )
-            if key not in triple_counts:
-                triple_counts[key] = {"count": 0, "example": triple}
-            triple_counts[key]["count"] += 1
-
-    if threshold is None:
-        n_paths = len(all_path_results)
-        threshold = math.ceil(n_paths / 2)
-
-    # Keep triples appearing in at least 'threshold' paths
-    consensus_triples = [
-        data["example"]
-        for key, data in triple_counts.items()
-        if data["count"] >= threshold
-    ]
-
-    return consensus_triples
-
-
-def combine_by_best_path(all_path_results, all_path_evaluations):
-    """Select results from the highest-scored path"""
-    if not all_path_evaluations or not any(all_path_evaluations):
-        return all_path_results[0] if all_path_results else []
-
-    # Calculate average score for each path
-    path_scores = []
-    for path_eval in all_path_evaluations:
-        if path_eval:
-            avg_score = sum(item["score"] for item in path_eval) / len(path_eval)
-            path_scores.append(avg_score)
-        else:
-            path_scores.append(0)
-
-    # Return triples from best path
-    best_path_idx = path_scores.index(max(path_scores)) if path_scores else 0
-    return all_path_results[best_path_idx]
-
-
-def combine_by_merging(all_path_results, all_path_evaluations):
-    """Merge high-confidence triples from all paths"""
-    merged_triples = {}
-
-    for path_idx, path_eval in enumerate(all_path_evaluations):
-        for item in path_eval:
-            triple = item["triple"]
-            score = item["score"]
-            key = (
-                f"{triple.head.lower()}|{triple.relation.lower()}|{triple.tail.lower()}"
-            )
-
-            # Include if: score >= 8, OR appears in multiple paths, OR score >= 6 and in 2+ paths
-            if key not in merged_triples:
-                merged_triples[key] = {"triple": triple, "max_score": score, "count": 1}
-            else:
-                merged_triples[key]["max_score"] = max(
-                    merged_triples[key]["max_score"], score
-                )
-                merged_triples[key]["count"] += 1
-
-    # Filter based on confidence criteria
-    final_triples = [
-        data["triple"]
-        for key, data in merged_triples.items()
-        if data["max_score"] >= 8
-        or data["count"] >= 2
-        or (data["max_score"] >= 6 and data["count"] >= 2)
-    ]
-
-    return final_triples
+if args.all_nes_given:
+    ne_paths = all_nes_paths
+if args.true_nes_given:
+    ne_paths = true_ne_paths
 
 
 def main():
@@ -674,14 +123,27 @@ def main():
         text = doc[0].page_content
         messages = list()
         responses = list()
-        if args.all_ners_given or args.true_ners_given:
-            _prompts = get_ners(messages, responses, doc, _prompts)
+        if args.all_nes_given or args.true_nes_given or args.spacy_nes_given:
+            _prompts = get_nes(messages, responses, doc, _prompts, collector, tb)
         elif args.extractionmode == "nerrel":
-            _prompts = extract_ners(messages, responses, text, _prompts)
+            _prompts = extract_nes(messages, responses, text, _prompts, collector, tb)
         if args.lookup:
-            lookup_infos(messages, responses)
+            from ppi_lookup import lookup_infos
+
+            lookup_infos(messages, responses, protein_to_ppis, synonyms, ix)
         if args.dynex_k > 0:
-            get_dynex(messages, text)
+            from rag_utils import get_dynex
+
+            get_dynex(
+                messages,
+                text,
+                args,
+                index,
+                embeddings,
+                lookup_dataset,
+                client,
+                embed_model,
+            )
             examples_content = messages[-1].content  # Get the examples content
             messages.pop()  # Remove it from messages, will be included in prompts
 
@@ -695,6 +157,8 @@ def main():
                 n_paths=args.tot,
                 strategy=args.tot_strategy,
                 examples_content=examples_content,
+                collector=collector,
+                tb=tb,
             )
         elif args.ensemble:
             extract_rels_ensemble(
@@ -705,14 +169,27 @@ def main():
                 n_samples=args.ensemble,
                 temperature=args.ensemble_temp,
                 examples_content=examples_content,
+                collector=collector,
+                tb=tb,
             )
         else:
             extract_rels(
-                messages, responses, text, _prompts, examples_content=examples_content
+                messages,
+                responses,
+                text,
+                _prompts,
+                examples_content=examples_content,
+                collector=collector,
+                tb=tb,
             )
 
         if not args.dev:
-            if args.extractionmode == "nerrel":
+            if (
+                args.extractionmode == "nerrel"
+                and not args.true_nes_given
+                and not args.all_nes_given
+                and not args.spacy_nes_given
+            ):
                 NE_list = [r.model_dump()["entities"] for r in responses[:1]]
                 result = {
                     "responses": NE_list

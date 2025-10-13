@@ -97,8 +97,9 @@ def write_documents(
 
 def get_config():
     """Return all configuration variables for paths and ner files."""
-    all_ner_paths = None
-    true_ner_paths = None
+    all_ne_paths = None
+    true_ne_paths = None
+    spacy_ne_paths = None
     if args.data == "biored":
         _paper_paths = Path(
             "/beegfs/prj/LINDA_LLM/RegulaTome/BIORED/BIORED/src/corpus/test"
@@ -108,23 +109,31 @@ def get_config():
             "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/corpus"
         )
         if args.target == "ppi":
-            _all_ner_paths = Path(
+            _all_ne_paths = Path(
                 "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
             )
-            all_ner_paths = list(_all_ner_paths.glob(f"*"))
-            _true_ner_paths = Path(
+            all_ne_paths = list(_all_ne_paths.glob(f"*"))
+            _true_ne_paths = Path(
                 "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_ppi"
             )
-            true_ner_paths = list(_true_ner_paths.glob(f"*"))
+            true_ne_paths = list(_true_ne_paths.glob(f"*"))
+            _spacy_ne_paths = Path(
+                "/home/pwiesenbach/RegulaTome_extraction-1/LargeScaleRelationExtractionPipeline/spacy/ppi/test"
+            )
+            spacy_ne_paths = list(_spacy_ne_paths.glob(f"*.ann"))
         elif args.target == "tf":
-            _all_ner_paths = Path(
+            _all_ne_paths = Path(
                 "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
             )
-            all_ner_paths = list(_all_ner_paths.glob(f"*"))
-            _true_ner_paths = Path(
+            all_ne_paths = list(_all_ne_paths.glob(f"*"))
+            _true_ne_paths = Path(
                 "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_tf"
             )
-            true_ner_paths = list(_true_ner_paths.glob(f"*"))
+            true_ne_paths = list(_true_ne_paths.glob(f"*"))
+            _spacy_ne_paths = Path(
+                "/home/pwiesenbach/RegulaTome_extraction-1/LargeScaleRelationExtractionPipeline/spacy/grn/test"
+            )
+            spacy_ne_paths = list(_spacy_ne_paths.glob(f"*.ann"))
     elif args.data == "regulatomepapers":
         _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
     elif args.data == "cardio":
@@ -140,11 +149,11 @@ def get_config():
     # ending = ending_dict[args.parser] if args.data != "regulatomepapers" else "md"
     # paper_paths = list(_paper_paths.glob(f"*.{ending}"))
     paper_paths = list(_paper_paths.glob("*.txt"))
-    return all_ner_paths, true_ner_paths, paper_paths
+    return all_ne_paths, true_ne_paths, spacy_ne_paths, paper_paths
 
 
 def get_texts():
-    _, _, paper_paths = get_config()
+    _, _, _, paper_paths = get_config()
 
     if args.data in ["regulatome", "regulatomepapers"]:
         if args.target == "ppi":
@@ -190,5 +199,5 @@ def get_texts():
 
 
 # Make variables importable
-all_ner_paths, true_ner_paths, paper_paths = get_config()
+all_nes_paths, true_ne_paths, spacy_ne_paths, paper_paths = get_config()
 texts = get_texts()
