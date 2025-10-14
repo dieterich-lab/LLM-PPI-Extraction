@@ -11,21 +11,11 @@ from parser import args
 
 os.environ["BAML_LOG"] = args.loglevel  # isort:skip
 from baml.baml_client.sync_client import b  # isort:skip
-from baml.baml_client.types import (  # isort:skip
-    Entities,
-    Message,
-    Triples,
-)
 from baml_py import Collector
 
 from baml.baml_client.type_builder import TypeBuilder
-from brat_utils import parse_brat_annotations
-from clients import cr
-from documents import all_nes_paths, spacy_ne_paths, texts, true_ne_paths
+from documents import texts
 from extraction_utils import (
-    combine_by_best_path,
-    combine_by_merging,
-    combine_by_voting,
     extract_nes,
     extract_rels,
     extract_rels_ensemble,
@@ -33,13 +23,7 @@ from extraction_utils import (
     get_nes,
 )
 from paths import triple_jsonl_path
-from prompts import (
-    confidence_prompt,
-    interactions_type,
-    prompts,
-    rel_system_prompt,
-    tot_path_extraction_prompt,
-)
+from prompts import prompts
 
 collector = Collector(name="my-collector")
 tb = TypeBuilder()
@@ -81,11 +65,6 @@ if args.dynex_k > 0:
 
 print(f"New run: {triple_jsonl_path.parent}")
 print(f"Len texts: {len(texts)}")
-
-if args.all_nes_given:
-    ne_paths = all_nes_paths
-if args.true_nes_given:
-    ne_paths = true_ne_paths
 
 
 def main():

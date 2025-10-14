@@ -4,9 +4,6 @@ Extraction utilities for combining and processing extraction results.
 
 import math
 from parser import args
-from pathlib import Path
-
-from baml_py import Collector
 
 from baml.baml_client.sync_client import b
 from baml.baml_client.types import Entities, Message, Triples
