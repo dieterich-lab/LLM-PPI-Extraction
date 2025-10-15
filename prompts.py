@@ -88,25 +88,51 @@ class ExamplesData:
     """Container for all example data."""
 
     PPI_POSITIVE = """
-Below you find some positive examples of protein-protein interactions that give you an idea of what we are looking for:
-* "This cytokine induces the p53 into a mutant-like conformation that forms a complex with Sp1": p53 -> Sp1
-* "These findings suggest that the STAT3-NRF2 complex accelerates BLBC growth and progression by augmenting IL-23A expression.": STAT3 -> NRF2
-* "HIF1A forms a transcriptional complex with ARNT under hypoxia.": HIF1A -> ARNT
-* "PRMT1 methylates cGAS and suppresses cGAS/STING signaling in cancer cells": PRMT1 -> cGAS
-* "TRAF6 ubiquitinates TGFβ type I receptor to promote its cleavage and nuclear translocation in cancer.": TRAF6 -> TGFβ
-* "AKT1 phosphorylates AKT1S1 at Thr-246.": AKT1 -> AKT1S1
-* "PIAS1 sumoylates PNKP in cells.": PIAS1 -> PNKP
-* "CBP, but not p/CAF, acetylates GATA-1 at two highly conserved lysine-rich motifs present at the C-terminal tails of both zinc fingers.": CBP -> GATA-1
+Below, you find some positive examples of protein-protein relations that give you an idea of what we are looking for:
+
+P1: This cytokine induces p53 into a mutant-like conformation that forms a complex with Sp1
+A1: p53	INTERACTS_WITH	Sp1
+P2: These findings suggest that the STAT3-NRF2 complex accelerates BLBC growth and progression by augmenting IL-23A expression.
+A2: STAT3	INTERACTS_WITH	NRF2
+P3: HIF1A forms a transcriptional complex with ARNT under hypoxia.
+A3: HIF1A	INTERACTS_WITH	ARNT
+P4: PRMT1 methylates cGAS and suppresses cGAS/STING signalling in cancer cells
+A4: PRMT1	INTERACTS_WITH	cGAS
+P5: TRAF6 ubiquitinates TGFβ type I receptor to promote its cleavage and nuclear translocation in cancer.
+A5: TRAF6	INTERACTS_WITH	TGFβ
+P6: AKT1 phosphorylates AKT1S1 at Thr-246.
+A6: AKT1	INTERACTS_WITH	AKT1S1
+P7: PIAS1 sumoylates PNKP in cells.
+A7: PIAS1	INTERACTS_WITH	PNKP
+P8: CBP, but not p/CAF, acetylates GATA-1 at two highly conserved lysine-rich motifs present at the C-terminal tails of both zinc fingers.
+A8: CBP	INTERACTS_WITH	GATA-1
+P9: Experimental analysis revealed a chemical cross-linking between Hsp90 and the (CDK4)-cyclin D1 complex, stabilising their association during signal transduction.
+A9: Hsp90	INTERACTS_WITH	CDK4
+P10: Similar to the CREB proteins, NFIX serves as a direct substrate of SRC1 and functions as a signal-responsive transcription factor.
+A10: CREB	INTERACTS_WITH	SRC1;	NFIX	INTERACTS_WITH	SRC1
+P11: The N-terminal transactivation domain of p53, binds directly to the hydrophobic pocket of MDM2 to regulate its stability
+A11: p53	INTERACTS_WITH	MDM2
+P12: Under physiological conditions, 14-3-3ζ exhibits weak, transient binding to Bad, allowing rapid modulation of apoptotic signalling in response to fluctuating phosphorylation states.
+A12: 14-3-3ζ	INTERACTS_WITH	Bad
+P13: Inhibition of histone methyltransferase activity using the compound BIX-01294 diminished chondrogenic differentiation by downregulating cartilage-specific genes such as aggrecan and collagen type II.
+A13: histone methyltransferase	INTERACTS_WITH	BIX-01294
 """
 
     PPI_NEGATIVE = """
 Below you find some examples of false positive protein-protein relations and the reason why you should not extract those:
-* "KRAS and BRAF cooperate in the MAPK signaling cascade to promote cell proliferation.": Although the two proteins are in the same signalling system, the text does not provide evidence of a direct interaction.
-* "p53 and Protein MYC are both found in the same signaling complex.": Incorrect assumptions based on co-occurrence or proximity.
-* "TNF and IL6 accumulate at DNA damage sites.": Co-localization but no evidence of direct relation/interaction between the two.
-* "Gene TNF regulates the expression of Gene IL6": Misinterpretation of genetic or signalling pathways as protein interactions.
-* "Prmt5 shares 80% sequence identity with Protein Prmt7, which is known to bind BRAF.": Incorrect assumptions based on structural similarity.
-* "PTEN was pulled down in a co-IP assay with CDKN2A.": Incorrect interpretations of experimental methods.
+
+P1: KRAS and BRAF cooperate in the MAPK signalling cascade to promote cell proliferation.
+A1: Although the two proteins are in the same signalling system, the text does not provide evidence of a direct interaction.
+P2: p53 and Protein MYC are both found in the same signalling complex.
+A2: Incorrect assumptions based on co-occurrence or proximity.
+P3: TNF and IL6 accumulate at DNA damage sites.
+A3: Co-localisation, but no evidence of direct relation/interaction between the two.
+P4: Gene TNF regulates the expression of Gene IL6.
+A4: Misinterpretation of genetic or signalling pathways as protein interactions.
+P5: Prmt5 shares 80% sequence identity with Protein Prmt7, which is known to bind BRAF.
+A5: Incorrect assumptions based on structural similarity.
+P6: PTEN was pulled down in a co-IP assay with CDKN2A.
+A6: Incorrect interpretations of experimental methods.
 """
 
     TF_POSITIVE = """
@@ -119,12 +145,17 @@ Below you find some positive examples of relations between transcription factor-
 """
 
     TF_NEGATIVE = """
-Below you find some false positive examples of transcription factor-to-gene relations and the reason why you should not extract those:
-* "This cytokine induces the p53 into a mutant-like conformation that forms a complex with Sp1": This is complex formation and does not involve transcription factor to gene relations.
-* "HIF1A forms a transcriptional complex with ARNT under hypoxia.": This relation represents two transcription factor proteins interacting with each other, and the text does not reflect that they target the regulation of any specific gene.
-* "PRMT1 methylates cGAS and suppresses cGAS/STING signaling in cancer cells": This is a methylation interaction and not a transcription factor to gene relation.
-* "Gene MYC and gene STAT3 share a common promoter region.": This is not explicitly a relation between a transcription factor and its target gene.
-* "AKT1 phosphorylates AKT1S1 at Thr-246.": This is a phosphorylation interaction and not a transcription factor to gene relation.
+Below you find some false positive examples of relations between transcription factor-to-gene relations and the reason why you should not extract those:
+P1: This cytokine induces p53 into a mutant-like conformation that forms a complex with Sp1.
+A1: This is a complex formation and does not involve transcription factor to gene relations.
+P2: HIF1A forms a transcriptional complex with ARNT under hypoxia.
+A2: This relation represents two transcription factor proteins interacting with each other, and the text does not reflect that they target the regulation of any specific gene.
+P3: RMT1 methylates cGAS and suppresses cGAS/STING signalling in cancer cells.
+A3: This is a methylation interaction and not a transcription factor to gene relation.
+P4: Gene MYC and gene STAT3 share a common promoter region.
+A4: This is not explicitly a relation between a transcription factor and its target gene.
+P5: AKT1 phosphorylates AKT1S1 at Thr-246.
+A5: This is a phosphorylation interaction and not a transcription factor to gene relation.
 """
 
     @classmethod
@@ -147,7 +178,7 @@ class PromptBuilder:
     COT_MODELS = ["llama33", "llama31", "llama33regu", "llama31regu"]
 
     SYSTEM_PROMPT = (
-        "You are a top-tier molecular biologist specialized in the field of cardiology and molecular biology. "
+        "You are a top-tier molecular biologist specialised in the field of molecular biology. "
         "Following, you'll find a scientific TEXT, a desired OUTPUT FORMAT and a USER QUESTION. "
         "First, read the TEXT and study the OUTPUT FORMAT, then answer the USER QUESTION."
     )
@@ -241,15 +272,29 @@ class PromptBuilder:
         lookup = self.build_lookup_prompt()
         dynex = self.build_dynex_prompt()
 
+        # Add GRN definition for transcription factor targets
+        grn_definition = ""
+        if self.config.target == "tf":
+            grn_definition = "A Gene Regulatory Network (GRN) is a system of Transcription Factors (TFs) that interact and control how and when genes are turned on or off. "
+
         if not self.config.recall:
-            return (
-                f"{ner_list} Extract all the {self.target_config.interactions_type} interactions "
-                f"{ner_modifier}involved in signalling pathways from the text. Please only extract "
-                f"{self.target_config.target} pairs which directly interact with each other "
-                "(i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret "
-                "functional relationships, co-occurrence, structural similarity, or indirect "
-                f"regulatory effects for direct interactions. {lookup}{dynex}"
-            )
+            if self.config.target == "tf":
+                return (
+                    f"{grn_definition}{ner_list} Extract all the {self.target_config.interactions_type} interactions "
+                    f"{ner_modifier} involved in gene regulatory networks from the text. Please only extract "
+                    f"{self.target_config.target} pairs of direct relations between a transcription factor and the gene that it regulates. "
+                    f"Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect "
+                    f"regulatory effects for direct interactions. {lookup}{dynex}"
+                )
+            else:
+                return (
+                    f"{ner_list} Extract all the {self.target_config.interactions_type} interactions "
+                    f"{ner_modifier}involved in signalling pathways from the text. Please only extract "
+                    f"{self.target_config.target} pairs which directly interact with each other "
+                    "(i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret "
+                    "functional relationships, co-occurrence, structural similarity, or indirect "
+                    f"regulatory effects for direct interactions. {lookup}{dynex}"
+                )
         else:
             return (
                 f"{ner_list} Extract ALL the relations between molecular entities from the text. "
