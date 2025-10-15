@@ -30,7 +30,7 @@ parser.add_argument(
 parser.add_argument(
     "--chattype",
     type=str,
-    choices=["oneshot", "stepwise", "lookup"],
+    choices=["oneshot", "stepwise"],
     default="oneshot",
 )
 parser.add_argument(
@@ -241,6 +241,6 @@ if (
     or args.all_nes_given
     or args.true_nes_given
     or args.spacy_nes_given
-    or args.chattype == "lookup"
+    or args.lookup
 ):
     args.extractionmode = "nerrel"
