@@ -182,10 +182,9 @@ def extract_rels(
 ):
     """Standard single-pass extraction"""
     for i, prompt in enumerate(prompts):
-        content = f"\nUSER QUESTION: {prompt}"
         if examples_content:
-            content += f"\n{examples_content}"
-        messages.append(Message(role="user", content=content))
+            prompt += f"\n{examples_content}"
+        messages.append(Message(role="user", content=prompt))
         try:
             response = b.GeneralChatExtractRelationships(
                 rel_system_prompt,

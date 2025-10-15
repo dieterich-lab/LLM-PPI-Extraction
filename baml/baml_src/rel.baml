@@ -51,11 +51,11 @@ function GeneralChatExtractRelationships(sys_prompt: string, text: string, messa
     {{ _.role("system") }}
     {{ sys_prompt }}
     TEXT: {{ text }}
-    {{ ctx.output_format(prefix="Use the following OUTPUT FORMAT:") }}
     {% for message in messages %}
       {{ _.role(message.role) }} 
       {{ message.content }}
     {% endfor %}
+    {{ ctx.output_format(prefix="Use the following OUTPUT FORMAT:") }}
   "#
 }
 
@@ -65,10 +65,9 @@ function ExtractNEs(sys_prompt: string, text: string, message: Message) -> Entit
     {{ _.role("system") }}
     {{ sys_prompt }}
     TEXT: {{ text }}
-    {{ ctx.output_format(prefix="Use the following OUTPUT FORMAT:") }}
-    USER QUESTION:
     {{ _.role(message.role) }} 
     {{ message.content }}
+    {{ ctx.output_format(prefix="Use the following OUTPUT FORMAT:") }}
   "#
 }
 

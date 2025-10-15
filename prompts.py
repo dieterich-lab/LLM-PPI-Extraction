@@ -81,6 +81,10 @@ class TargetConfig:
                 anti_interactions_type="",
             ),
         }
+        if target not in configs:
+            raise ValueError(
+                f"Unknown target type: {target}. Must be one of: {list(configs.keys())}"
+            )
         return configs[target]
 
 
@@ -109,13 +113,13 @@ A8: CBP	INTERACTS_WITH	GATA-1
 P9: Experimental analysis revealed a chemical cross-linking between Hsp90 and the (CDK4)-cyclin D1 complex, stabilising their association during signal transduction.
 A9: Hsp90	INTERACTS_WITH	CDK4
 P10: Similar to the CREB proteins, NFIX serves as a direct substrate of SRC1 and functions as a signal-responsive transcription factor.
-A10: CREB	INTERACTS_WITH	SRC1;	NFIX	INTERACTS_WITH	SRC1
-P11: The N-terminal transactivation domain of p53, binds directly to the hydrophobic pocket of MDM2 to regulate its stability
+A10: NFIX	INTERACTS_WITH	SRC1
+P11: The N-terminal transactivation domain of p53 binds directly to the hydrophobic pocket of MDM2 to regulate its stability
 A11: p53	INTERACTS_WITH	MDM2
-P12: Under physiological conditions, 14-3-3ζ exhibits weak, transient binding to Bad, allowing rapid modulation of apoptotic signalling in response to fluctuating phosphorylation states.
+P12: Under physiological conditions, 14-3-3ζ exhibits weak, transient binding to Bad, allowing rapid modulation of apoptotic signalling.
 A12: 14-3-3ζ	INTERACTS_WITH	Bad
-P13: Inhibition of histone methyltransferase activity using the compound BIX-01294 diminished chondrogenic differentiation by downregulating cartilage-specific genes such as aggrecan and collagen type II.
-A13: histone methyltransferase	INTERACTS_WITH	BIX-01294
+P13: The tumor suppressor BRCA1 interacts with DNA repair proteins like RAD51 to facilitate homologous recombination.
+A13: BRCA1	INTERACTS_WITH	RAD51
 """
 
     PPI_NEGATIVE = """
@@ -136,12 +140,18 @@ A6: Incorrect interpretations of experimental methods.
 """
 
     TF_POSITIVE = """
-Below you find some positive examples of relations between transcription factor-to-gene relations that give you an idea of what we are looking for:
-* "MYC target genes that are involved in cell cycle such as Cyclin D1": MYC -> Cyclin D1
-* "STAT3 can induce the expression of anti-apoptotic genes like Bcl-2, which help in cell survival.": STAT3 -> Bcl-2
-* "Tbx1 activates transcription of the fibroblast growth factor genes Fgf8 and Fgf10 to maintain proliferative expansion and inhibit differentiation of cardiopharyngeal precursor cells": Tbx1 -> Fgf8 and Tbx1 -> Fgf10
-* "Overexpression of MECP2 leads to the suppression of IFN-γ transcription, which is linked to impaired TH1 responses in both children and mice with MECP2 duplication syndrome.": MECP2 -> IFN-γ
-* "In humans, FOXO regulates the expression of core small RNA pathway genes, including AGO2.": FOXO -> AGO2.
+Below you find some positive examples of transcription factor-to-gene relations that give you an idea of what we are looking for:
+
+P1: MYC target genes that are involved in cell cycle such as Cyclin D1
+A1: MYC	INTERACTS_WITH	Cyclin D1
+P2: STAT3 can induce the expression of anti-apoptotic genes like Bcl-2, which help in cell survival.
+A2: STAT3	INTERACTS_WITH	Bcl-2
+P3: Tbx1 activates transcription of the fibroblast growth factor genes Fgf8 and Fgf10 to maintain proliferative expansion and inhibit differentiation of cardiopharyngeal precursor cells
+A3: Tbx1	INTERACTS_WITH	Fgf8;	Tbx1	INTERACTS_WITH	Fgf10
+P4: Overexpression of MECP2 leads to the suppression of IFN-γ transcription, which is linked to impaired TH1 responses in both children and mice with MECP2 duplication syndrome.
+A4: MECP2	INTERACTS_WITH	IFN-γ
+P5: In humans, FOXO regulates the expression of core small RNA pathway genes, including AGO2.
+A5: FOXO	INTERACTS_WITH	AGO2
 """
 
     TF_NEGATIVE = """
@@ -173,14 +183,24 @@ A5: This is a phosphorylation interaction and not a transcription factor to gene
 
 
 class PromptBuilder:
-    """Builds prompts based on configuration."""
+    """Builds prompts based on configuration.
 
+    This class encapsulates all prompt construction logic for molecular interaction extraction.
+    It handles different target types (PPI, TF, PPITF), extraction modes, and chat types.
+    """
+
+    # Constants
     COT_MODELS = ["llama33", "llama31", "llama33regu", "llama31regu"]
+    VALID_TARGETS = ["ppi", "tf", "ppitf"]
+    VALID_MODES = ["direct", "nerrel"]
+    VALID_CHAT_TYPES = ["oneshot", "stepwise", "lookup"]
+    VALID_EXAMPLES = ["", "pos", "neg", "negpos"]
 
     SYSTEM_PROMPT = (
-        "You are a top-tier molecular biologist specialised in the field of molecular biology. "
-        "Following, you'll find a scientific TEXT, a desired OUTPUT FORMAT and a USER QUESTION. "
-        "First, read the TEXT and study the OUTPUT FORMAT, then answer the USER QUESTION."
+        "You are an expert molecular biologist specializing in protein-protein interactions and gene regulatory networks. "
+        "Your task is to extract molecular relationships from scientific texts with high precision. "
+        "You understand the difference between direct physical interactions, functional relationships, and regulatory effects. "
+        "When extracting relationships, focus on evidence-based direct interactions rather than indirect associations."
     )
 
     OUTPUT_FORMAT = """
@@ -262,7 +282,7 @@ class PromptBuilder:
     def build_dynex_prompt(self) -> str:
         """Build dynamic example prompt."""
         if self.config.dynex_k > 0:
-            return "Following, you find an EXAMPLE of a similar texts and ground truth relations. Use it as support for your decision. "
+            return "Following, you find EXAMPLES of similar texts and ground truth relations. Use it as support for your decision. "
         return ""
 
     def build_main_prompt(self) -> str:
@@ -281,7 +301,7 @@ class PromptBuilder:
             if self.config.target == "tf":
                 return (
                     f"{grn_definition}{ner_list} Extract all the {self.target_config.interactions_type} interactions "
-                    f"{ner_modifier} involved in gene regulatory networks from the text. Please only extract "
+                    f"{ner_modifier} involved in gene regulatory networks from the TEXT. Please only extract "
                     f"{self.target_config.target} pairs of direct relations between a transcription factor and the gene that it regulates. "
                     f"Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect "
                     f"regulatory effects for direct interactions. {lookup}{dynex}"
@@ -289,15 +309,16 @@ class PromptBuilder:
             else:
                 return (
                     f"{ner_list} Extract all the {self.target_config.interactions_type} interactions "
-                    f"{ner_modifier}involved in signalling pathways from the text. Please only extract "
-                    f"{self.target_config.target} pairs which directly interact with each other "
-                    "(i.e. through binding, phosphorylation, sumoylation, etc). Do not misinterpret "
-                    "functional relationships, co-occurrence, structural similarity, or indirect "
-                    f"regulatory effects for direct interactions. {lookup}{dynex}"
+                    f"{ner_modifier}from the TEXT. Focus on direct physicical interactions where proteins "
+                    f"bind to each other, modify each other, or form complexes. Only extract {self.target_config.target} pairs that "
+                    f"directly interact through: binding, phosphorylation, ubiquitination, methylation, acetylation, "
+                    f"sumoylation, or other post-translational modifications. EXCLUDE: functional relationships, "
+                    f"co-expression, co-localization, signaling cascades without direct contact, or indirect regulatory effects. "
+                    f"{lookup}{dynex}"
                 )
         else:
             return (
-                f"{ner_list} Extract ALL the relations between molecular entities from the text. "
+                f"{ner_list} Extract ALL the relations between molecular entities from the TEXT. "
                 f"Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup}"
             )
 
@@ -360,42 +381,73 @@ class PromptBuilder:
             if self.config.chat_type == "oneshot":
                 return [base_prompt]
             elif self.config.chat_type == "stepwise":
-                return [
-                    base_prompt,
-                    f"Now review your extracted {self.target_config.interactions_type} interactions to determine if "
-                    "they are specific to signaling pathways. Retain only signalling pathway interactions "
-                    "and remove the rest. "
-                    "Use again the desired json OUTPUT FORMAT to format your answer. "
-                    f"{confidence}{cot}",
-                    f"Review one more time the {self.target_config.interactions_type} interactions to  "
-                    f"determine whether there are in the list regulations that are of a {self.target_config.anti_interactions_type} "
-                    f"regulatory nature. Retain those interactions that are only specific to {self.target_config.interactions_type} interactions in cell  "
-                    f"signalling and remove those relations that represent relations between {self.target_config.anti_targets}. "
-                    "Use again the desired json OUTPUT FORMAT to format your answer. "
-                    f"{confidence}{cot}",
-                ]
+                if self.config.target == "tf":
+                    return [
+                        base_prompt,
+                        f"Now review your extracted {self.target_config.interactions_type} interactions to determine if "
+                        "they are specific to gene regulatory networks. Retain only direct transcription factor-to-gene "
+                        "regulations and remove indirect effects or protein-protein interactions. "
+                        "Use again the desired json OUTPUT FORMAT to format your answer. "
+                        f"{confidence}{cot}",
+                        f"Review one more time the {self.target_config.interactions_type} interactions to ensure "
+                        "they represent direct transcriptional regulation rather than post-translational modifications "
+                        "or protein complex formations. Retain only true TF-gene regulatory relationships. "
+                        "Use again the desired json OUTPUT FORMAT to format your answer. "
+                        f"{confidence}{cot}",
+                    ]
+                else:
+                    return [
+                        base_prompt,
+                        f"Now review your extracted {self.target_config.interactions_type} interactions to determine if "
+                        "they are specific to signaling pathways. Retain only signalling pathway interactions "
+                        "and remove the rest. "
+                        "Use again the desired json OUTPUT FORMAT to format your answer. "
+                        f"{confidence}{cot}",
+                        f"Review one more time the {self.target_config.interactions_type} interactions to  "
+                        f"determine whether there are in the list regulations that are of a {self.target_config.anti_interactions_type} "
+                        f"regulatory nature. Retain those interactions that are only specific to {self.target_config.interactions_type} interactions in cell  "
+                        f"signalling and remove those relations that represent relations between {self.target_config.anti_targets}. "
+                        "Use again the desired json OUTPUT FORMAT to format your answer. "
+                        f"{confidence}{cot}",
+                    ]
         elif mode == "nerrel":
-            ner_prompt = f"Extract all the {self.target_config.targets} that appear in the text. Please stick to the desired OUTPUT FORMAT. "
+            ner_prompt = f"Extract all the {self.target_config.targets} that appear in the TEXT. Please stick to the desired OUTPUT FORMAT. "
             rel_prompt = base_prompt
 
             if self.config.chat_type == "oneshot":
                 return [ner_prompt, rel_prompt]
             elif self.config.chat_type in ["stepwise", "lookup"]:
-                return [
-                    f"Extract all the {self.target_config.targets} that appear in the text.",
-                    rel_prompt,
-                    f"Now review your extracted {self.target_config.interactions_type} interactions to determine if "
-                    "they are specific to signaling pathways. Retain only signalling pathway interactions "
-                    "and remove the rest. "
-                    "Use again the desired json OUTPUT FORMAT to format your answer. "
-                    f"{confidence}{cot}",
-                    f"Review one more time the {self.target_config.interactions_type} interactions to  "
-                    f"determine whether there are in the list regulations that are of a {self.target_config.anti_interactions_type} "
-                    f"regulatory nature. Retain those interactions that are only specific to {self.target_config.interactions_type} interactions in cell  "
-                    f"signalling and remove those relations that represent relations between {self.target_config.anti_targets}. "
-                    "Use again the desired json OUTPUT FORMAT to format your answer. "
-                    f"{confidence}{cot}",
-                ]
+                if self.config.target == "tf":
+                    return [
+                        f"Extract all the {self.target_config.targets} that appear in the TEXT.",
+                        rel_prompt,
+                        f"Now review your extracted {self.target_config.interactions_type} interactions to determine if "
+                        "they are specific to gene regulatory networks. Retain only direct transcription factor-to-gene "
+                        "regulations and remove indirect effects or protein-protein interactions. "
+                        "Use again the desired json OUTPUT FORMAT to format your answer. "
+                        f"{confidence}{cot}",
+                        f"Review one more time the {self.target_config.interactions_type} interactions to ensure "
+                        "they represent direct transcriptional regulation rather than post-translational modifications "
+                        "or protein complex formations. Retain only true TF-gene regulatory relationships. "
+                        "Use again the desired json OUTPUT FORMAT to format your answer. "
+                        f"{confidence}{cot}",
+                    ]
+                else:
+                    return [
+                        f"Extract all the {self.target_config.targets} that appear in the TEXT.",
+                        rel_prompt,
+                        f"Now review your extracted {self.target_config.interactions_type} interactions to determine if "
+                        "they are specific to signaling pathways. Retain only signalling pathway interactions "
+                        "and remove the rest. "
+                        "Use again the desired json OUTPUT FORMAT to format your answer. "
+                        f"{confidence}{cot}",
+                        f"Review one more time the {self.target_config.interactions_type} interactions to  "
+                        f"determine whether there are in the list regulations that are of a {self.target_config.anti_interactions_type} "
+                        f"regulatory nature. Retain those interactions that are only specific to {self.target_config.interactions_type} interactions in cell  "
+                        f"signalling and remove those relations that represent relations between {self.target_config.anti_targets}. "
+                        "Use again the desired json OUTPUT FORMAT to format your answer. "
+                        f"{confidence}{cot}",
+                    ]
 
         # Handle special case for ppitf stepwise
         if self.config.target == "ppitf" and self.config.chat_type == "stepwise":
