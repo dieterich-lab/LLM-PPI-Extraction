@@ -99,12 +99,9 @@ def combine_by_merging(all_path_results, all_path_evaluations):
 
 def get_nes(messages, responses, doc, prompts, collector, tb):
     """Handle entity extraction for different modes (all_nes_given, true_nes_given, spacy_nes_given)"""
-    ner_prompt = prompts.pop(0)
     try:
         if args.all_nes_given or args.true_nes_given:
             ne_paths = true_ne_paths if args.true_nes_given else all_nes_paths
-            message = Message(role="user", content=ner_prompt)
-            messages.append(message)
             ne_path = [
                 x for x in ne_paths if doc[0].metadata["file_path"].stem == x.stem
             ][0]
@@ -145,7 +142,7 @@ def get_nes(messages, responses, doc, prompts, collector, tb):
                     context_message += "\nUse these entities for relation extraction.\n"
 
                     # Insert this context message before the NER prompt
-                    messages.insert(-1, Message(role="user", content=context_message))
+                    messages.append(Message(role="user", content=context_message))
             else:
                 print(
                     f"No BRAT annotation file found for {doc[0].metadata['file_path'].stem}"

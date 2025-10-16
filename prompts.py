@@ -198,7 +198,7 @@ class PromptBuilder:
 
     SYSTEM_PROMPT = (
         "You are an expert molecular biologist specializing in protein-protein interactions and gene regulatory networks. "
-        "Your task is to extract molecular relationships from scientific texts with high precision. "
+        "Your TASK is to extract molecular relationships from scientific texts with high precision. "
         "You understand the difference between direct physical interactions, functional relationships, and regulatory effects. "
         "When extracting relationships, focus on evidence-based direct interactions rather than indirect associations."
     )
@@ -241,18 +241,18 @@ class PromptBuilder:
             return (
                 f"Look at the list above. These are the ground truth {self.target_config.targets} "
                 f"that are found in the abstract. But be wary, not all of them will necessarily be a "
-                f"participant in {self.target_config.interactions_type} relations. Use this list for the following task."
+                f"participant in {self.target_config.interactions_type} relations. Use this list for the following TASK."
             )
         elif self.config.true_nes_given:
             return (
                 f"Look at the list above. These are the ground truth {self.target_config.targets} "
                 f"that are found in the abstract and also take part in {self.target_config.interactions_type} "
-                "relations. Use this list for the following task."
+                "relations. Use this list for the following TASK."
             )
         elif self.config.spacy_nes_given:
             return (
                 f"Look at the list above. These are {self.target_config.targets} that have been "
-                "extracted by a ScispaCy biomedical NER model. Use this list for the following task."
+                "extracted by a ScispaCy biomedical NER model from the given TEXT. Use this list for the following TASK."
             )
         elif self.config.extraction_mode == "nerrel":
             if not (
@@ -260,7 +260,7 @@ class PromptBuilder:
                 or self.config.true_nes_given
                 or self.config.spacy_nes_given
             ):
-                return f"Now look at your extracted {self.target_config.targets} above and use it for the following task:"
+                return f"Now look at your extracted {self.target_config.targets} above and use it for the following TASK:"
         return ""
 
     def build_ner_prompt(self) -> str:

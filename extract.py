@@ -106,14 +106,17 @@ def main():
         messages = list()
         message = Message(role="assistant", content=rel_system_prompt)
         messages.append(message)
-        first_prompt = _prompts.pop(0)
-        message = Message(role="user", content=first_prompt)
-        messages.append(message)
+        if args.spacy_nes_given:
+            _prompts.pop(0)
+        else:
+            first_prompt = _prompts.pop(0)
+            message = Message(role="user", content=first_prompt)
+            messages.append(message)
         message = Message(role="user", content=f"\n\nTEXT: {text}")
         messages.append(message)
         responses = list()
         if args.all_nes_given or args.true_nes_given or args.spacy_nes_given:
-            _prompts = get_nes(messages, responses, doc, _prompts, collector, tb)
+            get_nes(messages, responses, doc, _prompts, collector, tb)
         elif args.extractionmode == "nerrel":
             extract_nes(messages, responses, collector, tb)
         if args.lookup:
@@ -198,6 +201,9 @@ def main():
             with open(triple_jsonl_path, "a") as f:
                 f.write(json.dumps(result) + "\n")
                 f.flush()
+
+    if not args.dev:
+        print(f"Saved files to {triple_jsonl_path}")
 
 
 if __name__ == "__main__":
