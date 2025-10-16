@@ -133,13 +133,11 @@ def get_nes(messages, responses, doc, prompts, collector, tb):
                 # Extract just the entity names for the Entities response
                 entity_names = [entity["text"] for entity in entities]
                 response = Entities(entities=entity_names)
-
                 # Add minimal context information with spans to help the model understand the ground truth entities
                 if entities:
                     context_message = "NE LIST:\n"
                     for entity in entities:
                         context_message += f"- {entity['text']} (type: {entity['type']}, span: {entity['start']}-{entity['end']})\n"
-                    context_message += "\nUse these entities for relation extraction.\n"
 
                     # Insert this context message before the NER prompt
                     messages.append(Message(role="user", content=context_message))
@@ -151,6 +149,7 @@ def get_nes(messages, responses, doc, prompts, collector, tb):
     except Exception as e:
         print(f"Exception at Entity extraction: {e}")
         response = Entities(entities=[])
+    responses.append(response)
     return prompts
 
 

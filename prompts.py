@@ -300,7 +300,7 @@ class PromptBuilder:
         if not self.config.recall:
             if self.config.target == "tf":
                 return (
-                    f"{grn_definition}{ner_list} \n\nTASK: Extract all the {self.target_config.interactions_type} interactions "
+                    f"\n\nTASK: {grn_definition}{ner_list} Extract all the {self.target_config.interactions_type} interactions "
                     f"{ner_modifier} involved in gene regulatory networks from the TEXT. Please only extract "
                     f"{self.target_config.target} pairs of direct relations between a transcription factor and the gene that it regulates. "
                     f"Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect "
@@ -308,7 +308,7 @@ class PromptBuilder:
                 )
             else:
                 return (
-                    f"{ner_list} \n\nTASK: Extract all the {self.target_config.interactions_type} interactions "
+                    f"\n\nTASK: {ner_list} Extract all the {self.target_config.interactions_type} interactions "
                     f"{ner_modifier}from the TEXT. Focus on direct physicical interactions where proteins "
                     f"bind to each other, modify each other, or form complexes. Only extract {self.target_config.target} pairs that "
                     f"directly interact through: binding, phosphorylation, ubiquitination, methylation, acetylation, "
@@ -318,7 +318,7 @@ class PromptBuilder:
                 )
         else:
             return (
-                f"{ner_list} \n\nTASK: Extract ALL the relations between molecular entities from the TEXT. "
+                f"\n\nTASK: {ner_list} Extract ALL the relations between molecular entities from the TEXT. "
                 f"Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup}"
             )
 

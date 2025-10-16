@@ -179,12 +179,7 @@ def main():
             )
 
         if not args.dev:
-            if (
-                args.extractionmode == "nerrel"
-                and not args.true_nes_given
-                and not args.all_nes_given
-                and not args.spacy_nes_given
-            ):
+            if args.extractionmode == "nerrel":
                 NE_list = [r.model_dump()["entities"] for r in responses[:1]]
                 result = {
                     "responses": NE_list
