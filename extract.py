@@ -6,6 +6,9 @@ from pathlib import Path
 
 import numpy as np
 
+from baml.baml_client.types import Entities, Message, Triples
+from prompts import rel_system_prompt
+
 sys.path.append("..")  # isort:skip
 from parser import args
 
@@ -101,11 +104,18 @@ def main():
         print(f"Doc {i}")
         text = doc[0].page_content
         messages = list()
+        message = Message(role="assistant", content=rel_system_prompt)
+        messages.append(message)
+        first_prompt = _prompts.pop(0)
+        message = Message(role="user", content=first_prompt)
+        messages.append(message)
+        message = Message(role="user", content=f"\n\nTEXT: {text}")
+        messages.append(message)
         responses = list()
         if args.all_nes_given or args.true_nes_given or args.spacy_nes_given:
             _prompts = get_nes(messages, responses, doc, _prompts, collector, tb)
         elif args.extractionmode == "nerrel":
-            _prompts = extract_nes(messages, responses, text, _prompts, collector, tb)
+            extract_nes(messages, responses, collector, tb)
         if args.lookup:
             from ppi_lookup import lookup_infos
 
@@ -127,6 +137,10 @@ def main():
             messages.pop()  # Remove it from messages, will be included in prompts
 
         # Choose extraction method based on flags
+        if args.extractionmode == "nerrel":
+            first_rel_prompts = _prompts.pop(0)
+            message = Message(role="user", content=first_rel_prompts)
+            messages.append(message)
         if args.tot:
             extract_rels_tot(
                 messages,
@@ -155,7 +169,6 @@ def main():
             extract_rels(
                 messages,
                 responses,
-                text,
                 _prompts,
                 examples_content=examples_content,
                 collector=collector,

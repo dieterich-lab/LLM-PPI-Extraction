@@ -45,30 +45,29 @@ class PathEvaluation {
 }
 
 
-function GeneralChatExtractRelationships(sys_prompt: string, text: string, messages: Message[]) -> Triples {
+function GeneralChatExtractRelationships(messages: Message[]) -> Triples {
+// function GeneralChatExtractRelationships(sys_prompt: string, text: string, messages: Message[]) -> Triples {
   client Llama38b // will be overruled by the client registry
   prompt #"
-    {{ _.role("system") }}
-    {{ sys_prompt }}
-    {{ _.role("user") }}
-    TEXT: {{ text }}
     {% for message in messages %}
       {{ _.role(message.role) }} 
-      {{ message.content }}
+      {{ message.content }}\n\n
     {% endfor %}
     {{ ctx.output_format(prefix="\n\nUse the following OUTPUT FORMAT:") }}
+    Remember to ONLY extract relations from the given TEXT, not from prior knowledge or examples.
   "#
 }
 
-function ExtractNEs(sys_prompt: string, text: string, message: Message) -> Entities {
+// function ExtractNEs(sys_prompt: string, text: string, message: Message) -> Entities {
+function ExtractNEs(messages: Message[]) -> Entities {
   client Llama38b // will be overruled by the client registry
   prompt #"
-    {{ _.role("system") }}
-    {{ sys_prompt }}
-    {{ _.role(message.role) }} 
-    {{ message.content }}
-    {{ ctx.output_format(prefix="\n\nUse the following OUTPUT FORMAT:") }}
-    TEXT: {{ text }}
+    {% for message in messages %}
+      {{ _.role(message.role) }} 
+      {{ message.content }}
+      \n
+    {% endfor %}
+    {{ ctx.output_format(prefix="\nUse the following OUTPUT FORMAT:") }}
   "#
 }
 

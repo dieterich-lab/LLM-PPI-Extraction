@@ -157,16 +157,11 @@ def get_nes(messages, responses, doc, prompts, collector, tb):
     return prompts
 
 
-def extract_nes(messages, responses, text, prompts, collector, tb):
+def extract_nes(messages, responses, collector, tb):
     """Extract named entities using BAML"""
-    ner_prompt = prompts.pop(0)
-    message = Message(role="user", content=ner_prompt)
-    messages.append(message)
     try:
         response = b.ExtractNEs(
-            rel_system_prompt,
-            text,
-            message,
+            messages,
             baml_options={"client_registry": cr, "tb": tb, "collector": collector},
         )
     except Exception as e:
@@ -174,21 +169,25 @@ def extract_nes(messages, responses, text, prompts, collector, tb):
         response = Entities(entities=[])
     responses.append(response)
     messages.append(Message(role="assistant", content=f"{str(response)}"))
-    return prompts
 
 
 def extract_rels(
-    messages, responses, text, prompts, examples_content="", collector=None, tb=None
+    messages, responses, prompts, examples_content="", collector=None, tb=None
 ):
     """Standard single-pass extraction"""
+    if examples_content:
+        messages[-1].content += f"\n{examples_content}"
+    response = b.GeneralChatExtractRelationships(
+        messages,
+        baml_options={"client_registry": cr, "tb": tb, "collector": collector},
+    )
+    responses.append(response)
+    messages.append(Message(role="assistant", content=str(response)))
     for i, prompt in enumerate(prompts):
-        if examples_content:
-            prompt += f"\n{examples_content}"
-        messages.append(Message(role="user", content=prompt))
+        message = Message(role="user", content=prompt)
+        messages.append(message)
         try:
             response = b.GeneralChatExtractRelationships(
-                rel_system_prompt,
-                text,
                 messages,
                 baml_options={"client_registry": cr, "tb": tb, "collector": collector},
             )

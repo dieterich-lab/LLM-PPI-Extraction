@@ -309,9 +309,11 @@ class PromptBuilder:
             else:
                 return (
                     f"{ner_list} \n\nTASK: Extract all the {self.target_config.interactions_type} interactions "
-                    f"{ner_modifier}from the TEXT. Focus on DIRECT PROTEIN-PROTEIN INTERACTIONS where two proteins physically bind to each other or form stable complexes. "
-                    f"EXCLUDE: ligand-receptor binding, enzyme-substrate relationships, post-translational modifications, signaling cascades, or functional associations. "
-                    f"Only extract pairs where both entities are proteins that directly interact as binding partners. "
+                    f"{ner_modifier}from the TEXT. Focus on direct physicical interactions where proteins "
+                    f"bind to each other, modify each other, or form complexes. Only extract {self.target_config.target} pairs that "
+                    f"directly interact through: binding, phosphorylation, ubiquitination, methylation, acetylation, "
+                    f"sumoylation, or other post-translational modifications. EXCLUDE: functional relationships, "
+                    f"co-expression, co-localization, signaling cascades without direct contact, or indirect regulatory effects. "
                     f"{lookup}{dynex}"
                 )
         else:
