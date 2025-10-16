@@ -193,7 +193,7 @@ def extract_rels(
                 baml_options={"client_registry": cr, "tb": tb, "collector": collector},
             )
         except Exception as e:
-            print(f"Exception at step {i}")
+            print(f"Exception at step {i}: {e}")
             response = Triples(triples=[])
         responses.append(response)
         messages.append(Message(role="assistant", content=str(response)))

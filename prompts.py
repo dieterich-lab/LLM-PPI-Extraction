@@ -241,18 +241,18 @@ class PromptBuilder:
             return (
                 f"Look at the list above. These are the ground truth {self.target_config.targets} "
                 f"that are found in the abstract. But be wary, not all of them will necessarily be a "
-                f"participant in {self.target_config.interactions_type} relations. Use this list for the following task:"
+                f"participant in {self.target_config.interactions_type} relations. Use this list for the following task."
             )
         elif self.config.true_nes_given:
             return (
                 f"Look at the list above. These are the ground truth {self.target_config.targets} "
                 f"that are found in the abstract and also take part in {self.target_config.interactions_type} "
-                "relations. Use this list for the following task:"
+                "relations. Use this list for the following task."
             )
         elif self.config.spacy_nes_given:
             return (
                 f"Look at the list above. These are {self.target_config.targets} that have been "
-                "extracted by a ScispaCy biomedical NER model. Use this list for the following task:"
+                "extracted by a ScispaCy biomedical NER model. Use this list for the following task."
             )
         elif self.config.extraction_mode == "nerrel":
             if not (
@@ -282,7 +282,7 @@ class PromptBuilder:
     def build_dynex_prompt(self) -> str:
         """Build dynamic example prompt."""
         if self.config.dynex_k > 0:
-            return "Following, you find EXAMPLES of similar texts and ground truth relations. Use it as support for your decision. "
+            return "Following, you find EXAMPLES with of similar texts and ground truth relations. Use it as support for your decision. "
         return ""
 
     def build_main_prompt(self) -> str:
@@ -300,7 +300,7 @@ class PromptBuilder:
         if not self.config.recall:
             if self.config.target == "tf":
                 return (
-                    f"{grn_definition}{ner_list} Extract all the {self.target_config.interactions_type} interactions "
+                    f"{grn_definition}{ner_list} \n\nTASK: Extract all the {self.target_config.interactions_type} interactions "
                     f"{ner_modifier} involved in gene regulatory networks from the TEXT. Please only extract "
                     f"{self.target_config.target} pairs of direct relations between a transcription factor and the gene that it regulates. "
                     f"Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect "
@@ -308,17 +308,15 @@ class PromptBuilder:
                 )
             else:
                 return (
-                    f"{ner_list} Extract all the {self.target_config.interactions_type} interactions "
-                    f"{ner_modifier}from the TEXT. Focus on direct physicical interactions where proteins "
-                    f"bind to each other, modify each other, or form complexes. Only extract {self.target_config.target} pairs that "
-                    f"directly interact through: binding, phosphorylation, ubiquitination, methylation, acetylation, "
-                    f"sumoylation, or other post-translational modifications. EXCLUDE: functional relationships, "
-                    f"co-expression, co-localization, signaling cascades without direct contact, or indirect regulatory effects. "
+                    f"{ner_list} \n\nTASK: Extract all the {self.target_config.interactions_type} interactions "
+                    f"{ner_modifier}from the TEXT. Focus on DIRECT PROTEIN-PROTEIN INTERACTIONS where two proteins physically bind to each other or form stable complexes. "
+                    f"EXCLUDE: ligand-receptor binding, enzyme-substrate relationships, post-translational modifications, signaling cascades, or functional associations. "
+                    f"Only extract pairs where both entities are proteins that directly interact as binding partners. "
                     f"{lookup}{dynex}"
                 )
         else:
             return (
-                f"{ner_list} Extract ALL the relations between molecular entities from the TEXT. "
+                f"{ner_list} \n\nTASK: Extract ALL the relations between molecular entities from the TEXT. "
                 f"Be as greedy as possible, we will filter the relations for correctness later in a second step {lookup}"
             )
 
@@ -374,7 +372,7 @@ class PromptBuilder:
         if self.config.all_nes_given or self.config.true_nes_given:
             mode = "nerrel"
 
-        base_prompt = f"{main_prompt} {examples} Please stick to the desired OUTPUT FORMAT. {confidence}{cot}"
+        base_prompt = f"{main_prompt} {examples} {confidence}{cot}"
 
         # Build prompts based on mode and chat type
         if mode == "direct":
@@ -411,7 +409,7 @@ class PromptBuilder:
                         f"{confidence}{cot}",
                     ]
         elif mode == "nerrel":
-            ner_prompt = f"Extract all the {self.target_config.targets} that appear in the TEXT. Please stick to the desired OUTPUT FORMAT. "
+            ner_prompt = f"\n\nTASK: Extract all the {self.target_config.targets} that appear in the TEXT. "
             rel_prompt = base_prompt
 
             if self.config.chat_type == "oneshot":
@@ -419,7 +417,7 @@ class PromptBuilder:
             elif self.config.chat_type in ["stepwise", "lookup"]:
                 if self.config.target == "tf":
                     return [
-                        f"Extract all the {self.target_config.targets} that appear in the TEXT.",
+                        f"\n\nTASK: Extract all the {self.target_config.targets} that appear in the TEXT. ",
                         rel_prompt,
                         f"Now review your extracted {self.target_config.interactions_type} interactions to determine if "
                         "they are specific to gene regulatory networks. Retain only direct transcription factor-to-gene "
@@ -434,7 +432,7 @@ class PromptBuilder:
                     ]
                 else:
                     return [
-                        f"Extract all the {self.target_config.targets} that appear in the TEXT.",
+                        f"\n\nTASK: Extract all the {self.target_config.targets} that appear in the TEXT.",
                         rel_prompt,
                         f"Now review your extracted {self.target_config.interactions_type} interactions to determine if "
                         "they are specific to signaling pathways. Retain only signalling pathway interactions "
