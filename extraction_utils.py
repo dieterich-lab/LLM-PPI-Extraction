@@ -208,23 +208,36 @@ def extract_rels_ensemble(
     """Self-consistency ensemble extraction with voting"""
     print(f"  Running ensemble extraction with n={n_samples}, temp={temperature}")
 
-    for i, prompt in enumerate(prompts):
-        all_triples = []
+    # Collect all triples from all model versions
+    all_model_version_triples = []
 
-        # Generate n predictions with temperature > 0
-        for sample_idx in range(n_samples):
-            # Create a copy of messages for each sample
-            messages_copy = messages.copy()
-            content = f"\nUSER QUESTION: {prompt}"
-            if examples_content:
-                content += f"\n{examples_content}"
-            messages_copy.append(Message(role="user", content=content))
+    for sample_idx in range(n_samples):
+        print(f"    Model version {sample_idx + 1}/{n_samples}")
+        model_messages = messages.copy()
+        model_responses = []
 
+        # First extraction step for this model version
+        if examples_content:
+            model_messages[-1].content += f"\n{examples_content}"
+        response = b.GeneralChatExtractRelationships(
+            model_messages,
+            baml_options={
+                "client_registry": cr,
+                "tb": tb,
+                "collector": collector,
+                "temperature": temperature,
+            },
+        )
+        model_responses.append(response)
+        model_messages.append(Message(role="assistant", content=str(response)))
+
+        # Additional extractions for each prompt
+        for i, prompt in enumerate(prompts):
+            message = Message(role="user", content=prompt)
+            model_messages.append(message)
             try:
                 response = b.GeneralChatExtractRelationships(
-                    rel_system_prompt,
-                    text,
-                    messages_copy,
+                    model_messages,
                     baml_options={
                         "client_registry": cr,
                         "tb": tb,
@@ -232,42 +245,42 @@ def extract_rels_ensemble(
                         "temperature": temperature,
                     },
                 )
-                all_triples.extend(response.triples)
-                print(
-                    f"    Sample {sample_idx + 1}/{n_samples}: {len(response.triples)} triples"
-                )
             except Exception as e:
-                print(f"    Exception at sample {sample_idx + 1}: {e}")
-                continue
+                print(f"      Exception at step {i}: {e}")
+                response = Triples(triples=[])
+            model_responses.append(response)
+            model_messages.append(Message(role="assistant", content=str(response)))
 
-        # Vote: keep triples appearing in ≥50% of samples
-        triple_counts = {}
-        for triple in all_triples:
-            # Create a unique key for each triple (case-insensitive to handle variations)
-            key = (
-                f"{triple.head.lower()}|{triple.relation.lower()}|{triple.tail.lower()}"
-            )
-            if key not in triple_counts:
-                triple_counts[key] = {"count": 0, "example": triple}
-            triple_counts[key]["count"] += 1
+        # Collect all triples from this model version
+        for response in model_responses:
+            all_model_version_triples.extend(response.triples)
+        print(f"      Collected {sum(len(r.triples) for r in model_responses)} triples")
 
-        # Select triples that appear in at least half of the samples
-        threshold = n_samples // 2
-        consensus_triples = [
-            data["example"]
-            for key, data in triple_counts.items()
-            if data["count"] >= threshold
-        ]
+    # Vote: keep triples appearing in ≥50% of model versions
+    triple_counts = {}
+    for triple in all_model_version_triples:
+        # Create a unique key for each triple (case-insensitive to handle variations)
+        key = f"{triple.head.lower()}|{triple.relation.lower()}|{triple.tail.lower()}"
+        if key not in triple_counts:
+            triple_counts[key] = {"count": 0, "example": triple}
+        triple_counts[key]["count"] += 1
 
-        print(
-            f"    Consensus: {len(consensus_triples)} triples (threshold: {threshold}/{n_samples})"
-        )
+    # Select triples that appear in at least half of the model versions
+    threshold = n_samples // 2
+    consensus_triples = [
+        data["example"]
+        for key, data in triple_counts.items()
+        if data["count"] >= threshold
+    ]
 
-        # Create response with consensus triples
-        consensus_response = Triples(triples=consensus_triples)
-        responses.append(consensus_response)
-        messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
-        messages.append(Message(role="assistant", content=str(consensus_response)))
+    print(
+        f"    Consensus: {len(consensus_triples)} triples (threshold: {threshold}/{n_samples})"
+    )
+
+    # Create final response with consensus triples
+    consensus_response = Triples(triples=consensus_triples)
+    responses.append(consensus_response)
+    messages.append(Message(role="assistant", content=str(consensus_response)))
 
 
 def extract_rels_tot(
@@ -293,6 +306,16 @@ def extract_rels_tot(
         strategy: How to combine results - 'vote', 'best', or 'merge'
     """
     print(f"  Running ToT extraction with n={n_paths} paths, strategy={strategy}")
+
+    # First extraction step
+    if examples_content:
+        messages[-1].content += f"\n{examples_content}"
+    response = b.GeneralChatExtractRelationships(
+        messages,
+        baml_options={"client_registry": cr, "tb": tb, "collector": collector},
+    )
+    responses.append(response)
+    messages.append(Message(role="assistant", content=str(response)))
 
     for prompt_idx, prompt in enumerate(prompts):
         print(f"  ToT Step {prompt_idx + 1}/{len(prompts)}: {prompt[:60]}...")
