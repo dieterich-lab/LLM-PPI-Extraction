@@ -4,8 +4,35 @@ from pathlib import Path
 
 from clients import hf_model_id
 
-experiment_path = Path(
-    f"/beegfs/prj/LINDA_LLM/outputs/triples/{args.data}/{args.target}/{args.model}/{args.extractionmode}/{args.chattype}/{args.doclevel}"
+
+def _env_path(env_key: str, default: Path) -> Path:
+    """Resolve a path from env or fall back to default."""
+    value = os.environ.get(env_key)
+    if value:
+        return Path(value).expanduser().resolve()
+    return default
+
+
+# Resolve key project directories with sensible defaults that can be overridden.
+PROJECT_ROOT = _env_path("LINDA_LLM_PROJECT_ROOT", Path(__file__).resolve().parents[1])
+OUTPUT_ROOT = _env_path("LINDA_LLM_OUTPUT_ROOT", PROJECT_ROOT / "outputs")
+TRIPLES_ROOT = _env_path("LINDA_LLM_TRIPLES_ROOT", OUTPUT_ROOT / "triples")
+REGULATOME_ROOT = _env_path(
+    "LINDA_LLM_REGULATOME_ROOT", PROJECT_ROOT.parent / "RegulaTome"
+)
+RESOURCES_ROOT = _env_path(
+    "LINDA_LLM_RESOURCES_ROOT", PROJECT_ROOT.parent / "resources"
+)
+
+
+experiment_path = (
+    TRIPLES_ROOT
+    / args.data
+    / args.target
+    / args.model
+    / args.extractionmode
+    / args.chattype
+    / args.doclevel
 )
 if args.doclevel == "chunks":
     experiment_path /= f"{args.chunksize}"
@@ -80,14 +107,16 @@ else:
 #     / f"{args.data}_{args.model}_{mode}_{args.chattype}_{args.doclevel}.json"
 # )
 
-finetune_data_path = Path("/prj/LINDA_LLM/outputs/datasets")
-regulatome_ppi_eval_path = "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/annotated_ppi_relations_dedup.txt"
-regulatome_tf_eval_path = "/beegfs/prj/LINDA_LLM/RegulaTome/test_tf_annotations/annotated_tf_relations_dedup_new.txt"
+finetune_data_path = OUTPUT_ROOT / "datasets"
+regulatome_ppi_eval_path = (
+    REGULATOME_ROOT / "test_ppi_annotations" / "annotated_ppi_relations_dedup.txt"
+)
+regulatome_tf_eval_path = (
+    REGULATOME_ROOT / "test_tf_annotations" / "annotated_tf_relations_dedup_new.txt"
+)
 try:
-    sft_model_path = (
-        Path("/prj/LINDA_LLM/outputs") / "finetunedmodels" / f"{hf_model_id}_regulatome"
-    )
+    sft_model_path = OUTPUT_ROOT / "finetunedmodels" / f"{hf_model_id}_regulatome"
 except TypeError:
     pass
 
-uniprot_path = "/prj/LINDA_LLM/resources/uniprot_description_and_interactors.txt"
+uniprot_path = RESOURCES_ROOT / "uniprot_description_and_interactors.txt"

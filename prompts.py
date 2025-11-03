@@ -255,12 +255,12 @@ class PromptBuilder:
                 "extracted by a ScispaCy biomedical NER model from the given TEXT. Use this list for the following TASK."
             )
         elif self.config.extraction_mode == "nerrel":
-            if not (
-                self.config.all_nes_given
-                or self.config.true_nes_given
-                or self.config.spacy_nes_given
-            ):
-                return f"Now look at your extracted {self.target_config.targets} above and use it for the following TASK:"
+            # if not (
+            #     self.config.all_nes_given
+            #     or self.config.true_nes_given
+            #     or self.config.spacy_nes_given
+            # ):
+            return f"Now look at your extracted {self.target_config.targets} above and use it for the following TASK:"
         return ""
 
     def build_ner_prompt(self) -> str:
@@ -292,15 +292,10 @@ class PromptBuilder:
         lookup = self.build_lookup_prompt()
         dynex = self.build_dynex_prompt()
 
-        # Add GRN definition for transcription factor targets
-        grn_definition = ""
-        if self.config.target == "tf":
-            grn_definition = "A Gene Regulatory Network (GRN) is a system of Transcription Factors (TFs) that interact and control how and when genes are turned on or off. "
-
         if not self.config.recall:
             if self.config.target == "tf":
                 return (
-                    f"\n\nTASK: {grn_definition}{ner_list} Extract all the {self.target_config.interactions_type} interactions "
+                    f"\n\nTASK: {ner_list} Extract all the {self.target_config.interactions_type} interactions "
                     f"{ner_modifier} involved in gene regulatory networks from the TEXT. Please only extract "
                     f"{self.target_config.target} pairs of direct relations between a transcription factor and the gene that it regulates. "
                     f"Do not misinterpret functional relationships, co-occurrence, structural similarity, or indirect "
