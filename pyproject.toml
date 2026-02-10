@@ -53,6 +53,10 @@ dependencies = [
     "unsloth (==2025.5.6)",
 ]
 
+[project.scripts]
+filter_cardiac_papers = "cardiac_filtering.filter_cardiac_papers:main"
+summarize_cardiac_filter = "cardiac_filtering.summarize_cardiac_filter:main"
+
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
