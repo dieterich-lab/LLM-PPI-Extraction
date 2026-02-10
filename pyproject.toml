@@ -90,4 +90,5 @@ isort = "^6.0.1"
 flake8 = "^7.2.0"
 mypy = "^1.15.0"
 pre-commit = "^4.2.0"
+baml-cli = "^0.1.0"
 

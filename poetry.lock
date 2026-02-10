@@ -272,12 +272,27 @@ files = [
 dev = ["backports.zoneinfo ; python_version < \"3.9\"", "freezegun (>=1.0,<2.0)", "jinja2 (>=3.0)", "pytest (>=6.0)", "pytest-cov", "pytz", "setuptools", "tzdata ; sys_platform == \"win32\""]
 
 [[package]]
+name = "baml-cli"
+version = "0.1.0"
+description = "The BAML CLI, distributed in Python"
+optional = false
+python-versions = "<4.0,>=3.8"
+groups = ["dev"]
+files = [
+    {file = "baml_cli-0.1.0-py3-none-any.whl", hash = "sha256:3e0630a10bf940c539e57fc37daf70ea6c097a7feda423f01822a936c2439cdb"},
+    {file = "baml_cli-0.1.0.tar.gz", hash = "sha256:ebc3c325f167282918d397e0597dadf2323f463be7be1249b8664a6d2c48166c"},
+]
+
+[package.dependencies]
+baml_py = ">=0.1.0"
+
+[[package]]
 name = "baml-py"
 version = "0.88.0"
 description = "BAML python bindings (pyproject.toml)"
 optional = false
 python-versions = "*"
-groups = ["main"]
+groups = ["main", "dev"]
 files = [
     {file = "baml_py-0.88.0-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:a8c8a9047c086e6a0b2399e3955ab04d74347ddeb3494d0a9020e49f0db7b0de"},
     {file = "baml_py-0.88.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:6a95f27701b3d7f4a934e74e6be554e8c1a25cda863827f7702b9e782e5ad828"},
@@ -5908,4 +5923,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "2ee2b99114020e5c87b8fb66d7d39b7368c9347f296d6fb97d7d001325febfc7"
+content-hash = "653e1ceee2e6281cad95da298687950ba6f2ebcbf4067b0178ff883a53fdc979"
