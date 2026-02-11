@@ -7,6 +7,13 @@ from typing import Dict, Iterable, List, Optional
 import click
 
 DEFAULT_RESULTS_PATH = "/prj/LINDA_LLM/outputs/cardiac_filter/results.jsonl"
+DEFAULT_SUMMARY_PATH = "/prj/LINDA_LLM/outputs/cardiac_filter/summary.json"
+DEFAULT_INCLUDE_PREFIXES = (
+    "/prj/LINDA_LLM/resources/CardiacFilterPapers/"
+    "Negative_Examples-20260210T142630Z-1-001/Negative_Examples",
+    "/prj/LINDA_LLM/resources/CardiacFilterPapers/"
+    "Positive_Examples-20260210T142652Z-1-001/Positive_Examples",
+)
 
 logger = logging.getLogger("cardiac_filter_summary")
 
@@ -105,6 +112,51 @@ def format_metrics(name: str, metrics: Metrics) -> str:
     )
 
 
+def build_summary_payload(metrics_by_key: Dict[str, Metrics]) -> Dict[str, object]:
+    summary = {}
+    for name, metrics in metrics_by_key.items():
+        summary[name] = {
+            "tp": metrics.tp,
+            "fp": metrics.fp,
+            "tn": metrics.tn,
+            "fn": metrics.fn,
+            "precision": metrics.precision(),
+            "recall": metrics.recall(),
+            "f1": metrics.f1(),
+        }
+    return summary
+
+
+def filter_rows(
+    rows: Iterable[Dict[str, object]], include_prefixes: Iterable[str]
+) -> List[Dict[str, object]]:
+    prefixes = tuple(include_prefixes)
+    if not prefixes:
+        return list(rows)
+    filtered = []
+    for row in rows:
+        file_path = row.get("file_path")
+        if isinstance(file_path, str) and file_path.startswith(prefixes):
+            filtered.append(row)
+    return filtered
+
+
+def dedupe_rows(rows: Iterable[Dict[str, object]]) -> List[Dict[str, object]]:
+    deduped: Dict[str, Dict[str, object]] = {}
+    ordered: List[Dict[str, object]] = []
+    for row in rows:
+        file_path = row.get("file_path")
+        if not isinstance(file_path, str):
+            continue
+        if file_path in deduped:
+            deduped[file_path] = row
+        else:
+            deduped[file_path] = row
+            ordered.append(row)
+    # Replace any earlier entries with their latest versions.
+    return [deduped[row["file_path"]] for row in ordered]
+
+
 @click.command()
 @click.option(
     "--results-jsonl",
@@ -118,8 +170,36 @@ def format_metrics(name: str, metrics: Metrics) -> str:
     show_default=True,
     help="Label treated as the positive class.",
 )
+@click.option(
+    "--output-json",
+    default=DEFAULT_SUMMARY_PATH,
+    show_default=True,
+    help="Path to write the summary metrics JSON.",
+)
+@click.option(
+    "--include-prefix",
+    "include_prefixes",
+    multiple=True,
+    default=DEFAULT_INCLUDE_PREFIXES,
+    show_default=True,
+    help="Only include results whose file_path starts with these prefixes.",
+)
+@click.option(
+    "--dedupe",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="De-duplicate rows by file_path (keep latest entry).",
+)
 @click.option("--verbose", is_flag=True, help="Enable debug logging.")
-def main(results_jsonl: str, positive_label: str, verbose: bool) -> None:
+def main(
+    results_jsonl: str,
+    output_json: str,
+    positive_label: str,
+    include_prefixes: tuple[str, ...],
+    dedupe: bool,
+    verbose: bool,
+) -> None:
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -130,15 +210,26 @@ def main(results_jsonl: str, positive_label: str, verbose: bool) -> None:
         raise click.ClickException(f"Results file not found: {results_path}")
 
     rows = list(load_results(results_path))
+    rows = filter_rows(rows, include_prefixes)
+    if dedupe:
+        rows = dedupe_rows(rows)
     if not rows:
         logger.warning("No rows found in %s", results_path)
         return
 
     metrics_by_key = summarize_metrics(rows, positive_label)
+    summary_payload = build_summary_payload(metrics_by_key)
+
+    output_path = Path(output_json)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as handle:
+        json.dump(summary_payload, handle, indent=2)
 
     print("Cardiac filter metrics (positive = cardiac)")
+    print(f"Rows evaluated: {len(rows)}")
     for name in ["ensemble", "prompt_1", "prompt_2", "prompt_3"]:
         print(format_metrics(name, metrics_by_key[name]))
+    print(f"Summary saved to: {output_path}")
 
 
 if __name__ == "__main__":

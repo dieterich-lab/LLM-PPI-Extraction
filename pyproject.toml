@@ -51,11 +51,19 @@ dependencies = [
     "wandb (==0.19.11)",
     "wget (==3.2)",
     "unsloth (==2025.5.6)",
+    "pymupdf4llm (>=0.2.9,<0.3.0)",
+    "docling (>=2.72.0,<3.0.0)",
 ]
 
 [project.scripts]
 filter_cardiac_papers = "cardiac_filtering.filter_cardiac_papers:main"
 summarize_cardiac_filter = "cardiac_filtering.summarize_cardiac_filter:main"
+
+[tool.poetry]
+package-mode = true
+packages = [
+    { include = "cardiac_filtering" },
+]
 
 
 [build-system]
