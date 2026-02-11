@@ -19,6 +19,13 @@ DEFAULT_NEG_DIR = (
 )
 DEFAULT_OUTPUT_DIR = "/prj/LINDA_LLM/outputs/parsed_papers/CardiacFilter"
 DEFAULT_RESULTS_PATH = "/prj/LINDA_LLM/outputs/cardiac_filter/results.jsonl"
+DEFAULT_CARDIOPRIOR_PPI_DIR = "/prj/LINDA_LLM/CardioPrior/PPI_Papers"
+DEFAULT_CARDIOPRIOR_OUTPUT_DIR = (
+    "/prj/LINDA_LLM/outputs/parsed_papers/CardioPrior/ppi_filter"
+)
+DEFAULT_CARDIOPRIOR_RESULTS_PATH = (
+    "/prj/LINDA_LLM/outputs/cardiac_filter/ppi_results.jsonl"
+)
 
 MODEL_CHOICES = [
     "llama31",
@@ -137,6 +144,28 @@ def load_markdown(
     return None, None
 
 
+def load_processed_paths(results_path: Path) -> set[str]:
+    processed: set[str] = set()
+    if not results_path.exists():
+        return processed
+    try:
+        with open(results_path, "r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                file_path = row.get("file_path")
+                if isinstance(file_path, str):
+                    processed.add(file_path)
+    except OSError as exc:
+        logger.warning("Could not read results file %s: %s", results_path, exc)
+    return processed
+
+
 def classify_markdown(
     text: str, cr: ClientRegistry, collector: Collector
 ) -> Dict[str, object]:
@@ -195,6 +224,11 @@ def classify_markdown(
     help="Process a single PDF/markdown file instead of a directory.",
 )
 @click.option(
+    "--cardioprior-ppi",
+    is_flag=True,
+    help="Process the full CardioPrior PPI_Papers dataset.",
+)
+@click.option(
     "--output-dir",
     default=DEFAULT_OUTPUT_DIR,
     show_default=True,
@@ -205,6 +239,12 @@ def classify_markdown(
     default=DEFAULT_RESULTS_PATH,
     show_default=True,
     help="JSONL file to append results to.",
+)
+@click.option(
+    "--skip-existing/--no-skip-existing",
+    default=True,
+    show_default=True,
+    help="Skip papers already present in the results JSONL.",
 )
 @click.option(
     "--converter",
@@ -257,8 +297,10 @@ def classify_markdown(
 def main(
     input_dirs: Tuple[str, ...],
     single_file: Optional[Path],
+    cardioprior_ppi: bool,
     output_dir: str,
     output_jsonl: str,
+    skip_existing: bool,
     converter: str,
     max_chars: int,
     limit: int,
@@ -277,6 +319,11 @@ def main(
     if not single_file and not input_dirs:
         raise click.UsageError("Provide --single-file or at least one --input-dir.")
 
+    if cardioprior_ppi and not single_file:
+        input_dirs = (DEFAULT_CARDIOPRIOR_PPI_DIR,)
+        output_dir = DEFAULT_CARDIOPRIOR_OUTPUT_DIR
+        output_jsonl = DEFAULT_CARDIOPRIOR_RESULTS_PATH
+
     cr = build_client_registry(model, node, port)
     collector = Collector(name="cardiac-filter")
 
@@ -286,14 +333,22 @@ def main(
     results_path = Path(output_jsonl) if output_jsonl else None
     if results_path:
         ensure_directory_exists(str(results_path.parent))
+    processed_paths: set[str] = set()
+    if results_path and skip_existing:
+        processed_paths = load_processed_paths(results_path)
 
     paper_paths = collect_input_files(single_file, input_dirs)
     if limit and limit > 0:
         paper_paths = paper_paths[:limit]
 
     logger.info("Processing %d papers", len(paper_paths))
+    if processed_paths:
+        logger.info("Skipping %d already-processed papers", len(processed_paths))
 
     for paper_path in paper_paths:
+        if processed_paths and str(paper_path) in processed_paths:
+            logger.info("Skipping already processed %s", paper_path)
+            continue
         logger.info("Processing %s", paper_path)
         text, md_path = load_markdown(paper_path, output_dir_path, converter)
         if not text:
