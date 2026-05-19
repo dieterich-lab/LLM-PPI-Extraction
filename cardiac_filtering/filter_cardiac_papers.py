@@ -2,12 +2,12 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Literal, Optional, Tuple
 
 import click
 from baml_py import ClientRegistry, Collector
 
-from parse_pdfs import convert_pdf_to_markdown, ensure_directory_exists, get_pdf_files
+from parse_pdfs import convert_pdf_to_markdown, ensure_directory_exists
 
 DEFAULT_POS_DIR = (
     "/prj/LINDA_LLM/resources/CardiacFilterPapers/"
@@ -39,7 +39,7 @@ MODEL_CHOICES = [
     "qwen330",
     "qwen332",
 ]
-NODE_CHOICES = ["g2", "g3", "g4", "g5", "mk22d"]
+NODE_CHOICES = ["g2", "g3", "g4", "g5", "mk22d", "local"]
 LOGLEVEL_CHOICES = ["error", "warn", "info", "debug", "trace", "off"]
 
 logger = logging.getLogger("cardiac_filter")
@@ -50,6 +50,7 @@ IP_DICT = {
     "g3": "10.250.135.150",
     "g5": "10.250.135.156",
     "mk22d": "10.250.135.115",
+    "local": "127.0.0.1",
 }
 
 OLLAMA_CLIENTS: List[Tuple[str, str]] = [
@@ -68,7 +69,17 @@ OLLAMA_CLIENTS: List[Tuple[str, str]] = [
     ("qwen332", "qwen3:32b"),
 ]
 
-PORT_DICT = {"g2": 32, "g3": 33, "g4": 34, "g5": 35}
+PORT_DICT = {"g2": 32, "g3": 33, "g4": 34, "g5": 35, "local": 34}
+
+
+def get_supported_files(directory: str) -> List[Path]:
+    """Get all supported input files recursively from a directory."""
+    root = Path(directory)
+    patterns = ("**/*.pdf", "**/*.md", "**/*.txt")
+    paths: List[Path] = []
+    for pattern in patterns:
+        paths.extend(root.glob(pattern))
+    return paths
 
 
 def build_client_registry(model: str, node: str, port: Optional[int]) -> ClientRegistry:
@@ -114,28 +125,29 @@ def infer_ground_truth(path: Path) -> Optional[str]:
 
 
 def collect_input_files(
-    single_file: Optional[str], input_dirs: Iterable[str]
+    single_file: Optional[Path], input_dirs: Iterable[str]
 ) -> List[Path]:
     if single_file:
         return [Path(single_file)]
 
-    pdf_paths: List[Path] = []
+    input_paths: List[Path] = []
     for input_dir in input_dirs:
-        pdf_paths.extend(get_pdf_files(input_dir))
-    return sorted(set(pdf_paths))
+        input_paths.extend(get_supported_files(input_dir))
+    return sorted(set(input_paths))
 
 
 def load_markdown(
-    path: Path, output_dir: Path, converter: str
+    path: Path, output_dir: Path, converter: Literal["docling", "pymupdf4llm"]
 ) -> Tuple[Optional[str], Optional[Path]]:
     if path.suffix.lower() == ".pdf":
         ensure_directory_exists(str(output_dir))
         md_path = output_dir / f"{path.stem}.md"
+        final_md_path: Optional[Path] = md_path
         if not md_path.exists():
-            md_path = convert_pdf_to_markdown(path, output_dir, converter)
-        if md_path and md_path.exists():
-            return md_path.read_text(encoding="utf-8"), md_path
-        return None, md_path
+            final_md_path = convert_pdf_to_markdown(path, output_dir, converter)
+        if final_md_path and final_md_path.exists():
+            return final_md_path.read_text(encoding="utf-8"), final_md_path
+        return None, final_md_path
 
     if path.suffix.lower() in {".md", ".txt"}:
         return path.read_text(encoding="utf-8"), path
@@ -258,7 +270,7 @@ def classify_markdown(
     type=int,
     default=120_000,
     show_default=True,
-    help="Maximum number of characters to send to the model.",
+    help="Maximum number of characters to send to the model (120k chars ≈ 30k tokens).",
 )
 @click.option(
     "--limit",
@@ -266,6 +278,20 @@ def classify_markdown(
     default=0,
     show_default=True,
     help="Limit number of papers processed (0 means no limit).",
+)
+@click.option(
+    "--num-shards",
+    type=int,
+    default=1,
+    show_default=True,
+    help="Total number of deterministic shards to split input files into.",
+)
+@click.option(
+    "--shard-index",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Zero-based shard index to process (must be < num-shards).",
 )
 @click.option(
     "--model",
@@ -301,9 +327,11 @@ def main(
     output_dir: str,
     output_jsonl: str,
     skip_existing: bool,
-    converter: str,
+    converter: Literal["docling", "pymupdf4llm"],
     max_chars: int,
     limit: int,
+    num_shards: int,
+    shard_index: int,
     model: str,
     node: str,
     port: Optional[int],
@@ -324,6 +352,11 @@ def main(
         output_dir = DEFAULT_CARDIOPRIOR_OUTPUT_DIR
         output_jsonl = DEFAULT_CARDIOPRIOR_RESULTS_PATH
 
+    if num_shards < 1:
+        raise click.UsageError("--num-shards must be >= 1.")
+    if shard_index < 0 or shard_index >= num_shards:
+        raise click.UsageError("--shard-index must be in [0, num-shards).")
+
     cr = build_client_registry(model, node, port)
     collector = Collector(name="cardiac-filter")
 
@@ -338,10 +371,18 @@ def main(
         processed_paths = load_processed_paths(results_path)
 
     paper_paths = collect_input_files(single_file, input_dirs)
+    if num_shards > 1:
+        paper_paths = [
+            path
+            for idx, path in enumerate(paper_paths)
+            if idx % num_shards == shard_index
+        ]
     if limit and limit > 0:
         paper_paths = paper_paths[:limit]
 
     logger.info("Processing %d papers", len(paper_paths))
+    if num_shards > 1:
+        logger.info("Shard %d/%d", shard_index + 1, num_shards)
     if processed_paths:
         logger.info("Skipping %d already-processed papers", len(processed_paths))
 
