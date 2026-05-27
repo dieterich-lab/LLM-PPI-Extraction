@@ -33,6 +33,15 @@ def load_pickle_objects(path, as_set=False):
                         result.append(obj)
                 except EOFError:
                     break
+                except (pickle.UnpicklingError, UnicodeDecodeError, ValueError) as exc:
+                    print(f"WARNING: Corrupted pickle cache detected at {path}: {exc}")
+                    print("Resetting cache file and rebuilding...")
+                    f.close()
+                    try:
+                        os.remove(path)
+                    except OSError:
+                        pass
+                    return set() if as_set else []
     except FileNotFoundError:
         pass
     return result
@@ -137,18 +146,18 @@ def get_config():
     elif args.data == "regulatomepapers":
         _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
     elif args.data == "cardio":
-        if args.target == "ppi":
-            _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/CardioPrior/ppi")
-        elif args.target == "tf":
-            _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/CardioPrior/tf")
+        _paper_paths = Path("/beegfs/prj/LINDA_LLM/Cardiac_Manuscripts_test10")
     elif args.data == "5curated":
         _paper_paths = Path(
             f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
         )
-    # ending_dict = {"marker": "md", "llama_parse": "txt", "pymupdf4llm": "md"}
-    # ending = ending_dict[args.parser] if args.data != "regulatomepapers" else "md"
-    # paper_paths = list(_paper_paths.glob(f"*.{ending}"))
-    paper_paths = list(_paper_paths.glob("*.txt"))
+    override_path = os.environ.get("LINDA_LLM_PAPER_PATH_OVERRIDE")
+    if override_path:
+        _paper_paths = Path(override_path)
+
+    txt_paths = list(_paper_paths.glob("*.txt"))
+    md_paths = list(_paper_paths.glob("*.md"))
+    paper_paths = sorted(set(txt_paths + md_paths))
     return all_ne_paths, true_ne_paths, spacy_ne_paths, paper_paths
 
 

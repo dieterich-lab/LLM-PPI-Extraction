@@ -83,9 +83,18 @@ def main():
     elif args.startfromdoc > 0:
         docs_to_process = texts[args.startfromdoc :]
 
+    if args.num_shards > 1:
+        docs_to_process = [
+            doc
+            for idx, doc in enumerate(docs_to_process)
+            if idx % args.num_shards == args.shard_index
+        ]
+
     print(
         f"Processing documents {args.startfromdoc} to {args.untildoc if args.untildoc > 0 else len(texts)} (total: {len(docs_to_process)})"
     )
+    if args.num_shards > 1:
+        print(f"Shard {args.shard_index + 1}/{args.num_shards}")
 
     for i, doc in enumerate(docs_to_process, start=args.startfromdoc):
         file_path = doc[0].metadata["file_path"]
@@ -103,6 +112,11 @@ def main():
         _prompts = prompts.copy()
         print(f"Doc {i}")
         text = doc[0].page_content
+        # Truncate based on environment variable (default 60k)
+        MAX_CHARS = int(os.environ.get("MAX_CHARS", "60000"))
+        if len(text) > MAX_CHARS:
+            print(f"  Truncating text from {len(text)} to {MAX_CHARS} chars")
+            text = text[:MAX_CHARS]
         messages = list()
         message = Message(role="assistant", content=rel_system_prompt)
         messages.append(message)

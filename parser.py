@@ -38,6 +38,7 @@ parser.add_argument(
     type=str,
     choices=[
         "cardio",
+        "cardiac",
         "5curated",
         "eval",
         "biored",
@@ -106,7 +107,7 @@ parser.add_argument(
 parser.add_argument(
     "--node",
     type=str,
-    choices=["g2", "g3", "g4", "g5", "mk22d"],
+    choices=["g2", "g3", "g4", "g5", "mk22d", "local"],
     default="g4",
     help="Node alias that defines the ip where the Ollama server is running (see 'llm.py').",
 )
@@ -179,6 +180,18 @@ parser.add_argument(
     help="To only parse untnil the nth document/chunk.",
 )
 parser.add_argument(
+    "--num-shards",
+    type=int,
+    default=1,
+    help="Total number of deterministic shards to split documents into.",
+)
+parser.add_argument(
+    "--shard-index",
+    type=int,
+    default=0,
+    help="Zero-based shard index to process (must be < num-shards).",
+)
+parser.add_argument(
     "--printpaperpaths",
     action="store_true",
     help="Debugging option to print the paper paths while processing.",
@@ -234,6 +247,14 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
+if args.data == "cardiac":
+    args.data = "cardio"
+
+if args.num_shards < 1:
+    parser.error("--num-shards must be >= 1")
+if args.shard_index < 0 or args.shard_index >= args.num_shards:
+    parser.error("--shard-index must be in [0, num-shards)")
 
 # Force extractionmode to nerrel when chattype is lookup or when lookup is enabled
 if (

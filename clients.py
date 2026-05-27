@@ -8,6 +8,7 @@ ip_dict = {
     "g3": "10.250.135.150",
     "g5": "10.250.135.156",
     "mk22d": "10.250.135.115",
+    "local": "127.0.0.1",
 }
 
 ollama_client_names = [
@@ -55,21 +56,21 @@ hf_client_names = {
 model = ollama_client_dict[args.model]
 hf_model_id = hf_client_names.get(args.model)
 
-port_dict = {"g2": 32, "g3": 33, "g4": 34, "g5": 35}
+port_dict = {"g2": 32, "g3": 33, "g4": 34, "g5": 35, "local": 34}
 if not args.port:
     port = port_dict[args.node]
 else:
     port = args.port
 
 clients = list()
-for name, client in ollama_client_names:
+for name, client_model in ollama_client_names:
     clients.append(
         {
             "name": name,
             "provider": "openai-generic",  # ollama is finally openai capable (https://ollama.com/blog/openai-compatibility)
             "options": {
                 "base_url": f"http://{ip_dict[args.node]}:114{port}/v1",
-                "model": client,
+                "model": client_model,
                 "max_tokens": 10000,
                 "temperature": 0.0,
                 "n_ctx": 120_000,  # should be overruled by OLLAMA_CONTEXT_LENGTH (https://github.com/ollama/ollama/blob/main/docs/faq.md)
@@ -78,6 +79,6 @@ for name, client in ollama_client_names:
     )
 
 cr = ClientRegistry()
-for client in clients:
-    cr.add_llm_client(**client)
+for client_config in clients:
+    cr.add_llm_client(**client_config)
 cr.set_primary(args.model)
