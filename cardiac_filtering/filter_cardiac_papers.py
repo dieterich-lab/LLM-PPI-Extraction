@@ -60,7 +60,7 @@ OLLAMA_CLIENTS: List[Tuple[str, str]] = [
     ("deepseek70b", "deepseek-r1-128k:70b"),
     ("gemma", "gemma3:27b"),
     ("llama33regu", "llama3.3:70b-regu_Q4_K_M"),
-    ("llama31regu", "llama3.1:8b-regu_Q4_K_M"),
+    ("llama31regu", "llama31regu-ollama"),
     ("llama33regutf", "llama3.3-70b-regu_tf"),
     ("llama31regutf", "llama3.1-8b-regu_tf"),
     ("qwen3", "qwen3:8b"),

@@ -134,6 +134,17 @@ def build_messages(
         first_prompt = prompts_copy.pop(0)
         messages.append({"role": "user", "content": first_prompt})
 
+    messages.append(
+        {
+            "role": "user",
+            "content": (
+                "Return ONLY strict JSON with this exact schema and no markdown/no extra keys: "
+                '{"triples":[{"head":"...","relation":"INTERACTS_WITH","tail":"...","confidence":"high|low"}]}. '
+                'If none exist, return {"triples":[]}. '
+                "Do not include explanations or copied source text."
+            ),
+        }
+    )
     messages.append({"role": "user", "content": f"\n\nTEXT: {text}"})
 
     if extraction_mode == "nerrel" and prompts_copy:
@@ -220,7 +231,7 @@ def main() -> None:
     with output_path.open("w") as out_f:
         for idx, file_path in enumerate(files):
             text = file_path.read_text(errors="ignore")
-            if len(text) > args.max_chars:
+            if args.max_chars > 0 and len(text) > args.max_chars:
                 text = text[: args.max_chars]
 
             messages = build_messages(
