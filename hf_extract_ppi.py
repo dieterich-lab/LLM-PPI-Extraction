@@ -6,13 +6,12 @@ It is intended as a pragmatic fallback when Ollama model artifacts are unavailab
 """
 
 import argparse
+import importlib
 import json
 import re
+import sys
 from pathlib import Path
-from typing import Dict, List
-
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from typing import Dict, List, Tuple
 
 MODEL_ALIAS_TO_PATH = {
     "llama31regu": "/prj/LINDA_LLM/outputs/finetunedmodels/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit_regulatome_ppi_merged_16bit",
@@ -20,21 +19,6 @@ MODEL_ALIAS_TO_PATH = {
     "llama33regu": "/prj/LINDA_LLM/outputs/finetunedmodels/unsloth/Llama-3.3-70B-Instruct-bnb-4bit_regulatome",
     "llama33regutf": "/prj/LINDA_LLM/outputs/finetunedmodels/unsloth/Llama-3.3-70B-Instruct-bnb-4bit_regulatome_tf_merged_16bit",
 }
-
-
-SYSTEM_PROMPT = (
-    "You are an expert molecular biologist. "
-    "Extract only direct protein-protein interactions from the provided text. "
-    "Return strict JSON only with this schema: "
-    '{"triples":[{"head":"...","relation":"INTERACTS_WITH","tail":"...","confidence":"high|low"}]}. '
-    'If none are present, return {"triples":[]}.'
-)
-
-USER_PROMPT_TEMPLATE = (
-    "TASK: Extract direct protein-protein interactions only. "
-    "Exclude co-expression, co-localization, and indirect regulation.\n\n"
-    "TEXT:\n{text}\n"
-)
 
 
 def parse_args() -> argparse.Namespace:
@@ -50,14 +34,113 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--start", type=int, default=0)
     parser.add_argument("--limit", type=int, default=1)
     parser.add_argument("--max-new-tokens", type=int, default=768)
+    parser.add_argument("--target", choices=["ppi", "tf", "ppitf"], default="ppi")
+    parser.add_argument(
+        "--extractionmode", choices=["direct", "nerrel"], default="direct"
+    )
+    parser.add_argument(
+        "--chattype", choices=["oneshot", "stepwise"], default="oneshot"
+    )
+    parser.add_argument(
+        "--data",
+        choices=[
+            "cardio",
+            "cardiac",
+            "regulatome",
+            "5curated",
+            "eval",
+            "biored",
+            "regulatomepapers",
+        ],
+        default="cardio",
+    )
+    parser.add_argument("--noconfidence", action="store_true")
+    parser.add_argument("--force-cot", action="store_true")
+    parser.add_argument("--recall", action="store_true")
+    parser.add_argument("--examples", choices=["neg", "pos", "negpos"])
+    parser.add_argument("--all-nes-given", action="store_true")
+    parser.add_argument("--true-nes-given", action="store_true")
+    parser.add_argument("--spacy-nes-given", action="store_true")
+    parser.add_argument("--lookup", action="store_true")
+    parser.add_argument("--dynex-k", type=int, default=0)
     return parser.parse_args()
 
 
-def build_messages(text: str) -> List[Dict[str, str]]:
-    return [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": USER_PROMPT_TEMPLATE.format(text=text)},
+def load_ollama_prompts(args: argparse.Namespace) -> Tuple[str, List[str]]:
+    """Load rel_system_prompt and prompts from prompts.py using parser-compatible args."""
+    original_argv = sys.argv[:]
+    parser_argv = [
+        "hf_prompt_bootstrap",
+        "--model",
+        args.model,
+        "--target",
+        args.target,
+        "--extractionmode",
+        args.extractionmode,
+        "--chattype",
+        args.chattype,
+        "--data",
+        args.data,
     ]
+
+    if args.noconfidence:
+        parser_argv.append("--noconfidence")
+    if args.force_cot:
+        parser_argv.append("--force_cot")
+    if args.recall:
+        parser_argv.append("--recall")
+    if args.examples:
+        parser_argv.extend(["--examples", args.examples])
+    if args.all_nes_given:
+        parser_argv.append("--all_nes_given")
+    if args.true_nes_given:
+        parser_argv.append("--true_nes_given")
+    if args.spacy_nes_given:
+        parser_argv.append("--spacy_nes_given")
+    if args.lookup:
+        parser_argv.append("--lookup")
+    if args.dynex_k > 0:
+        parser_argv.extend(["--dynex_k", str(args.dynex_k)])
+
+    for module_name in ["prompts", "parser"]:
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+
+    try:
+        sys.argv = parser_argv
+        prompts_module = importlib.import_module("prompts")
+        rel_system_prompt = str(prompts_module.rel_system_prompt)
+        prompt_list = list(prompts_module.prompts)
+    finally:
+        sys.argv = original_argv
+
+    return rel_system_prompt, prompt_list
+
+
+def build_messages(
+    text: str,
+    rel_system_prompt: str,
+    prompt_list: List[str],
+    extraction_mode: str,
+    spacy_nes_given: bool,
+) -> List[Dict[str, str]]:
+    """Mirror the oneshot/direct and nerrel prompt/message sequencing from extract.py."""
+    prompts_copy = prompt_list.copy()
+
+    messages: List[Dict[str, str]] = []
+    messages.append({"role": "assistant", "content": rel_system_prompt})
+
+    if not spacy_nes_given and prompts_copy:
+        first_prompt = prompts_copy.pop(0)
+        messages.append({"role": "user", "content": first_prompt})
+
+    messages.append({"role": "user", "content": f"\n\nTEXT: {text}"})
+
+    if extraction_mode == "nerrel" and prompts_copy:
+        first_rel_prompt = prompts_copy.pop(0)
+        messages.append({"role": "user", "content": first_rel_prompt})
+
+    return messages
 
 
 def find_json_object(raw: str) -> Dict:
@@ -101,7 +184,11 @@ def find_json_object(raw: str) -> Dict:
 
 
 def main() -> None:
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
     args = parse_args()
+    rel_system_prompt, prompt_list = load_ollama_prompts(args)
 
     model_path = Path(MODEL_ALIAS_TO_PATH[args.model])
     if not model_path.exists():
@@ -116,6 +203,9 @@ def main() -> None:
         return
 
     print(f"Loading model: {args.model} -> {model_path}")
+    print(
+        f"Prompt source: prompts.py ({args.target}/{args.extractionmode}/{args.chattype})"
+    )
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
@@ -133,7 +223,13 @@ def main() -> None:
             if len(text) > args.max_chars:
                 text = text[: args.max_chars]
 
-            messages = build_messages(text)
+            messages = build_messages(
+                text,
+                rel_system_prompt,
+                prompt_list,
+                args.extractionmode,
+                args.spacy_nes_given,
+            )
             prompt = tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
