@@ -146,7 +146,7 @@ def get_config():
     elif args.data == "regulatomepapers":
         _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
     elif args.data == "cardio":
-        _paper_paths = Path("/beegfs/prj/LINDA_LLM/Cardiac_Manuscripts_test10")
+        _paper_paths = Path("/beegfs/prj/LINDA_LLM/Cardiac_Manuscripts")
     elif args.data == "5curated":
         _paper_paths = Path(
             f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"

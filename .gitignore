@@ -13,6 +13,8 @@ run_baml.py
 baml_client/
 __pycache__/
 slurm/
+!slurm/
+!slurm/*.sh
 _*
 _*/
 *.cpython*
