@@ -173,10 +173,14 @@ def extract_rels(
     """Standard single-pass extraction"""
     if examples_content:
         messages[-1].content += f"\n{examples_content}"
-    response = b.GeneralChatExtractRelationships(
-        messages,
-        baml_options={"client_registry": cr, "tb": tb, "collector": collector},
-    )
+    try:
+        response = b.GeneralChatExtractRelationships(
+            messages,
+            baml_options={"client_registry": cr, "tb": tb, "collector": collector},
+        )
+    except Exception as e:
+        print(f"Exception at initial extraction: {e}")
+        response = Triples(triples=[])
     responses.append(response)
     messages.append(Message(role="assistant", content=str(response)))
     for i, prompt in enumerate(prompts):
@@ -219,15 +223,21 @@ def extract_rels_ensemble(
         # First extraction step for this model version
         if examples_content:
             model_messages[-1].content += f"\n{examples_content}"
-        response = b.GeneralChatExtractRelationships(
-            model_messages,
-            baml_options={
-                "client_registry": cr,
-                "tb": tb,
-                "collector": collector,
-                "temperature": temperature,
-            },
-        )
+        try:
+            response = b.GeneralChatExtractRelationships(
+                model_messages,
+                baml_options={
+                    "client_registry": cr,
+                    "tb": tb,
+                    "collector": collector,
+                    "temperature": temperature,
+                },
+            )
+        except Exception as e:
+            print(
+                f"      Exception at initial step in model version {sample_idx + 1}: {e}"
+            )
+            response = Triples(triples=[])
         model_responses.append(response)
         model_messages.append(Message(role="assistant", content=str(response)))
 
@@ -310,10 +320,14 @@ def extract_rels_tot(
     # First extraction step
     if examples_content:
         messages[-1].content += f"\n{examples_content}"
-    response = b.GeneralChatExtractRelationships(
-        messages,
-        baml_options={"client_registry": cr, "tb": tb, "collector": collector},
-    )
+    try:
+        response = b.GeneralChatExtractRelationships(
+            messages,
+            baml_options={"client_registry": cr, "tb": tb, "collector": collector},
+        )
+    except Exception as e:
+        print(f"Exception at initial ToT extraction: {e}")
+        response = Triples(triples=[])
     responses.append(response)
     messages.append(Message(role="assistant", content=str(response)))
 

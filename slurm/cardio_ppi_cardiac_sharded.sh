@@ -10,7 +10,19 @@
 
 set -euo pipefail
 
-cd ../
+WORKDIR="${SLURM_SUBMIT_DIR:-}"
+if [[ -z "$WORKDIR" || ! -f "$WORKDIR/scripts/extract.py" ]]; then
+  if [[ -f "/prj/LINDA_LLM/scripts/extract.py" ]]; then
+    WORKDIR="/prj/LINDA_LLM"
+  elif [[ -f "/beegfs/prj/LINDA_LLM/scripts/extract.py" ]]; then
+    WORKDIR="/beegfs/prj/LINDA_LLM"
+  else
+    echo "ERROR: Could not locate project root containing scripts/extract.py"
+    exit 1
+  fi
+fi
+
+cd "$WORKDIR/scripts"
 . ~/.venvs/test_linda/bin/activate
 
 MODEL="${MODEL:-llama33}"
