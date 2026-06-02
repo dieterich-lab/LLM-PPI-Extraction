@@ -221,7 +221,7 @@ parser.add_argument(
 parser.add_argument(
     "--examples",
     choices=["neg", "pos", "negpos"],
-    help="Not yet implemented. Option for future experiments without giving examples to the model (exemplifying zero-shot inference.)",
+    help="Inject fixed in-context examples into prompts: pos, neg, or both (negpos).",
 )
 parser.add_argument(
     "--apikey",
