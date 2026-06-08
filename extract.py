@@ -112,11 +112,13 @@ def main():
         _prompts = prompts.copy()
         print(f"Doc {i}")
         text = doc[0].page_content
-        # Truncate based on environment variable (default 60k)
-        MAX_CHARS = int(os.environ.get("MAX_CHARS", "60000"))
-        if len(text) > MAX_CHARS:
-            print(f"  Truncating text from {len(text)} to {MAX_CHARS} chars")
-            text = text[:MAX_CHARS]
+        # Optional truncation: only active when MAX_CHARS is explicitly set.
+        max_chars_env = os.environ.get("MAX_CHARS")
+        if max_chars_env:
+            max_chars = int(max_chars_env)
+            if max_chars > 0 and len(text) > max_chars:
+                print(f"  Truncating text from {len(text)} to {max_chars} chars")
+                text = text[:max_chars]
         messages = list()
         message = Message(role="assistant", content=rel_system_prompt)
         messages.append(message)
