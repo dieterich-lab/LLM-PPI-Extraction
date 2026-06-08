@@ -9,6 +9,10 @@
 
 set -euo pipefail
 
+# Ensure historical Ollama version for reproducibility.
+module unload ollama || true
+module load ollama/0.11.8
+
 WORKDIR="${SLURM_SUBMIT_DIR:-}"
 if [[ -z "$WORKDIR" || ! -f "$WORKDIR/scripts/extract.py" ]]; then
   if [[ -f "/prj/LINDA_LLM/scripts/extract.py" ]]; then
