@@ -18,7 +18,7 @@ client<llm> Llama33 {
   options {
     base_url "http://10.250.135.153:11434/v1"
     model llama3.3-128k:70b
-    max_tokens 10000
+    max_tokens 80000
     temperature 0.0
   }
 }
@@ -28,7 +28,7 @@ client<llm> Llama38b {
   options {
     base_url "http://10.250.135.153:11434/v1"
     model llama3.1-128k:8b
-    max_tokens 10000
+    max_tokens 80000
     temperature 0.0
     num_ctx 128000
   }
@@ -39,7 +39,7 @@ client<llm> Deepseek8b {
   options {
     base_url "http://10.250.135.153:11434/v1"
     model deepseek-r1-128k:8b
-    max_tokens 10000
+    max_tokens 80000
     temperature 0.0
   }
 }
@@ -49,7 +49,7 @@ client<llm> Deepseek70b {
   options {
     base_url "http://10.250.135.153:11434/v1"
     model deepseek-r1-128k:70b
-    max_tokens 10000
+    max_tokens 80000
     temperature 0.0
   }
 }

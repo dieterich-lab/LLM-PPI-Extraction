@@ -71,7 +71,7 @@ for name, client_model in ollama_client_names:
             "options": {
                 "base_url": f"http://{ip_dict[args.node]}:114{port}/v1",
                 "model": client_model,
-                "max_tokens": 10000,
+                "max_tokens": 80000,
                 "temperature": 0.0,
                 "n_ctx": 120_000,  # should be overruled by OLLAMA_CONTEXT_LENGTH (https://github.com/ollama/ollama/blob/main/docs/faq.md)
             },
