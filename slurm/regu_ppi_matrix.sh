@@ -18,9 +18,6 @@
 
 set -euo pipefail
 
-module unload ollama || true
-module load ollama/0.11.8
-
 OLLAMA_PORT="11434"
 OLLAMA_LOG_DIR="/beegfs/prj/LINDA_LLM/outputs/slurm"
 mkdir -p "$OLLAMA_LOG_DIR"
