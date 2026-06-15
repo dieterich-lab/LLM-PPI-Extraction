@@ -28,7 +28,7 @@ if [[ ! -f "$WORKDIR/extract.py" ]]; then
   exit 1
 fi
 
-RUN_TAG="20260610_${SLURM_JOB_ID:-local}"
+RUN_TAG="20260615_${SLURM_JOB_ID:-local}"
 
 cleanup() {
   if [[ -n "${OLLAMA_PID:-}" ]] && kill -0 "$OLLAMA_PID" >/dev/null 2>&1; then
@@ -70,7 +70,7 @@ fi
 echo "Ollama ready on port ${OLLAMA_PORT}"
 
 # Common flags for all runs
-COMMON="--model llama33 --node local --port 37 --chattype oneshot --data regulatome --target ppi --doclevel docs --loglevel info --force_new"
+COMMON="--model llama33 --node local --port 37 --chattype oneshot --data regulatome --target ppi --doclevel docs --loglevel info --force_new --full_corpus"
 
 run() {
   local label="$1"; shift

@@ -178,7 +178,11 @@ def get_texts():
                 x for x in paper_paths if align_dict.get(x.stem) in test_data
             ]
         elif args.data == "regulatome":
-            test_paper_paths = [x for x in paper_paths if x.stem in test_data]
+            if args.full_corpus:
+                all_stems = {x["file_stem"] for x in eval_data}
+                test_paper_paths = [x for x in paper_paths if x.stem in all_stems]
+            else:
+                test_paper_paths = [x for x in paper_paths if x.stem in test_data]
     else:
         test_paper_paths = paper_paths
 

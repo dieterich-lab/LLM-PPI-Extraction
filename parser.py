@@ -15,7 +15,7 @@ parser.add_argument(
         "qwen330",
         "qwen332",
     ],
-    default="llama31",
+    default="llama33",
     help="Alias pointing back to model names of the local Ollama server or the provider.",
 )
 parser.add_argument(
@@ -93,12 +93,17 @@ parser.add_argument(
 parser.add_argument(
     "--noconfidence",
     action="store_true",
-    # default="true",
+    default=True,
 )
 parser.add_argument(
     "--force_new",
     action="store_true",
     help="If set, the script will overwrite existing extraction files.",
+)
+parser.add_argument(
+    "--full_corpus",
+    action="store_true",
+    help="For regulatome: use all corpus documents (train+dev+test) instead of only the test split.",
 )
 parser.add_argument(
     "--force_cot",
