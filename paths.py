@@ -18,10 +18,10 @@ PROJECT_ROOT = _env_path("LINDA_LLM_PROJECT_ROOT", Path(__file__).resolve().pare
 OUTPUT_ROOT = _env_path("LINDA_LLM_OUTPUT_ROOT", PROJECT_ROOT / "outputs")
 TRIPLES_ROOT = _env_path("LINDA_LLM_TRIPLES_ROOT", OUTPUT_ROOT / "triples")
 REGULATOME_ROOT = _env_path(
-    "LINDA_LLM_REGULATOME_ROOT", PROJECT_ROOT.parent / "RegulaTome"
+    "LINDA_LLM_REGULATOME_ROOT", PROJECT_ROOT / "RegulaTome"
 )
 RESOURCES_ROOT = _env_path(
-    "LINDA_LLM_RESOURCES_ROOT", PROJECT_ROOT.parent / "resources"
+    "LINDA_LLM_RESOURCES_ROOT", PROJECT_ROOT / "resources"
 )
 
 
