@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-OLLAMA_PORT="11434"
+OLLAMA_PORT="11437"
 OLLAMA_LOG_DIR="/beegfs/prj/LINDA_LLM/outputs/slurm"
 mkdir -p "$OLLAMA_LOG_DIR"
 
@@ -70,7 +70,7 @@ fi
 echo "Ollama ready on port ${OLLAMA_PORT}"
 
 # Common flags for all runs
-COMMON="--model llama33 --node local --port 34 --chattype oneshot --data regulatome --target ppi --doclevel docs --loglevel info --force_new"
+COMMON="--model llama33 --node local --port 37 --chattype oneshot --data regulatome --target ppi --doclevel docs --loglevel info --force_new"
 
 run() {
   local label="$1"; shift
