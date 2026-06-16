@@ -13,6 +13,7 @@ ip_dict = {
     "g3": "10.250.135.150",
     "g5": "10.250.135.156",
     "mk22d": "10.250.135.115",
+    "local": "127.0.0.1",
 }
 
 dim = 1024  # ?
@@ -21,8 +22,11 @@ index_path = f"/prj/LINDA_LLM/outputs/vectorstore/regulatome_{args.target}_idx.b
 embeddings_path = index_path.replace("_idx.bin", "_embeds.npy")
 
 embed_model = "mxbai-embed-large"
-port_dict = {"g2": 32, "g3": 33, "g4": 34, "g5": 35}
-port = port_dict[args.node]
+port_dict = {"g2": 32, "g3": 33, "g4": 34, "g5": 35, "local": 34}
+if not args.port:
+    port = port_dict[args.node]
+else:
+    port = args.port
 
 client = Client(
     host=f"http://{ip_dict[args.node]}:114{port}",

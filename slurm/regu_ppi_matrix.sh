@@ -82,10 +82,12 @@ run() {
 }
 
 # ── DIRECT extractions (7 runs) ───────────────────────────────────────────────
-run "direct_normal"    --extractionmode direct
-run "direct_neg"       --extractionmode direct --examples neg
-run "direct_pos"       --extractionmode direct --examples pos
-run "direct_negpos"    --extractionmode direct --examples negpos
+# Already completed in job 660834 (re-run resumes from direct_dynex3, which
+# failed there due to an embed.py bug — fixed since):
+# run "direct_normal"    --extractionmode direct
+# run "direct_neg"       --extractionmode direct --examples neg
+# run "direct_pos"       --extractionmode direct --examples pos
+# run "direct_negpos"    --extractionmode direct --examples negpos
 run "direct_dynex3"    --extractionmode direct --dynex_k 3
 # NOTE: direct+lookup is auto-upgraded to nerrel by the parser → covered below
 run "direct_ensemble5" --extractionmode direct --ensemble 5
