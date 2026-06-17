@@ -9,23 +9,34 @@ from paths import (
     regulatome_ppi_eval_path,
     regulatome_tf_eval_path,
     triple_json_path,
+    triple_jsonl_path,
 )
 
 os.environ["BAML_LOG"] = args.loglevel  # isort:skip
 from baml.baml_client.sync_client import b  # isort:skip
 from clients import cr
-from dataset import get_dataset
 
-print(f"Getting triples from {triple_json_path.parent}")
-with open(triple_json_path, "r") as f:
-    all_triples = json.load(f)
+if triple_json_path.exists():
+    print(f"Getting triples from {triple_json_path}")
+    with open(triple_json_path, "r") as f:
+        all_triples = json.load(f)
+    # old format: {"triples": [[...], ...], ...}
+    def _get_triples(data):
+        return data["triples"][0]
+else:
+    print(f"Getting triples from {triple_jsonl_path}")
+    with open(triple_jsonl_path, "r") as f:
+        all_triples = [json.loads(line) for line in f if line.strip()]
+    # new format: {"responses": [[...]], "text": ..., "filename": ...}
+    def _get_triples(data):
+        return data["responses"][0]
 
 d = dict()
 
 print(len(all_triples))
 
 for i, data in enumerate(all_triples):
-    triples = data["triples"][0]
+    triples = _get_triples(data)
     print(i, triples)
     for triple in triples:
         if triple["head"] not in d:
