@@ -3,7 +3,6 @@ import os
 from parser import args
 from pathlib import Path
 
-from documents import all_docs
 from paths import (
     finetune_data_path,
     regulatome_ppi_eval_path,
