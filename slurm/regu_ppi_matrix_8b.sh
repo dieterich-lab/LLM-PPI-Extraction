@@ -6,19 +6,19 @@
 # = 16 combinations, but direct+lookup is auto-upgraded to nerrel by the parser
 #   (see parser.py), so it is identical to nerrel+lookup → skipped (15 runs total).
 #
-# Fixed params: --model llama33 --chattype oneshot --data regulatome --target ppi --doclevel docs
+# Fixed params: --model llama31 --chattype oneshot --data regulatome --target ppi --doclevel docs
 # --noconfidence is default=True in the current parser.
 
-#SBATCH --job-name=regu_ppi_matrix
-#SBATCH --output=/beegfs/prj/LINDA_LLM/outputs/slurm/regu_ppi_matrix_%j.log
+#SBATCH --job-name=regu_ppi_matrix_8b
+#SBATCH --output=/beegfs/prj/LINDA_LLM/outputs/slurm/regu_ppi_matrix_8b_%j.log
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:hopper:1
-#SBATCH --nodelist=gpu-g5-1
+#SBATCH --gres=gpu:ampere:1
+#SBATCH --nodelist=gpu-g4-1
 #SBATCH --mem=60G
 
 set -euo pipefail
 
-OLLAMA_PORT="11437"
+OLLAMA_PORT="11438"
 OLLAMA_LOG_DIR="/beegfs/prj/LINDA_LLM/outputs/slurm"
 mkdir -p "$OLLAMA_LOG_DIR"
 
@@ -59,7 +59,7 @@ export OLLAMA_CONTEXT_LENGTH=80000
 export OLLAMA_DEBUG=1
 unset MAX_CHARS
 
-OLLAMA_LOG="${OLLAMA_LOG_DIR}/ollama_regu_ppi_matrix_${SLURM_JOB_ID:-local}.log"
+OLLAMA_LOG="${OLLAMA_LOG_DIR}/ollama_regu_ppi_matrix_8b_${SLURM_JOB_ID:-local}.log"
 ollama serve > "$OLLAMA_LOG" 2>&1 &
 OLLAMA_PID=$!
 
@@ -70,7 +70,7 @@ fi
 echo "Ollama ready on port ${OLLAMA_PORT}"
 
 # Common flags for all runs
-COMMON="--model llama33 --node local --port 37 --chattype oneshot --data regulatome --target ppi --doclevel docs --loglevel info --force_new --full_corpus"
+COMMON="--model llama31 --node local --port 38 --chattype oneshot --data regulatome --target ppi --doclevel docs --loglevel info --force_new --full_corpus"
 
 run() {
   local label="$1"; shift
@@ -82,13 +82,11 @@ run() {
 }
 
 # ── DIRECT extractions (7 runs) ───────────────────────────────────────────────
-# Already completed in job 660834 (re-run resumes from direct_dynex3, which
-# failed there due to an embed.py bug — fixed since):
-# run "direct_normal"    --extractionmode direct
-# run "direct_neg"       --extractionmode direct --examples neg
-# run "direct_pos"       --extractionmode direct --examples pos
-# run "direct_negpos"    --extractionmode direct --examples negpos
-# run "direct_dynex3"    --extractionmode direct --dynex_k 3
+run "direct_normal"    --extractionmode direct
+run "direct_neg"       --extractionmode direct --examples neg
+run "direct_pos"       --extractionmode direct --examples pos
+run "direct_negpos"    --extractionmode direct --examples negpos
+run "direct_dynex3"    --extractionmode direct --dynex_k 3
 # NOTE: direct+lookup is auto-upgraded to nerrel by the parser → covered below
 run "direct_ensemble5" --extractionmode direct --ensemble 3
 run "direct_tot"       --extractionmode direct --tot
@@ -105,4 +103,4 @@ run "nerrel_tot"       --extractionmode nerrel --tot
 
 echo ""
 echo "All 15 runs completed. Tag: ${RUN_TAG}"
-echo "Outputs: /beegfs/prj/LINDA_LLM/outputs/triples/regulatome/ppi/llama33/"
+echo "Outputs: /beegfs/prj/LINDA_LLM/outputs/triples/regulatome/ppi/llama31/"
