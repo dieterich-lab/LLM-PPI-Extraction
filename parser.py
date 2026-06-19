@@ -142,7 +142,7 @@ parser.add_argument(
 parser.add_argument(
     "--ensemble",
     nargs="?",
-    const=5,
+    const=3,
     type=int,
     default=0,
     help="Enable self-consistency ensemble with n samples (default=5). Set to 0 to disable.",
