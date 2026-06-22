@@ -115,14 +115,20 @@ All runtime paths can be overridden via environment variables. Defaults are rela
 | `LINDA_LLM_REGULATOME_ROOT` | `{PROJECT_ROOT}/RegulaTome/` | RegulaTome corpus and annotations |
 | `LINDA_LLM_RESOURCES_ROOT` | `{PROJECT_ROOT}/resources/` | Shared resources (UniProt tables, etc.) |
 
-Export these before running, or place them in a `.env` file and source it:
+Copy `.env.example` to `.env` and fill in your paths — `paths.py` loads it automatically via `python-dotenv`:
+
+```bash
+cp .env.example .env
+# edit .env with your actual paths
+```
+
+Alternatively, export variables in your shell before running:
 
 ```bash
 export LINDA_LLM_REGULATOME_ROOT=/data/RegulaTome
-source .env
 ```
 
-`paths.py` reads these at import time and creates any missing output directories automatically.
+`paths.py` reads both `.env` and shell environment at import time and creates any missing output directories automatically.
 
 ---
 

@@ -3,6 +3,9 @@ from parser import args
 from pathlib import Path
 
 from clients import hf_model_id
+from dotenv import load_dotenv
+
+load_dotenv()  # load .env from cwd or any parent directory
 
 
 def _env_path(env_key: str, default: Path) -> Path:
