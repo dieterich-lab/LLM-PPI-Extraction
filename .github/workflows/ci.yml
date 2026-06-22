@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  validate:
+    name: Validate project metadata and structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pipx install poetry==2.1.3
+
+      - name: Check pyproject.toml is consistent with lock file
+        run: poetry check
+
+      - name: Verify BAML client is present (required for import)
+        run: |
+          test -f baml/baml_client/sync_client.py || \
+            (echo "ERROR: baml/baml_client/ missing — run 'poetry run baml-cli generate'" && exit 1)
+
+      - name: Python syntax check (core modules)
+        run: |
+          python -m py_compile \
+            extract.py parser.py clients.py paths.py prompts.py \
+            extraction_utils.py rag_utils.py embed.py synonyms.py \
+            ppi_lookup.py dataset.py documents.py brat_utils.py
+          echo "Syntax OK"
