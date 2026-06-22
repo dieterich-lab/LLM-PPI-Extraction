@@ -10,7 +10,7 @@ llama.cpp/
 *unsloth*/
 run_baml.py
 *.sh
-baml_client/
+/baml_client/
 __pycache__/
 slurm/
 _*
