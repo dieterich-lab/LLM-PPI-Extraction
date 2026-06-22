@@ -2,8 +2,8 @@
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,linux,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,linux,python
 
+cardiac_filtering/
 models/
-phiwi/
 llama.cpp/
 *llama*cpp*/
 .gitignore
@@ -13,8 +13,6 @@ run_baml.py
 baml_client/
 __pycache__/
 slurm/
-!slurm/
-!slurm/*.sh
 _*
 _*/
 *.cpython*
