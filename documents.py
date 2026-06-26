@@ -3,6 +3,7 @@ import csv
 # Utility functions
 import os
 import pickle
+import time
 from parser import args
 from pathlib import Path
 
@@ -10,6 +11,12 @@ from langchain_core.documents.base import Document
 from langchain_text_splitters import MarkdownTextSplitter
 
 from paths import regulatome_ppi_eval_path, regulatome_tf_eval_path
+
+
+def _cache_data_name() -> str:
+    """Normalize data name for cache paths (cardiac -> cardio)."""
+    return "cardio" if args.data == "cardiac" else args.data
+
 
 text_splitter = MarkdownTextSplitter(
     chunk_size=args.chunksize,
@@ -72,28 +79,75 @@ def load_align_dict(csv_path):
     return align_dict
 
 
-def write_documents(
-    chunk_pkl_path, paper_pkl_path, test_paper_paths, chunk_file_paths, paper_file_paths
-):
-    """Write chunked and full documents to pickle files if not already present."""
-    if args.force_new:
-        with (
-            open(chunk_pkl_path, "wb") as chunk_file,
-            open(paper_pkl_path, "wb") as doc_file,
-        ):
-            pass
-    with (
-        open(chunk_pkl_path, "ab+") as chunk_file,
-        open(paper_pkl_path, "ab+") as doc_file,
-    ):
-        for i, test_paper_path in enumerate(test_paper_paths):
-            if not args.force_new and (
-                str(test_paper_path) in paper_file_paths
-                and str(test_paper_path) in chunk_file_paths
-            ):
-                continue
-            text = open(test_paper_path, "r").read().strip()
-            if text:
+def write_documents(chunk_pkl_path, paper_pkl_path, test_paper_paths):
+    """Write chunked and full documents to pickle files with file locking.
+
+    Uses a lock file to prevent concurrent writes from multiple processes.
+    Waits up to LINDA_CACHE_LOCK_TIMEOUT seconds (default 600) for the lock.
+    """
+    LOCK_TIMEOUT = int(os.environ.get("LINDA_CACHE_LOCK_TIMEOUT", "600"))
+    lock_path = chunk_pkl_path.parent / ".cache.lock"
+
+    # Acquire lock with timeout
+    lock_acquired = False
+    deadline = time.monotonic() + LOCK_TIMEOUT
+    while not lock_acquired:
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            os.close(fd)
+            lock_acquired = True
+        except FileExistsError:
+            if time.monotonic() > deadline:
+                raise TimeoutError(
+                    f"Could not acquire cache lock at {lock_path} "
+                    f"within {LOCK_TIMEOUT}s. Is another process stuck?"
+                )
+            print(
+                f"Cache lock held by another process, waiting... "
+                f"({int(deadline - time.monotonic())}s remaining)"
+            )
+            time.sleep(5)
+
+    try:
+        # Re-read the sets in case another process added entries while we waited
+        current_chunk_set = load_pickle_objects(chunk_pkl_path, as_set=True)
+        current_paper_set = load_pickle_objects(paper_pkl_path, as_set=True)
+
+        pending = [
+            p
+            for p in test_paper_paths
+            if args.rebuild_cache
+            or str(p) not in current_chunk_set
+            or str(p) not in current_paper_set
+        ]
+
+        if not pending:
+            print("Cache is up to date, nothing to build.")
+            return
+
+        print(f"Building document cache: {len(pending)} new files to process...")
+
+        # Write to temp files first, then atomically rename
+        tmp_chunk = chunk_pkl_path.with_suffix(".tmp")
+        tmp_paper = paper_pkl_path.with_suffix(".tmp")
+
+        # Copy existing content if not rebuilding
+        if not args.rebuild_cache and chunk_pkl_path.exists():
+            with open(chunk_pkl_path, "rb") as src, open(tmp_chunk, "wb") as dst:
+                dst.write(src.read())
+        if not args.rebuild_cache and paper_pkl_path.exists():
+            with open(paper_pkl_path, "rb") as src, open(tmp_paper, "wb") as dst:
+                dst.write(src.read())
+
+        with open(tmp_chunk, "ab") as chunk_file, open(tmp_paper, "ab") as doc_file:
+            for i, test_paper_path in enumerate(pending):
+                try:
+                    text = open(test_paper_path, "r").read().strip()
+                except (OSError, UnicodeDecodeError) as e:
+                    print(f"  Skipping unreadable file {test_paper_path}: {e}")
+                    continue
+                if not text:
+                    continue
                 texts = text_splitter.create_documents([text])
                 doc = Document(
                     page_content=text, metadata={"file_path": test_paper_path}
@@ -102,6 +156,21 @@ def write_documents(
                     chunk.metadata = {"file_path": test_paper_path}
                     pickle.dump((chunk, i), chunk_file)
                 pickle.dump((doc, i), doc_file)
+
+            chunk_file.flush()
+            doc_file.flush()
+            os.fsync(chunk_file.fileno())
+            os.fsync(doc_file.fileno())
+
+        # Atomic rename
+        os.replace(tmp_chunk, chunk_pkl_path)
+        os.replace(tmp_paper, paper_pkl_path)
+        print(f"Cache built successfully: {len(pending)} documents indexed.")
+    finally:
+        try:
+            os.remove(lock_path)
+        except OSError:
+            pass
 
 
 def get_config():
@@ -145,8 +214,8 @@ def get_config():
             spacy_ne_paths = list(_spacy_ne_paths.glob(f"*.ann"))
     elif args.data == "regulatomepapers":
         _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
-    elif args.data == "cardio":
-        _paper_paths = Path("/beegfs/prj/LINDA_LLM/Cardiac_Manuscripts")
+    elif args.data in ("cardio", "cardiac"):
+        _paper_paths = Path("/beegfs/prj/LINDA_LLM/Cardiac_Abstracts/src")
     elif args.data == "5curated":
         _paper_paths = Path(
             f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
@@ -186,22 +255,18 @@ def get_texts():
     else:
         test_paper_paths = paper_paths
 
+    data_dir = _cache_data_name()
     chunk_pkl_path = Path(
-        f"/beegfs/prj/LINDA_LLM/outputs/docs/{args.data}/{args.target}/{args.parser}/paper_chunks_{args.chunksize}.pkl"
+        f"/beegfs/prj/LINDA_LLM/outputs/docs/{data_dir}/{args.target}/{args.parser}/paper_chunks_{args.chunksize}.pkl"
     )
     os.makedirs(chunk_pkl_path.parent, exist_ok=True)
     paper_pkl_path = chunk_pkl_path.parent / "papers.pkl"
     os.makedirs(paper_pkl_path.parent, exist_ok=True)
 
-    chunk_file_paths = load_pickle_objects(chunk_pkl_path, as_set=True)
-    paper_file_paths = load_pickle_objects(paper_pkl_path, as_set=True)
-
     write_documents(
         chunk_pkl_path,
         paper_pkl_path,
         test_paper_paths,
-        chunk_file_paths,
-        paper_file_paths,
     )
 
     test_chunks = load_pickle_objects(chunk_pkl_path)

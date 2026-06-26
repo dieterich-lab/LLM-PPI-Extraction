@@ -250,6 +250,11 @@ parser.add_argument(
     "--load",
     action="store_true",
 )
+parser.add_argument(
+    "--rebuild_cache",
+    action="store_true",
+    help="Force rebuild of the document pickle cache (independent of --force_new).",
+)
 
 args = parser.parse_args()
 
