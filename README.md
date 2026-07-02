@@ -9,6 +9,7 @@ This directory is the `llm_extractions/` component of the public [dieterich-lab/
 ## Contents
 
 - [Overview](#overview)
+- [Quick Start](#quick-start)
 - [Repository Layout](#repository-layout)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -24,10 +25,15 @@ This directory is the `llm_extractions/` component of the public [dieterich-lab/
   - [Tree of Thoughts (ToT)](#tree-of-thoughts-tot)
 - [Output Format and Directory Layout](#output-format-and-directory-layout)
 - [SLURM / HPC Usage](#slurm--hpc-usage)
+  - [Example scripts](#example-scripts-included-in-the-repository)
+  - [Sharded extraction](#sharded-extraction-multi-gpu)
+  - [Regulatome experiment matrix](#running-the-full-regulatome-ppi-experiment-matrix)
+  - [Custom experiments](#running-a-custom-single-experiment)
 - [Synonym Generation](#synonym-generation)
 - [Fine-Tuning](#fine-tuning)
 - [Datasets](#datasets)
 - [Model Hosting](#model-hosting)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -73,13 +79,42 @@ scripts/
 ├── baml/
 │   ├── baml_src/         # BAML schema files (rel.baml, names.baml, …)
 │   └── baml_client/      # Auto-generated typed Python client
-├── slurm/                # Ready-to-submit SLURM batch scripts
-│   ├── regu_ppi_matrix.sh          # Full regulatome PPI experiment matrix
-│   ├── regu_ppi_synonyms.sh        # Synonym generation run
-│   └── …
+├── slurm/                # Ready-to-submit SLURM batch scripts (examples)
+│   ├── cardio_ppi_cardiac_sharded.sh  # Sharded cardiac PPI extraction
+│   ├── cardio_ppi.sh                  # Simple cardiac PPI extraction
+│   ├── cardio_tf.sh                   # Cardiac TF extraction
+│   ├── regu_ppi_matrix.sh             # Full regulatome PPI experiment matrix
+│   ├── regu_ppi_synonyms.sh           # Synonym generation run
+│   └── finetune_llama33.sh            # LoRA fine-tuning
 ├── pyproject.toml        # Poetry dependency manifest
 └── poetry.lock
 ```
+
+---
+
+## Quick Start
+
+After installation, run your first extraction in three steps:
+
+```bash
+# 1. Start Ollama and pull the model (once)
+ollama serve &
+ollama pull llama3.3:70b
+
+# 2. Run a simple PPI extraction on the 5 curated cardiac papers
+python extract.py \
+  --model  llama33 \
+  --data   5curated \
+  --target ppi \
+  --extractionmode direct \
+  --chattype oneshot \
+  --doclevel docs
+
+# 3. Inspect the results
+cat outputs/triples/5curated/ppi/llama33/direct/oneshot/docs/triples.jsonl | python -m json.tool
+```
+
+For larger corpora (RegulaTome, cardiac abstracts), use the provided SLURM scripts in `slurm/`. See [SLURM / HPC Usage](#slurm--hpc-usage) below.
 
 ---
 
@@ -410,10 +445,47 @@ Each line in the `.jsonl` output is a self-contained JSON object:
 
 All SLURM scripts in `slurm/` follow the same structure:
 
-1. Start a local Ollama server on a dedicated port (default 11437).
+1. Start a local Ollama server on a dedicated port.
 2. Wait for the server to become ready.
 3. Run one or more `extract.py` calls sequentially.
 4. Kill the Ollama server on exit.
+
+### Example scripts (included in the repository)
+
+| Script | Purpose | Model | GPU |
+|--------|---------|-------|-----|
+| `cardio_ppi.sh` | Simple single-GPU cardiac PPI extraction | llama33 70B | 1× hopper |
+| `cardio_ppi_cardiac_sharded.sh` | **Sharded** cardiac PPI extraction (2–4 GPUs) | llama33 70B | 2–4× hopper |
+| `cardio_tf.sh` | Cardiac TF extraction | llama33 70B | 1× hopper |
+| `regu_ppi_matrix.sh` | Full RegulaTome experiment matrix (15 configs) | llama33 70B | 1× hopper |
+| `regu_ppi_synonyms.sh` | Generate protein synonym dictionary | llama33 70B | 1× hopper |
+| `finetune_llama33.sh` | LoRA fine-tuning on extraction data | llama33 70B | 1× hopper |
+
+> **Note:** All paths in these scripts (venv, output directories, project root) must be adapted to your environment. They use `/beegfs/prj/LINDA_LLM` as the project root and `~/.venvs/test_linda` as the Python venv by default.
+
+### Sharded extraction (multi-GPU)
+
+For large corpora (e.g. 300k+ cardiac abstracts), `cardio_ppi_cardiac_sharded.sh` distributes work across multiple GPUs using SLURM job arrays:
+
+```bash
+# Submit with 2 shards (one per GPU on gpu-g5-1)
+sbatch --array=0-1 slurm/cardio_ppi_cardiac_sharded.sh
+
+# Or override defaults via environment:
+NUM_SHARDS=4 sbatch --array=0-3 slurm/cardio_ppi_cardiac_sharded.sh
+```
+
+Each array task starts its own Ollama instance on a unique port (`11434 + task_id`), loads the model independently, and processes a disjoint slice of the corpus (`--num-shards` / `--shard-index`).
+
+**Key environment variables for sharded runs:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NUM_SHARDS` | `2` | Total number of shards (1–4) |
+| `MODEL` | `llama33` | Model alias |
+| `OLLAMA_KEEP_ALIVE` | `1h` | Keep model in GPU memory between requests |
+| `OLLAMA_CONTEXT_LENGTH` | `80000` | Maximum context window |
+| `FORCE_NEW` | `0` | Set to `1` to overwrite existing output |
 
 ### Running the full regulatome PPI experiment matrix
 
@@ -444,7 +516,7 @@ Key environment variables used in SLURM scripts:
 
 | Variable | Value | Purpose |
 |----------|-------|---------|
-| `OLLAMA_HOST` | `127.0.0.1:11437` | Ollama endpoint for the main model |
+| `OLLAMA_HOST` | `127.0.0.1:{port}` | Ollama endpoint for the main model |
 | `OLLAMA_KEEP_ALIVE` | `4h` | Keep model weights in GPU memory |
 | `OLLAMA_NUM_PARALLEL` | `1` | Serialise requests (avoids memory contention) |
 | `OLLAMA_CONTEXT_LENGTH` | `80000` | Context window size |
@@ -536,3 +608,83 @@ ollama pull mxbai-embed-large
 ```
 
 For multi-GPU clusters, map each node alias in `clients.py` to the appropriate IP address and Ollama port. The `--node local --port 37` combination (used in SLURM scripts) routes to `http://127.0.0.1:11437`, the in-job Ollama instance.
+
+---
+
+## Troubleshooting
+
+### Ollama server not starting
+
+```bash
+# Check if another Ollama instance is already running
+pgrep -a ollama
+
+# Kill stale instances
+pkill ollama
+
+# Verify the port is free
+lsof -i :11434
+
+# Start with increased verbosity
+OLLAMA_DEBUG=1 ollama serve
+```
+
+### "model not found" error
+
+Ensure the model is pulled on the compute node. Each SLURM job starts its own Ollama instance, so the model must be available in the Ollama model directory (usually `~/.ollama/models/`). Pull it once per node:
+
+```bash
+ollama pull llama3.3:70b
+```
+
+### Out of memory (OOM)
+
+Llama 3.3 70B requires ~40 GB of VRAM at 4-bit quantization. For GPUs with less memory:
+
+| Issue | Solution |
+|-------|----------|
+| GPU < 48 GB | Use a smaller model (`--model llama31` for 8B) |
+| Multiple jobs on same GPU | Set `OLLAMA_NUM_PARALLEL=1` to serialize requests |
+| Context too large | Reduce `OLLAMA_CONTEXT_LENGTH` (e.g., `32000`) or use `--doclevel chunks --chunksize 2000` |
+
+### Extraction returns empty results
+
+1. Check the BAML logs: `--loglevel debug`
+2. Verify the model is responding: `curl http://127.0.0.1:11437/api/generate -d '{"model":"llama3.3:70b","prompt":"Hello"}'`
+3. Try with `--force_new` to overwrite any cached empty results
+4. Test with `--data 5curated` (small, known-good dataset) to isolate the issue
+
+### SLURM job stuck waiting for Ollama
+
+The script waits up to 60–90 seconds for Ollama to become ready. If it times out:
+- Check `ollama serve` logs at the path defined in `OLLAMA_LOG` within the script
+- Ensure the model fits in GPU memory (see OOM section above)
+- Verify the node has internet access if models need to be pulled
+
+### Path / import errors
+
+```bash
+# Ensure you're in the scripts directory
+cd /path/to/LLM_Relations/llm_extractions
+
+# Activate the correct venv
+. ~/.venvs/test_linda/bin/activate
+
+# Verify all imports resolve
+python -c "from paths import *; from clients import *; print('OK')"
+```
+
+### BAML client out of date
+
+After editing any `.baml` file in `baml/baml_src/`, regenerate the typed client:
+
+```bash
+poetry run baml-cli generate
+```
+
+### Adding a new corpus
+
+1. Add a document loader in `documents.py` (follow the pattern of `load_regulatome` or `load_cardio`)
+2. Register the corpus identifier in `parser.py` under `--data` choices
+3. Add path resolution in `paths.py` if the corpus lives outside the default locations
+4. Create a SLURM script in `slurm/` for batch processing

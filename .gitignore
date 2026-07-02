@@ -9,13 +9,24 @@ llama.cpp/
 .gitignore
 *unsloth*/
 run_baml.py
-*.sh
 /baml_client/
 __pycache__/
-slurm/
 _*
 _*/
 *.cpython*
+
+# Irrelevant / test-only scripts
+hf_extract_ppi.py
+test_scaling_8b.py
+
+# Shell scripts: block all except example SLURM scripts
+*.sh
+!slurm/cardio_ppi_cardiac_sharded.sh
+!slurm/cardio_ppi.sh
+!slurm/cardio_tf.sh
+!slurm/regu_ppi_matrix.sh
+!slurm/finetune_llama33.sh
+!slurm/regu_ppi_synonyms.sh
 
 ### Linux ###
 *~
