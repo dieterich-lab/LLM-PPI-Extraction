@@ -31,15 +31,14 @@ SCRIPTS_DIR="$PROJECT_ROOT/scripts"
 OUTPUT_ROOT="${LINDA_LLM_OUTPUT_ROOT:-$PROJECT_ROOT/outputs}"
 
 # ── Model paths ───────────────────────────────────────────────────────
-# The merged model is saved by finetune.py as:
-#   {OUTPUT_ROOT}/finetunedmodels/{hf_model_id}_regulatome_{target}_merged_16bit
-HF_MODEL="Meta-Llama-3.1-8B-Instruct-bnb-4bit"
-MODEL_DIR="${OUTPUT_ROOT}/finetunedmodels/${HF_MODEL}_regulatome_ppi_merged_16bit"
+# Finetuning saves three formats; we use the GGUF (quantized, has Modelfile).
+# Path: {OUTPUT_ROOT}/finetunedmodels/unsloth/{hf_model_id}_regulatome_ppi_GGUF
+MODEL_DIR="${OUTPUT_ROOT}/finetunedmodels/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit_regulatome_ppi_GGUF"
 MODEL_NAME="llama3.1:8b-regulatome-ppi"
 
-if [[ ! -d "$MODEL_DIR" ]]; then
-  echo "ERROR: Merged model not found at $MODEL_DIR"
-  echo "Has the finetuning job completed?"
+if [[ ! -f "$MODEL_DIR/Modelfile" ]]; then
+  echo "ERROR: Modelfile not found at $MODEL_DIR/Modelfile"
+  echo "Has the finetuning job (--save) completed?"
   exit 1
 fi
 
@@ -89,24 +88,13 @@ if ! curl --silent --fail --output /dev/null "http://${OLLAMA_HOST}/api/tags"; t
 fi
 echo "Ollama ready."
 
-# ── Import model ───────────────────────────────────────────────────────
-echo "Creating Modelfile..."
-MODELFILE="/tmp/ollama_imports/Modelfile_${SLURM_JOB_ID:-local}"
-mkdir -p "$(dirname "$MODELFILE")"
+# ── Import model using Unsloth-generated Modelfile ─────────────────────
+echo "Importing model from $MODEL_DIR (this will take a few minutes)..."
+echo "Modelfile contents:"
+cat "$MODEL_DIR/Modelfile"
+echo ""
 
-cat > "$MODELFILE" <<MODELFILE_EOF
-FROM $MODEL_DIR
-
-PARAMETER num_ctx 20000
-PARAMETER temperature 0
-PARAMETER top_p 0.9
-PARAMETER seed 42
-
-SYSTEM """You are an expert molecular biologist specializing in protein-protein interactions. Your TASK is to extract protein-protein interactions from scientific texts with high precision. You understand the difference between direct physical interactions, functional relationships, and regulatory effects. When extracting relationships, focus on evidence-based direct interactions rather than indirect associations."""
-MODELFILE_EOF
-
-echo "Importing model (this will take a few minutes)..."
-ollama create "$MODEL_NAME" -f "$MODELFILE"
+ollama create "$MODEL_NAME" -f "$MODEL_DIR/Modelfile"
 echo "Model '$MODEL_NAME' created successfully."
 
 # ── Smoke test ────────────────────────────────────────────────────────
