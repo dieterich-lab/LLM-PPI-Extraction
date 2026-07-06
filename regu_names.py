@@ -8,6 +8,7 @@ from baml.baml_client.sync_client import b  # isort:skip
 from finetuning_tools import get_dataset
 
 from clients import cr
+from paths import OUTPUT_ROOT
 
 _, _, test_dataset = get_dataset()
 
@@ -38,7 +39,7 @@ for i, data in enumerate(test_dataset):
             except:
                 pass
 
-path = Path("/prj/LINDA_LLM/outputs") / "regu_test_names.json"
+path = OUTPUT_ROOT / "regu_test_names.json"
 with open(path, "w") as f:
     json.dump(d, f, indent=4)
     print(f"Saved json to {path}")

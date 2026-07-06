@@ -10,7 +10,20 @@ from pathlib import Path
 from langchain_core.documents.base import Document
 from langchain_text_splitters import MarkdownTextSplitter
 
-from paths import regulatome_ppi_eval_path
+from paths import (
+    CARDIAC_DATA,
+    DOCS_CACHE_DIR,
+    OUTPUT_ROOT,
+    PARSED_PAPERS,
+    REGULATOME_ROOT,
+    RESOURCES_ROOT,
+    SPACY_PPI_DIR,
+    biored_corpus,
+    regulatome_corpus,
+    regulatome_entities,
+    regulatome_entities_ppi,
+    regulatome_ppi_eval_path,
+)
 
 
 def _cache_data_name() -> str:
@@ -179,34 +192,22 @@ def get_config():
     true_ne_paths = None
     spacy_ne_paths = None
     if args.data == "biored":
-        _paper_paths = Path(
-            "/beegfs/prj/LINDA_LLM/RegulaTome/BIORED/BIORED/src/corpus/test"
-        )
+        _paper_paths = biored_corpus
     elif args.data == "regulatome":
-        _paper_paths = Path(
-            "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/corpus"
-        )
+        _paper_paths = regulatome_corpus
         if args.target == "ppi":
-            _all_ne_paths = Path(
-                "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
-            )
-            all_ne_paths = list(_all_ne_paths.glob(f"*"))
-            _true_ne_paths = Path(
-                "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_ppi"
-            )
-            true_ne_paths = list(_true_ne_paths.glob(f"*"))
-            _spacy_ne_paths = Path(
-                "/home/pwiesenbach/RegulaTome_extraction-1/LargeScaleRelationExtractionPipeline/spacy/ppi/test"
-            )
-            spacy_ne_paths = list(_spacy_ne_paths.glob(f"*.ann"))
+            all_ne_paths = list(regulatome_entities.glob("*"))
+            true_ne_paths = list(regulatome_entities_ppi.glob("*"))
+            if SPACY_PPI_DIR != Path("") and SPACY_PPI_DIR.exists():
+                spacy_ne_paths = list(SPACY_PPI_DIR.glob("*.ann"))
+            else:
+                spacy_ne_paths = []
     elif args.data == "regulatomepapers":
-        _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
+        _paper_paths = PARSED_PAPERS / "regu_test"
     elif args.data in ("cardio", "cardiac"):
-        _paper_paths = Path("/beegfs/prj/LINDA_LLM/Cardiac_Abstracts/src")
+        _paper_paths = CARDIAC_DATA
     elif args.data == "5curated":
-        _paper_paths = Path(
-            f"/beegfs/prj/LINDA_LLM/outputs/parsed_papers/ppi/{args.parser}/5curated/"
-        )
+        _paper_paths = PARSED_PAPERS / "ppi" / args.parser / "5curated"
     override_path = os.environ.get("LINDA_LLM_PAPER_PATH_OVERRIDE")
     if override_path:
         _paper_paths = Path(override_path)
@@ -225,7 +226,7 @@ def get_texts():
         eval_data = load_eval_data(regulatome_eval_path)
         test_data = [x["file_stem"] for x in eval_data if x["split"] == "Test"]
         if args.data == "regulatomepapers":
-            csv_path = "/prj/LINDA_LLM/resources/pmid_to_pmcid_mapped_test.csv"
+            csv_path = RESOURCES_ROOT / "pmid_to_pmcid_mapped_test.csv"
             align_dict = load_align_dict(csv_path)
             test_paper_paths = [
                 x for x in paper_paths if align_dict.get(x.stem) in test_data
@@ -240,8 +241,12 @@ def get_texts():
         test_paper_paths = paper_paths
 
     data_dir = _cache_data_name()
-    chunk_pkl_path = Path(
-        f"/beegfs/prj/LINDA_LLM/outputs/docs/{data_dir}/{args.target}/{args.parser}/paper_chunks_{args.chunksize}.pkl"
+    chunk_pkl_path = (
+        DOCS_CACHE_DIR
+        / data_dir
+        / args.target
+        / args.parser
+        / f"paper_chunks_{args.chunksize}.pkl"
     )
     os.makedirs(chunk_pkl_path.parent, exist_ok=True)
     paper_pkl_path = chunk_pkl_path.parent / "papers.pkl"

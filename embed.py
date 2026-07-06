@@ -1,12 +1,16 @@
 from parser import args
 
+import os
+
 import hnswlib
 import numpy as np
 from ollama import Client
 from tqdm import tqdm
 
 from dataset import get_dataset
+from paths import VECTORSTORE_DIR
 
+# Node → IP mapping for Ollama endpoints
 ip_dict = {
     "g4": "10.250.135.153",
     "g2": "10.250.135.143",
@@ -18,8 +22,9 @@ ip_dict = {
 
 dim = 1024  # ?
 # dim = 384
-index_path = f"/prj/LINDA_LLM/outputs/vectorstore/regulatome_{args.target}_idx.bin"
-embeddings_path = index_path.replace("_idx.bin", "_embeds.npy")
+os.makedirs(VECTORSTORE_DIR, exist_ok=True)
+index_path = str(VECTORSTORE_DIR / f"regulatome_{args.target}_idx.bin")
+embeddings_path = str(VECTORSTORE_DIR / f"regulatome_{args.target}_embeds.npy")
 
 embed_model = "mxbai-embed-large"
 port_dict = {"g2": 32, "g3": 33, "g4": 34, "g5": 35, "local": 34}

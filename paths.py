@@ -24,6 +24,26 @@ TRIPLES_ROOT = _env_path("LINDA_LLM_TRIPLES_ROOT", OUTPUT_ROOT / "triples")
 REGULATOME_ROOT = _env_path("LINDA_LLM_REGULATOME_ROOT", PROJECT_ROOT / "RegulaTome")
 RESOURCES_ROOT = _env_path("LINDA_LLM_RESOURCES_ROOT", PROJECT_ROOT / "resources")
 
+# External data sources (no default – must be configured in .env if used)
+CARDIAC_DATA = _env_path("LINDA_LLM_CARDIAC_DATA", PROJECT_ROOT / "Cardiac_Abstracts" / "src")
+REGULATOME_SRC = _env_path(
+    "LINDA_LLM_REGULATOME_SRC",
+    REGULATOME_ROOT / "test_ppi_annotations" / "regulatome_extraction_13_12_2024" / "src",
+)
+STRING_PATH = _env_path("LINDA_LLM_STRING_PATH", PROJECT_ROOT / "STRING" / "string_ppi.tsv")
+SPACY_PPI_DIR = _env_path("LINDA_LLM_SPACY_PPI_DIR", Path(""))
+
+# Derived sub-paths (not individually overridable – derive from OUTPUT_ROOT)
+PARSED_PAPERS = OUTPUT_ROOT / "parsed_papers"
+VECTORSTORE_DIR = OUTPUT_ROOT / "vectorstore"
+DOCS_CACHE_DIR = OUTPUT_ROOT / "docs"
+
+# Regulatome sub-paths
+regulatome_corpus = REGULATOME_SRC / "corpus"
+regulatome_entities = REGULATOME_SRC / "entities"
+regulatome_entities_ppi = REGULATOME_SRC / "entities_relations_ppi"
+biored_corpus = REGULATOME_ROOT / "BIORED" / "BIORED" / "src" / "corpus" / "test"
+
 
 experiment_path = (
     TRIPLES_ROOT

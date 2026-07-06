@@ -14,10 +14,13 @@ from whoosh.fields import TEXT, Schema
 from whoosh.qparser import FuzzyTermPlugin, QueryParser
 
 from baml.baml_client.types import Message
+from paths import OUTPUT_ROOT, STRING_PATH
 
 
-def load_string_data(string_ppi_path="/prj/LINDA_LLM/STRING/string_ppi.tsv"):
+def load_string_data(string_ppi_path=None):
     """Load STRING PPI data into a defaultdict."""
+    if string_ppi_path is None:
+        string_ppi_path = str(STRING_PATH)
     protein_to_ppis = defaultdict(list)
     try:
         with open(string_ppi_path, "r") as f:
@@ -47,8 +50,10 @@ def load_string_data(string_ppi_path="/prj/LINDA_LLM/STRING/string_ppi.tsv"):
     return protein_to_ppis
 
 
-def load_synonyms(synonyms_path="/prj/LINDA_LLM/outputs/regu_test_names.json"):
+def load_synonyms(synonyms_path=None):
     """Load synonyms dictionary."""
+    if synonyms_path is None:
+        synonyms_path = str(OUTPUT_ROOT / "regu_test_names.json")
     synonyms = {}
     try:
         with open(synonyms_path, "r") as f:

@@ -1,7 +1,17 @@
 #!/bin/bash
+#
+# Sharded cardiac PPI extraction via Llama 3.3 70B (Ollama).
+# Each SLURM array task runs one shard with its own Ollama instance.
+#
+# Prerequisites:
+#   Set LINDA_LLM_PROJECT_ROOT and LINDA_LLM_PYTHON_VENV in your .env
+#   or export them before submitting.
+#
+# Usage:
+#   sbatch slurm/cardio_ppi_cardiac_sharded.sh
 
 #SBATCH --job-name=cardio_ppi_cardiac
-#SBATCH --output=/beegfs/prj/LINDA_LLM/outputs/slurm/cardio_ppi_cardiac_%A_%a.log
+#SBATCH --output=${LINDA_LLM_PROJECT_ROOT:-.}/outputs/slurm/cardio_ppi_cardiac_%A_%a.log
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:hopper:1
 #SBATCH --nodelist=gpu-g5-1
@@ -10,20 +20,26 @@
 
 set -euo pipefail
 
-WORKDIR="${SLURM_SUBMIT_DIR:-}"
-if [[ -z "$WORKDIR" || ! -f "$WORKDIR/scripts/extract.py" ]]; then
-  if [[ -f "/prj/LINDA_LLM/scripts/extract.py" ]]; then
-    WORKDIR="/prj/LINDA_LLM"
-  elif [[ -f "/beegfs/prj/LINDA_LLM/scripts/extract.py" ]]; then
-    WORKDIR="/beegfs/prj/LINDA_LLM"
-  else
-    echo "ERROR: Could not locate project root containing scripts/extract.py"
-    exit 1
-  fi
+# ── Project root discovery ─────────────────────────────────────────────
+if [[ -n "${LINDA_LLM_PROJECT_ROOT:-}" ]]; then
+  WORKDIR="$LINDA_LLM_PROJECT_ROOT"
+elif [[ -n "${SLURM_SUBMIT_DIR:-}" && -f "${SLURM_SUBMIT_DIR}/scripts/extract.py" ]]; then
+  WORKDIR="$SLURM_SUBMIT_DIR"
+else
+  echo "ERROR: Set LINDA_LLM_PROJECT_ROOT or submit from the project root."
+  exit 1
 fi
 
 cd "$WORKDIR/scripts"
-. ~/.venvs/test_linda/bin/activate
+
+# ── Python venv ────────────────────────────────────────────────────────
+VENV="${LINDA_LLM_PYTHON_VENV:-${HOME}/.venvs/test_linda}"
+if [[ -f "$VENV/bin/activate" ]]; then
+  . "$VENV/bin/activate"
+else
+  echo "ERROR: Python venv not found at $VENV"
+  exit 1
+fi
 
 MODEL="${MODEL:-llama33}"
 NUM_SHARDS="${NUM_SHARDS:-2}"
@@ -46,7 +62,7 @@ if (( SHARD_INDEX >= NUM_SHARDS )); then
   exit 0
 fi
 
-SLURM_LOG_DIR="/beegfs/prj/LINDA_LLM/outputs/slurm"
+SLURM_LOG_DIR="${LINDA_LLM_SLURM_LOG_DIR:-$WORKDIR/outputs/slurm}"
 OLLAMA_LOG="${SLURM_LOG_DIR}/ollama_cardio_ppi_cardiac_${SLURM_JOB_ID:-local}_${SHARD_INDEX}.log"
 mkdir -p "$SLURM_LOG_DIR"
 

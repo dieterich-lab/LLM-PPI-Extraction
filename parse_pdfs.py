@@ -22,11 +22,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("pdf_to_markdown")
 
-DEFAULT_PPI_DIR = "/beegfs/prj/LINDA_LLM/CardioPrior/PPI_Papers/"
-DEFAULT_TF_GENES_DIR = "/beegfs/prj/LINDA_LLM/CardioPrior/GRN_Papers/"
+from paths import OUTPUT_ROOT, PARSED_PAPERS  # noqa: E402
 
-DEFAULT_PARSED_PPI_DIR = "/prj/LINDA_LLM/outputs/parsed_papers/CardioPrior/ppi"
-DEFAULT_PARSED_TF_GENES_DIR = "/prj/LINDA_LLM/outputs/parsed_papers/CardioPrior/tf"
+DEFAULT_PPI_DIR = str(OUTPUT_ROOT / ".." / "CardioPrior" / "PPI_Papers")
+DEFAULT_TF_GENES_DIR = str(OUTPUT_ROOT / ".." / "CardioPrior" / "GRN_Papers")
+
+DEFAULT_PARSED_PPI_DIR = str(PARSED_PAPERS / "CardioPrior" / "ppi")
+DEFAULT_PARSED_TF_GENES_DIR = str(PARSED_PAPERS / "CardioPrior" / "tf")
 
 
 def ensure_directory_exists(path: str) -> None:
