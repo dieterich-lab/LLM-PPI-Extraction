@@ -280,10 +280,10 @@ A single model call produces the final output. Suitable for most use cases and s
 
 #### `stepwise`
 
-A multi-turn refinement chain. The model first produces a broad extraction, then is guided through two additional filtering prompts to remove false positives (e.g., indirect signalling cascades for PPI, or PTM events for TF). Each turn receives the full conversation history so previous answers inform subsequent decisions.
+A multi-turn refinement chain. The model first produces a broad extraction, then is guided through two additional filtering prompts to remove false positives (e.g., indirect signalling cascades). Each turn receives the full conversation history so previous answers inform subsequent decisions.
 
 The exact sequence of refinement prompts is target-specific:
-- **PPI stepwise**: extract → filter for physical contact evidence → remove TF/gene interactions
+- **PPI stepwise**: extract → filter for physical contact evidence → remove non-protein interactions
 
 ---
 
