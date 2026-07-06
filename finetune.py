@@ -24,6 +24,8 @@ from transformers import TrainingArguments
 from trl import SFTTrainer
 from unsloth.chat_templates import train_on_responses_only
 
+from datasets import concatenate_datasets
+
 from dataset import get_dataset
 
 hf_key = os.getenv("HF_ACCESS_TOKEN")
@@ -62,7 +64,17 @@ train_dataset, dev_dataset, test_dataset = get_dataset(
     target=args.target, data=args.data, tokenizer=tokenizer, force_new=True
 )
 
-print(f"Len train set: {len(train_dataset)}, len dev set: {len(dev_dataset)}")
+# Combine train+dev for more training data (1591 total → 1279 train, 312 test)
+full_train = concatenate_datasets([train_dataset, dev_dataset])
+# Split off 10% for evaluation during training
+split = full_train.train_test_split(test_size=0.1, seed=42)
+train_dataset = split["train"]
+eval_dataset = split["test"]
+
+print(
+    f"Train: {len(train_dataset)} | Eval: {len(eval_dataset)} "
+    f"| Held-out test: {len(test_dataset)}"
+)
 
 
 # Training
@@ -92,7 +104,7 @@ if args.train:
         model=model,
         tokenizer=tokenizer,
         train_dataset=train_dataset,
-        eval_dataset=dev_dataset,
+        eval_dataset=eval_dataset,
         dataset_text_field="text",
         max_seq_length=max_seq_length,
         dataset_num_proc=2,
@@ -102,8 +114,8 @@ if args.train:
             per_device_train_batch_size=2,
             gradient_accumulation_steps=4,
             warmup_steps=5,
-            # eval_strategy="epoch",
-            do_eval=False,
+            eval_strategy="epoch",
+            do_eval=True,
             num_train_epochs=2,
             learning_rate=2e-4,
             fp16=not is_bfloat16_supported(),
