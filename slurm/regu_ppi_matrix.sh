@@ -19,8 +19,8 @@
 set -euo pipefail
 
 # ── Load .env configuration ────────────────────────────────────────────
-if [[ -f "${SLURM_SUBMIT_DIR:-.}/scripts/.env" ]]; then
-  set -a; source "${SLURM_SUBMIT_DIR:-.}/scripts/.env"; set +a
+if [[ -f "${SLURM_SUBMIT_DIR:-.}/.env" ]]; then
+  set -a; source "${SLURM_SUBMIT_DIR:-.}/.env"; set +a
 fi
 
 # ── Project root discovery ─────────────────────────────────────────────
