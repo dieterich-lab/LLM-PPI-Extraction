@@ -1,20 +1,19 @@
 cff-version: 1.2.0
 message: "If you use this software in your research, please cite it as below."
 type: software
-title: "LLM-PPI-TF-Extraction: LLM-based extraction of protein–protein interactions and transcription factor regulations"
-version: 0.1.0
-date-released: "2025-07-01"
+title: "LLM-PPI-Extraction: LLM-based extraction of protein–protein interactions"
+version: 0.2.0
+date-released: "2026-07-06"
 authors:
   - family-names: Wiesenbach
     given-names: Philipp
     affiliation: "Dieterich Lab, Heidelberg University Hospital"
     email: philipp.wiesenbach@uni-heidelberg.de
-repository-code: "https://github.com/dieterich-lab/LLM-PPI-TF-Extraction"
+repository-code: "https://github.com/dieterich-lab/LLM-PPI-Extraction"
 license: MIT
 abstract: >
-  A configurable pipeline for extracting molecular interaction triples —
-  protein–protein interactions (PPI) and transcription factor–target gene (TF)
-  regulations — from biomedical abstracts using large language models.
+  A configurable pipeline for extracting protein–protein interactions (PPI)
+  from biomedical abstracts using large language models.
   Supports multiple extraction strategies including direct extraction,
   NER-then-relation (nerrel), ensemble voting, Tree of Thoughts (ToT), and
   dynamic in-context example retrieval (DynEx), evaluated on the RegulaTome
@@ -23,7 +22,6 @@ keywords:
   - biomedical NLP
   - relation extraction
   - protein-protein interaction
-  - transcription factor
   - large language models
   - information extraction
   - RegulaTome

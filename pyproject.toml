@@ -1,7 +1,7 @@
 [project]
-name = "llm-ppi-tf-extraction"
-version = "0.1.0"
-description = "LLM-based extraction of protein–protein interactions and transcription factor regulations from biomedical text"
+name = "llm-ppi-extraction"
+version = "0.2.0"
+description = "LLM-based extraction of protein–protein interactions from biomedical text"
 authors = [{ name = "Philipp Wiesenbach", email = "philipp.wiesenbach@uni-heidelberg.de" }]
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
