@@ -5,7 +5,7 @@ from pydantic.json import pydantic_encoder
 
 from baml.baml_client.types import Triple, Triples
 
-# from documents import all_docs
+from documents import texts as all_texts
 from paths import finetune_data_path, regulatome_ppi_eval_path
 from prompts import OUTPUT_FORMAT, prompts, rel_system_prompt
 
@@ -15,15 +15,13 @@ def get_dataset(target, data, tokenizer=None, force_new=False):
         not (finetune_data_path / f"{data}_{target}_train_dataset").exists()
         or force_new
     ):
-        raise
+        # Build lookup: file_stem → page_content from cached documents
+        all_docs = {doc[0].metadata["file_path"].stem: doc[0] for doc in all_texts}
 
         def chat_conversion(test=False):
             def _chat_conversion(data):
-                doc = [
-                    x
-                    for x in all_docs
-                    if x.metadata["file_path"].stem == data["file_stem"]
-                ][0].page_content
+                doc_obj = all_docs[data["file_stem"]]
+                doc = doc_obj.page_content
                 relations = [x.strip() for x in data["relations"].split(";")]
                 relations = [(x.split("=")[0], x.split("=")[1]) for x in relations]
                 triples = [
