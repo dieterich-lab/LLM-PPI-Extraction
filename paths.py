@@ -67,9 +67,6 @@ finetune_data_path = OUTPUT_ROOT / "datasets"
 regulatome_ppi_eval_path = (
     REGULATOME_ROOT / "test_ppi_annotations" / "annotated_ppi_relations_dedup.txt"
 )
-regulatome_tf_eval_path = (
-    REGULATOME_ROOT / "test_tf_annotations" / "annotated_tf_relations_dedup_new.txt"
-)
 try:
     sft_model_path = OUTPUT_ROOT / "finetunedmodels" / f"{hf_model_id}_regulatome"
 except TypeError:

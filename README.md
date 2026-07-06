@@ -1,6 +1,6 @@
 # LINDA-LLM Extraction Toolkit
 
-Production-ready scripts for extracting molecular interaction triples — protein–protein interactions (PPI) and transcription factor–target gene (TF) regulations — from biomedical text using large language models.
+Production-ready scripts for extracting protein–protein interactions (PPI) from biomedical text using large language models.
 
 This directory is the `llm_extractions/` component of the public [dieterich-lab/LLM_Relations](https://github.com/dieterich-lab/LLM_Relations) repository.
 
@@ -47,13 +47,11 @@ The toolkit wraps any Ollama-hosted LLM (or OpenAI-compatible endpoint) with a c
 4. **Aggregate results** via optional ensemble voting or Tree-of-Thoughts (ToT) multi-path reasoning.
 5. **Save** every extraction as a `.jsonl` file, one record per document, in a fully reproducible hierarchical directory.
 
-The same framework supports three extraction targets out of the box:
+The same framework supports protein–protein interaction extraction out of the box:
 
 | Target | Description |
 |--------|-------------|
 | `ppi`  | Protein–protein interactions (direct physical interactions) |
-| `tf`   | Transcription factor → target gene regulatory relations |
-| `ppitf`| Combined PPI + TF extraction |
 
 ---
 
@@ -82,7 +80,6 @@ scripts/
 ├── slurm/                # Ready-to-submit SLURM batch scripts (examples)
 │   ├── cardio_ppi_cardiac_sharded.sh  # Sharded cardiac PPI extraction
 │   ├── cardio_ppi.sh                  # Simple cardiac PPI extraction
-│   ├── cardio_tf.sh                   # Cardiac TF extraction
 │   ├── regu_ppi_matrix.sh             # Full regulatome PPI experiment matrix
 │   ├── regu_ppi_synonyms.sh           # Synonym generation run
 │   └── finetune_llama33.sh            # LoRA fine-tuning
@@ -202,7 +199,7 @@ This runs the simplest possible configuration: single-call (oneshot) direct extr
 | Flag | Choices / Default | Description |
 |------|-------------------|-------------|
 | `--data` | `regulatome`* | Corpus to extract from (`regulatome`, `biored`, `cardio`, `5curated`, …) |
-| `--target` | `ppi`* | Relation type to extract (`ppi`, `tf`, `ppitf`) |
+| `--target` | `ppi`* | Relation type to extract (`ppi`) |
 | `--doclevel` | `docs`* | Process full documents (`docs`) or sliding chunks (`chunks`) |
 | `--chunksize` | `2000` | Character length per chunk when using `--doclevel chunks` |
 | `--full_corpus` | flag | Use all corpus documents (not just the test split) |
@@ -287,7 +284,6 @@ A multi-turn refinement chain. The model first produces a broad extraction, then
 
 The exact sequence of refinement prompts is target-specific:
 - **PPI stepwise**: extract → filter for physical contact evidence → remove TF/gene interactions
-- **TF stepwise**: extract → filter for direct transcriptional regulation → remove PTMs and protein interactions
 
 ---
 
@@ -301,8 +297,8 @@ python extract.py … --examples negpos
 
 | Value | Content |
 |-------|---------|
-| `pos` | Positive examples only (13 PPI / 5 TF) |
-| `neg` | Negative examples only (6 PPI / 5 TF) — what *not* to extract |
+| `pos` | Positive examples only (13 PPI) |
+| `neg` | Negative examples only (6 PPI) — what *not* to extract |
 | `negpos` | Both positive and negative examples |
 
 Positive PPI examples include prototypic interactions such as p53–MDM2 (direct binding), AKT1–AKT1S1 (phosphorylation), and PIAS1–PNKP (SUMOylation). Negative examples show common false positives: co-expression, indirect pathway membership, structural similarity, and co-localisation.
@@ -437,7 +433,7 @@ Each line in the `.jsonl` output is a self-contained JSON object:
 
 - `responses[0]` — entity list from the NER step (only present in `nerrel` mode)
 - `responses[-1]` — final extracted triples after all refinement steps
-- Each triple has `head`, `relation` (`INTERACTS_WITH` for PPI or `REGULATES` for TF), and `tail`
+- Each triple has `head`, `relation` (`INTERACTS_WITH` for PPI), and `tail`
 
 ---
 
@@ -456,7 +452,6 @@ All SLURM scripts in `slurm/` follow the same structure:
 |--------|---------|-------|-----|
 | `cardio_ppi.sh` | Simple single-GPU cardiac PPI extraction | llama33 70B | 1× hopper |
 | `cardio_ppi_cardiac_sharded.sh` | **Sharded** cardiac PPI extraction (2–4 GPUs) | llama33 70B | 2–4× hopper |
-| `cardio_tf.sh` | Cardiac TF extraction | llama33 70B | 1× hopper |
 | `regu_ppi_matrix.sh` | Full RegulaTome experiment matrix (15 configs) | llama33 70B | 1× hopper |
 | `regu_ppi_synonyms.sh` | Generate protein synonym dictionary | llama33 70B | 1× hopper |
 | `finetune_llama33.sh` | LoRA fine-tuning on extraction data | llama33 70B | 1× hopper |
@@ -561,7 +556,7 @@ Fine-tuned model variants are registered in `clients.py` under the `*regu` suffi
 
 | Corpus | Identifier | Description | Source |
 |--------|-----------|-------------|--------|
-| RegulaTome | `regulatome` | 1,591 PubMed abstracts with annotated PPI and TF relations | [Zenodo 10808330](https://zenodo.org/records/10808330) (CC BY 4.0) |
+| RegulaTome | `regulatome` | 1,591 PubMed abstracts with annotated PPI relations | [Zenodo 10808330](https://zenodo.org/records/10808330) (CC BY 4.0) |
 | BioRED | `biored` | Biomedical relation extraction benchmark | [BioRED](https://ftp.ncbi.nlm.nih.gov/pub/lu/BioRED/) |
 | 5 curated papers | `5curated` | Five manually curated cardiac signalling papers | Included under `data/5curated/` |
 | Cardiac manuscripts | `cardio` | Broader collection of cardiac PDFs | Local, not distributed |
@@ -571,7 +566,6 @@ Place the RegulaTome files under `${LINDA_LLM_REGULATOME_ROOT}` (default: `../Re
 ```
 RegulaTome/
 ├── test_ppi_annotations/annotated_ppi_relations_dedup.txt
-├── test_tf_annotations/annotated_tf_relations_dedup_new.txt
 └── BIORED/…
 ```
 

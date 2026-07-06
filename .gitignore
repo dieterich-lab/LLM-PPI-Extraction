@@ -23,7 +23,6 @@ test_scaling_8b.py
 *.sh
 !slurm/cardio_ppi_cardiac_sharded.sh
 !slurm/cardio_ppi.sh
-!slurm/cardio_tf.sh
 !slurm/regu_ppi_matrix.sh
 !slurm/finetune_llama33.sh
 !slurm/regu_ppi_synonyms.sh

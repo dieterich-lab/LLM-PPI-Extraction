@@ -10,7 +10,7 @@ from pathlib import Path
 from langchain_core.documents.base import Document
 from langchain_text_splitters import MarkdownTextSplitter
 
-from paths import regulatome_ppi_eval_path, regulatome_tf_eval_path
+from paths import regulatome_ppi_eval_path
 
 
 def _cache_data_name() -> str:
@@ -199,19 +199,6 @@ def get_config():
                 "/home/pwiesenbach/RegulaTome_extraction-1/LargeScaleRelationExtractionPipeline/spacy/ppi/test"
             )
             spacy_ne_paths = list(_spacy_ne_paths.glob(f"*.ann"))
-        elif args.target == "tf":
-            _all_ne_paths = Path(
-                "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities"
-            )
-            all_ne_paths = list(_all_ne_paths.glob(f"*"))
-            _true_ne_paths = Path(
-                "/beegfs/prj/LINDA_LLM/RegulaTome/test_ppi_annotations/regulatome_extraction_13_12_2024/src/entities_relations_tf"
-            )
-            true_ne_paths = list(_true_ne_paths.glob(f"*"))
-            _spacy_ne_paths = Path(
-                "/home/pwiesenbach/RegulaTome_extraction-1/LargeScaleRelationExtractionPipeline/spacy/grn/test"
-            )
-            spacy_ne_paths = list(_spacy_ne_paths.glob(f"*.ann"))
     elif args.data == "regulatomepapers":
         _paper_paths = Path("/prj/LINDA_LLM/outputs/parsed_papers/regu_test")
     elif args.data in ("cardio", "cardiac"):
@@ -234,10 +221,7 @@ def get_texts():
     _, _, _, paper_paths = get_config()
 
     if args.data in ["regulatome", "regulatomepapers"]:
-        if args.target == "ppi":
-            regulatome_eval_path = regulatome_ppi_eval_path
-        elif args.target == "tf":
-            regulatome_eval_path = regulatome_tf_eval_path
+        regulatome_eval_path = regulatome_ppi_eval_path
         eval_data = load_eval_data(regulatome_eval_path)
         test_data = [x["file_stem"] for x in eval_data if x["split"] == "Test"]
         if args.data == "regulatomepapers":

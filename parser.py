@@ -51,7 +51,7 @@ parser.add_argument(
 parser.add_argument(
     "--target",
     type=str,
-    choices=["ppi", "tf", "lr", "ppitf"],
+    choices=["ppi"],
     default="ppi",
     help="Which entity type you want to extract.",
 )

@@ -6,7 +6,6 @@ from pathlib import Path
 from paths import (
     finetune_data_path,
     regulatome_ppi_eval_path,
-    regulatome_tf_eval_path,
     triple_json_path,
     triple_jsonl_path,
 )
