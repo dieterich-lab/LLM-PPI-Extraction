@@ -16,6 +16,12 @@
 
 set -euo pipefail
 
+# ── Load .env configuration ────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [[ -f "$SCRIPT_DIR/../.env" ]]; then
+  set -a; source "$SCRIPT_DIR/../.env"; set +a
+fi
+
 # ── Project root discovery ─────────────────────────────────────────────
 if [[ -n "${LINDA_LLM_PROJECT_ROOT:-}" ]]; then
   WORKDIR="$LINDA_LLM_PROJECT_ROOT/scripts"
