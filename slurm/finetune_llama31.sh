@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # LoRA fine-tuning of Llama 3.1 8B on RegulaTome PPI extraction data.
-# Runs on a single ampere GPU (gpu-g4-1).
+# Runs on a single Turing GPU (gpu-g3-1). VRAM usage ~8 GB, 24 GB sufficient.
 #
 # Prerequisites:
 #   - .env configured with LINDA_LLM_PYTHON_VENV (defaults to ~/.venvs/finetune)
@@ -10,12 +10,12 @@
 # Usage:
 #   sbatch slurm/finetune_llama31.sh
 
-#SBATCH --gres=gpu:ampere:1
+#SBATCH --gres=gpu:turing:1
 #SBATCH --job-name=finetune_ll31
 #SBATCH --output=../outputs/slurm/finetune_llama31_%j.txt
 #SBATCH --partition=gpu
-#SBATCH --nodelist=gpu-g4-1
-#SBATCH --mem=100G
+#SBATCH --nodelist=gpu-g3-1
+#SBATCH --mem=60G
 
 # ── Load .env configuration ────────────────────────────────────────────
 if [[ -f "${SLURM_SUBMIT_DIR:-.}/.env" ]]; then
