@@ -12,15 +12,14 @@
 
 #SBATCH --gres=gpu:ampere:1
 #SBATCH --job-name=finetune_ll31
-#SBATCH --output=${LINDA_LLM_PROJECT_ROOT:-.}/outputs/slurm/finetune_llama31_%j.txt
+#SBATCH --output=../outputs/slurm/finetune_llama31_%j.txt
 #SBATCH --partition=gpu
 #SBATCH --nodelist=gpu-g4-1
 #SBATCH --mem=100G
 
 # ── Load .env configuration ────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [[ -f "$SCRIPT_DIR/../.env" ]]; then
-  set -a; source "$SCRIPT_DIR/../.env"; set +a
+if [[ -f "${SLURM_SUBMIT_DIR:-.}/scripts/.env" ]]; then
+  set -a; source "${SLURM_SUBMIT_DIR:-.}/scripts/.env"; set +a
 fi
 
 cd ../ &&
