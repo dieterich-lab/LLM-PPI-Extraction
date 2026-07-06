@@ -25,12 +25,19 @@ REGULATOME_ROOT = _env_path("LINDA_LLM_REGULATOME_ROOT", PROJECT_ROOT / "RegulaT
 RESOURCES_ROOT = _env_path("LINDA_LLM_RESOURCES_ROOT", PROJECT_ROOT / "resources")
 
 # External data sources (no default – must be configured in .env if used)
-CARDIAC_DATA = _env_path("LINDA_LLM_CARDIAC_DATA", PROJECT_ROOT / "Cardiac_Abstracts" / "src")
+CARDIAC_DATA = _env_path(
+    "LINDA_LLM_CARDIAC_DATA", PROJECT_ROOT / "Cardiac_Abstracts" / "src"
+)
 REGULATOME_SRC = _env_path(
     "LINDA_LLM_REGULATOME_SRC",
-    REGULATOME_ROOT / "test_ppi_annotations" / "regulatome_extraction_13_12_2024" / "src",
+    REGULATOME_ROOT
+    / "test_ppi_annotations"
+    / "regulatome_extraction_13_12_2024"
+    / "src",
 )
-STRING_PATH = _env_path("LINDA_LLM_STRING_PATH", PROJECT_ROOT / "STRING" / "string_ppi.tsv")
+STRING_PATH = _env_path(
+    "LINDA_LLM_STRING_PATH", PROJECT_ROOT / "STRING" / "string_ppi.tsv"
+)
 SPACY_PPI_DIR = _env_path("LINDA_LLM_SPACY_PPI_DIR", Path(""))
 
 # Derived sub-paths (not individually overridable – derive from OUTPUT_ROOT)

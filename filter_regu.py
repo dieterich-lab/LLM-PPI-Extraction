@@ -30,7 +30,9 @@ test_regu_data = [x["file_stem"] for x in eval_regu_data if x["split"] == "Test"
 regu_paths = [x for x in regu_paths if x.stem in test_regu_data]
 
 test_regu_paper_paths = PARSED_PAPERS / "regu_test"
-test_regu_paper_without_abstracts_paths = PARSED_PAPERS / "regu_test" / "without_abstracts"
+test_regu_paper_without_abstracts_paths = (
+    PARSED_PAPERS / "regu_test" / "without_abstracts"
+)
 test_regu_paper_without_abstracts_paths.mkdir(parents=True, exist_ok=True)
 regu_paper_paths = list(test_regu_paper_paths.glob("*.md"))
 

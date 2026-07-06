@@ -1,6 +1,5 @@
-from parser import args
-
 import os
+from parser import args
 
 import hnswlib
 import numpy as np
