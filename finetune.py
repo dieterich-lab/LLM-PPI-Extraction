@@ -19,12 +19,11 @@ from parser import args
 
 args.noconfidence = True
 
+from datasets import concatenate_datasets
 from huggingface_hub import login
 from transformers import TrainingArguments
 from trl import SFTTrainer
 from unsloth.chat_templates import train_on_responses_only
-
-from datasets import concatenate_datasets
 
 from dataset import get_dataset
 
@@ -116,7 +115,7 @@ if args.train:
             warmup_steps=5,
             eval_strategy="epoch",
             do_eval=True,
-            num_train_epochs=2,
+            num_train_epochs=5,
             learning_rate=2e-4,
             fp16=not is_bfloat16_supported(),
             bf16=is_bfloat16_supported(),
