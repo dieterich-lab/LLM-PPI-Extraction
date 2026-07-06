@@ -4,7 +4,6 @@ from datasets import Dataset, load_from_disk
 from pydantic.json import pydantic_encoder
 
 from baml.baml_client.types import Triple, Triples
-
 from documents import texts as all_texts
 from paths import finetune_data_path, regulatome_ppi_eval_path
 from prompts import OUTPUT_FORMAT, prompts, rel_system_prompt
