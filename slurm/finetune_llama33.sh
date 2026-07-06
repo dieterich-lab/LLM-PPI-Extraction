@@ -14,7 +14,6 @@ if [[ -f "${SLURM_SUBMIT_DIR:-.}/.env" ]]; then
   set -a; source "${SLURM_SUBMIT_DIR:-.}/.env"; set +a
 fi
 
-cd ../ &&
 VENV="${LINDA_LLM_PYTHON_VENV:-${HOME}/.venvs/finetune}"
 . "$VENV/bin/activate"
 
