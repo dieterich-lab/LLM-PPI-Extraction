@@ -26,6 +26,7 @@ test_scaling_8b.py
 !slurm/regu_ppi_matrix.sh
 !slurm/finetune_llama33.sh
 !slurm/finetune_llama31.sh
+!slurm/ollama_import_llama31_regu_ppi.sh
 !slurm/regu_ppi_synonyms.sh
 
 ### Linux ###
