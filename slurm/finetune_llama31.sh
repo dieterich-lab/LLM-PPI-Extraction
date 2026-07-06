@@ -12,7 +12,7 @@
 
 #SBATCH --gres=gpu:ampere:1
 #SBATCH --job-name=finetune_ll31
-#SBATCH --output=../../outputs/slurm/finetune_llama31_%j.txt
+#SBATCH --output=${LINDA_LLM_PROJECT_ROOT:-.}/outputs/slurm/finetune_llama31_%j.txt
 #SBATCH --partition=gpu
 #SBATCH --nodelist=gpu-g4-1
 #SBATCH --mem=100G
