@@ -137,7 +137,18 @@ poetry run baml-cli generate
 
 ## Configuration
 
-All runtime paths can be overridden via environment variables. Defaults are relative to the repository root and require no configuration for a standard clone.
+All runtime paths are configured through a `.env` file (or environment variables).  
+Copy the template and edit it for your setup:
+
+```bash
+cp .env.example .env
+# edit .env with your actual paths
+```
+
+`paths.py` loads `.env` automatically via `python-dotenv` at import time.  
+**SLURM scripts** also source `.env` at startup, so no manual `export` is needed.
+
+### All configuration variables
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
@@ -145,14 +156,23 @@ All runtime paths can be overridden via environment variables. Defaults are rela
 | `LINDA_LLM_OUTPUT_ROOT` | `{PROJECT_ROOT}/outputs/` | Root for all generated artefacts |
 | `LINDA_LLM_TRIPLES_ROOT` | `{OUTPUT_ROOT}/triples/` | Base folder for extracted triples |
 | `LINDA_LLM_REGULATOME_ROOT` | `{PROJECT_ROOT}/RegulaTome/` | RegulaTome corpus and annotations |
-| `LINDA_LLM_RESOURCES_ROOT` | `{PROJECT_ROOT}/resources/` | Shared resources (UniProt tables, etc.) |
+| `LINDA_LLM_RESOURCES_ROOT` | `{PROJECT_ROOT}/resources/` | Shared resources (UniProt, mappings) |
+| `LINDA_LLM_CARDIAC_DATA` | `{PROJECT_ROOT}/Cardiac_Abstracts/src/` | Cardiac abstract documents |
+| `LINDA_LLM_REGULATOME_SRC` | `{REGULATOME_ROOT}/test_ppi_annotations/…/src/` | RegulaTome source corpus, entities, NER |
+| `LINDA_LLM_STRING_PATH` | `{PROJECT_ROOT}/STRING/string_ppi.tsv` | STRING database TSV for `--lookup` |
+| `LINDA_LLM_SPACY_PPI_DIR` | *(empty – must be set manually)* | SciSpaCy NER output for `--spacy_nes_given` |
+| `LINDA_LLM_PYTHON_VENV` | `~/.venvs/test_linda` | Python virtualenv for SLURM jobs |
+| `LINDA_LLM_SLURM_LOG_DIR` | `{OUTPUT_ROOT}/slurm/` | SLURM log output directory |
 
-Copy `.env.example` to `.env` and fill in your paths — `paths.py` loads it automatically via `python-dotenv`:
+### Derived paths (not individually configurable)
 
-```bash
-cp .env.example .env
-# edit .env with your actual paths
-```
+These are computed from the variables above and do not appear in `.env`:
+
+| Internal variable | Derivation | Used by |
+|-------------------|-----------|---------|
+| `PARSED_PAPERS` | `OUTPUT_ROOT / parsed_papers` | `--data regulatomepapers`, `--data 5curated` |
+| `VECTORSTORE_DIR` | `OUTPUT_ROOT / vectorstore` | DynEx embedding index |
+| `DOCS_CACHE_DIR` | `OUTPUT_ROOT / docs` | Document chunk cache |
 
 Alternatively, export variables in your shell before running:
 
