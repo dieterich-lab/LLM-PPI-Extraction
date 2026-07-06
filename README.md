@@ -2,7 +2,7 @@
 
 Production-ready scripts for extracting protein–protein interactions (PPI) from biomedical text using large language models.
 
-This directory is the `llm_extractions/` component of the public [dieterich-lab/LLM_Relations](https://github.com/dieterich-lab/LLM_Relations) repository.
+This directory is the extraction toolkit of the [dieterich-lab/LLM-PPI-Extraction](https://github.com/dieterich-lab/LLM-PPI-Extraction) repository.
 
 ---
 
@@ -123,8 +123,8 @@ Requires **Python 3.11** and [Poetry](https://python-poetry.org/) 1.7+.
 # Install Poetry if not present
 command -v poetry >/dev/null || pipx install poetry
 
-git clone https://github.com/dieterich-lab/LLM_Relations.git
-cd LLM_Relations/llm_extractions
+git clone https://github.com/dieterich-lab/LLM-PPI-Extraction.git
+cd LLM-PPI-Extraction
 
 # Install dependencies
 poetry install
@@ -659,7 +659,7 @@ The script waits up to 60–90 seconds for Ollama to become ready. If it times o
 
 ```bash
 # Ensure you're in the scripts directory
-cd /path/to/LLM_Relations/llm_extractions
+cd /path/to/LLM-PPI-Extraction
 
 # Activate the correct venv
 . ~/.venvs/test_linda/bin/activate
