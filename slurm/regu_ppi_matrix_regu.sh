@@ -14,8 +14,8 @@
 #SBATCH --job-name=regu_ppi_matrix_regu
 #SBATCH --output=../outputs/slurm/regu_ppi_matrix_regu_%j.log
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:ampere:1
-#SBATCH --nodelist=gpu-g4-1
+#SBATCH --gres=gpu:turing:1
+#SBATCH --nodelist=gpu-g3-1
 #SBATCH --mem=60G
 
 set -euo pipefail
