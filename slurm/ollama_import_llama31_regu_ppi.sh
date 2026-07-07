@@ -94,6 +94,12 @@ echo "Modelfile contents:"
 cat "$MODEL_DIR/Modelfile"
 echo ""
 
+# Remove existing model if present (to allow re-import)
+if ollama list 2>/dev/null | grep -q "$MODEL_NAME"; then
+  echo "Removing existing model '$MODEL_NAME'..."
+  ollama rm "$MODEL_NAME" 2>/dev/null || true
+fi
+
 ollama create "$MODEL_NAME" -f "$MODEL_DIR/Modelfile"
 echo "Model '$MODEL_NAME' created successfully."
 
