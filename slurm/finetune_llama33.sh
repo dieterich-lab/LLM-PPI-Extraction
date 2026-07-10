@@ -10,7 +10,7 @@
 # Usage:
 #   sbatch slurm/finetune_llama33.sh
 
-#SBATCH --gres=gpu:hopper:2
+#SBATCH --gres=gpu:hopper:1
 #SBATCH --job-name=finetune_ll33
 #SBATCH --output=../outputs/slurm/finetune_llama33_%j.txt
 #SBATCH --partition=gpu
