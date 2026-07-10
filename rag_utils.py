@@ -12,6 +12,12 @@ def get_dynex(
 ):
     """Enhanced RAG: Retrieve top-k diverse examples from training data."""
     k = args.dynex_k  # Number of examples to retrieve; configurable via args
+
+    # Truncate text to fit embedding model context (mxbai-embed-large: 512 tokens)
+    # Conservative: 4000 chars ≈ ~500 tokens for English biomedical text
+    if len(text) > 4000:
+        text = text[:4000]
+
     embed = client.embed(
         model=embed_model,
         input=text,
