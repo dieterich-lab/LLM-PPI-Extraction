@@ -169,6 +169,12 @@ parser.add_argument(
     help="Strategy for combining ToT paths: 'vote' (majority voting), 'best' (highest scored path), 'merge' (union of high-confidence).",
 )
 parser.add_argument(
+    "--tot_log",
+    action="store_true",
+    default=False,
+    help="Enable verbose logging of ToT strategy details (focus/avoid) to stdout.",
+)
+parser.add_argument(
     "--startfromdoc",
     nargs="?",
     const=0,

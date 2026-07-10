@@ -331,13 +331,21 @@ def extract_rels_tot(
     responses.append(response)
     messages.append(Message(role="assistant", content=str(response)))
 
-    for prompt_idx, prompt in enumerate(prompts):
-        print(f"  ToT Step {prompt_idx + 1}/{len(prompts)}: {prompt[:60]}...")
+    # If no remaining prompts (e.g. oneshot mode), still run one ToT cycle
+    tot_prompts = prompts if prompts else [None]
+    for prompt_idx, prompt in enumerate(tot_prompts):
+        if prompt is not None:
+            print(f"  ToT Step {prompt_idx + 1}/{len(tot_prompts)}: {prompt[:60]}...")
+        else:
+            print(f"  ToT Step 1/1: (single-pass)")
 
         # Step 1: Generate reasoning strategies using BAML
         print(f"    Generating {n_paths} reasoning strategies via LLM...")
 
-        from prompts import interactions_type
+        from prompts import _builder, tot_path_extraction_prompt
+
+        interactions_type = _builder.target_config.interactions_type
+        confidence_prompt = _builder.build_confidence_prompt()
 
         task_description = (
             f"Extract {interactions_type} interactions from biomedical text"
@@ -355,6 +363,14 @@ def extract_rels_tot(
         ]
         print(f"    Generated {len(strategies)} strategies successfully")
 
+        # Log full strategy details if requested
+        if args.tot_log:
+            for i, s in enumerate(strategies):
+                print(f"    ┌─ Strategy {i+1}: {s['name']}")
+                print(f"    │  FOCUS: {s['focus']}")
+                print(f"    │  AVOID: {s['avoid']}")
+                print(f"    └─")
+
         # Step 2: Extract relations using each strategy
         all_path_results = []
         all_path_evaluations = []
@@ -365,7 +381,6 @@ def extract_rels_tot(
             # Extract using this strategy
             # Use messages.copy() to prevent each path from polluting other paths' message history
             path_messages = messages.copy()
-            from prompts import confidence_prompt, tot_path_extraction_prompt
 
             extraction_prompt = tot_path_extraction_prompt.format(
                 interactions_type=interactions_type,
@@ -374,15 +389,17 @@ def extract_rels_tot(
                 strategy_avoid=strategy_dict["avoid"],
                 confidence_prompt=confidence_prompt,
             )
-            content = f"\n{prompt}\n\n{extraction_prompt}"
+            content = (
+                f"\n{prompt}\n\n{extraction_prompt}"
+                if prompt is not None
+                else f"\n{extraction_prompt}"
+            )
             if examples_content:
                 content += f"\n{examples_content}"
             path_messages.append(Message(role="user", content=content))
 
             try:
                 path_response = b.GeneralChatExtractRelationships(
-                    rel_system_prompt,
-                    text,
                     path_messages,
                     baml_options={
                         "client_registry": cr,
@@ -475,5 +492,6 @@ def extract_rels_tot(
         # Create final response
         final_response = Triples(triples=final_triples)
         responses.append(final_response)
-        messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
+        if prompt is not None:
+            messages.append(Message(role="user", content=f"\nUSER QUESTION: {prompt}"))
         messages.append(Message(role="assistant", content=str(final_response)))

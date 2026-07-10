@@ -63,7 +63,8 @@ if args.dynex_k > 0:
 
     index = load_index()
     embeddings = np.load(embeddings_path)
-    train_dataset, dev_dataset, _ = get_dataset(args.target, args.data)
+    # Always use regulatome as the RAG example pool (index/embeddings are regulatome-based)
+    train_dataset, dev_dataset, _ = get_dataset(args.target, "regulatome")
     lookup_dataset = concatenate_datasets([train_dataset, dev_dataset])
 
 print(f"New run: {triple_jsonl_path.parent}")
