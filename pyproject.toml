@@ -38,8 +38,8 @@ dependencies = [
     "bitsandbytes (==0.45.4)",
     "safetensors (==0.5.3)",
     "sentencepiece (==0.2.0)",
-    "unsloth (==2025.5.6)",
-    "unsloth-zoo (==2025.5.7)",
+    "unsloth (>=2025.5.6)",
+    "unsloth-zoo (>=2025.5.7)",
     "wandb (==0.19.11)",
     # Utilities
     "annotated-types (==0.7.0)",
