@@ -22,6 +22,9 @@ if [[ -f "${SLURM_SUBMIT_DIR:-.}/.env" ]]; then
   set -a; source "${SLURM_SUBMIT_DIR:-.}/.env"; set +a
 fi
 
+# Disable HF XET transfer protocol (stalls on large model downloads)
+export HF_HUB_DISABLE_XET=1
+
 VENV="${LINDA_LLM_PYTHON_VENV:-${HOME}/.venvs/test_linda}"
 . "$VENV/bin/activate"
 
