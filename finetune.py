@@ -126,6 +126,7 @@ if args.train:
             seed=3407,
             output_dir=sft_model_path,
             report_to="none",
+            save_strategy="no",  # avoid pickle error with Unsloth/TRL version mismatch
         ),
     )
 
