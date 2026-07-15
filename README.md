@@ -560,15 +560,49 @@ The script automatically handles both the old (`.json`) and new (`.jsonl`) outpu
 
 ## Fine-Tuning
 
-LoRA-based supervised fine-tuning on extraction data:
+LoRA-based supervised fine-tuning on RegulaTome PPI extraction data.
+
+### Training a model
 
 ```bash
-python finetune.py --model llama31 --data regulatome --target ppi --save
+python finetune.py --model llama31 --data regulatome --target ppi --train --save
+```
+
+Or via SLURM:
+```bash
+sbatch slurm/finetune_llama31.sh   # Llama 3.1 8B (A40, ~7.6 GB VRAM)
+sbatch slurm/finetune_llama33.sh   # Llama 3.3 70B (H100, ~40 GB VRAM)
+```
+
+**Training details:**
+
+| Parameter | 8B | 70B |
+|-----------|-----|-----|
+| Method | LoRA (r=16, α=16) | LoRA (r=16, α=16) |
+| Training data | Train + Devel (1279 samples) | Train + Devel (1279 samples) |
+| Eval split | 10% of train+dev (128 samples) | 10% of train+dev (128 samples) |
+| Held-out test | 312 samples (never seen) | 312 samples (never seen) |
+| Epochs | 5 | 5 |
+| Batch size | 2 × 4 accumulation = 8 | 2 × 4 accumulation = 8 |
+| LR / Optimizer | 2e-4 / AdamW 8-bit | 2e-4 / AdamW 8-bit |
+| Training time | ~50 min (A40) | ~4 h (H100) |
+
+### Available fine-tuned models
+
+| Alias | Base | HuggingFace | Ollama |
+|-------|------|-------------|--------|
+| `llama31regu` | Llama 3.1 8B | [phiwi/…regulatome_ppi_lora](https://huggingface.co/phiwi/Meta-Llama-3.1-8B-Instruct-bnb-4bit_regulatome_ppi_lora) | `llama3.1:8b-regulatome-ppi` |
+| `llama33regu` | Llama 3.3 70B | (coming soon) | `llama3.3:70b-regulatome-ppi` |
+
+**Import into Ollama:**
+```bash
+sbatch slurm/ollama_import_llama31_regu_ppi.sh   # 8B
+sbatch slurm/ollama_import_llama33_regu_ppi.sh   # 70B
 ```
 
 Training conversations are derived from `dataset.py`, which pairs source documents with gold-standard triples formatted as chat turns. Checkpoints are written to `{OUTPUT_ROOT}/finetunedmodels/{model_id}_regulatome/`.
 
-Fine-tuned model variants are registered in `clients.py` under the `*regu` suffix aliases (e.g., `llama33regu`, `llama31regu`) and can be used with any extraction flag combination.
+Fine-tuned model variants are registered in `clients.py` under the `*regu` suffix aliases and can be used with any extraction flag combination.
 
 ---
 
@@ -608,8 +642,8 @@ The framework supports any **OpenAI-compatible** backend. Ollama is the primary 
 | `qwen314` | `qwen3:14b` | — |
 | `qwen330` | `qwen3:30b` | — |
 | `qwen332` | `qwen3:32b` | — |
-| `llama33regu` | `llama3.3:70b-regu_Q4_K_M` | fine-tuned on RegulaTome |
-| `llama31regu` | `llama31regu-ollama` | fine-tuned on RegulaTome |
+| `llama31regu` | `llama3.1:8b-regulatome-ppi` | fine-tuned on RegulaTome PPI |
+| `llama33regu` | `llama3.3:70b-regulatome-ppi` | fine-tuned on RegulaTome PPI |
 
 ### Setting up Ollama
 
