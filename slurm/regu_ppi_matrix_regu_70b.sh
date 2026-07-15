@@ -95,22 +95,22 @@ run() {
 
 # ── DIRECT extractions (7 runs) ───────────────────────────────────────
 run "direct_normal"    --extractionmode direct
-run "direct_neg"       --extractionmode direct --examples neg
-run "direct_pos"       --extractionmode direct --examples pos
-run "direct_negpos"    --extractionmode direct --examples negpos
-run "direct_dynex3"    --extractionmode direct --dynex_k 3
-run "direct_ensemble5" --extractionmode direct --ensemble 3
-run "direct_tot"       --extractionmode direct --tot
+# run "direct_neg"       --extractionmode direct --examples neg
+# run "direct_pos"       --extractionmode direct --examples pos
+# run "direct_negpos"    --extractionmode direct --examples negpos
+# run "direct_dynex3"    --extractionmode direct --dynex_k 3
+# run "direct_ensemble5" --extractionmode direct --ensemble 3
+# run "direct_tot"       --extractionmode direct --tot
 
 # ── NERREL extractions (8 runs) ───────────────────────────────────────
-run "nerrel_normal"    --extractionmode nerrel
-run "nerrel_neg"       --extractionmode nerrel --examples neg
-run "nerrel_pos"       --extractionmode nerrel --examples pos
-run "nerrel_negpos"    --extractionmode nerrel --examples negpos
-run "nerrel_dynex3"    --extractionmode nerrel --dynex_k 3
-run "nerrel_lookup"    --extractionmode nerrel --lookup
-run "nerrel_ensemble5" --extractionmode nerrel --ensemble 3
-run "nerrel_tot"       --extractionmode nerrel --tot
+# run "nerrel_normal"    --extractionmode nerrel
+# run "nerrel_neg"       --extractionmode nerrel --examples neg
+# run "nerrel_pos"       --extractionmode nerrel --examples pos
+# run "nerrel_negpos"    --extractionmode nerrel --examples negpos
+# run "nerrel_dynex3"    --extractionmode nerrel --dynex_k 3
+# run "nerrel_lookup"    --extractionmode nerrel --lookup
+# run "nerrel_ensemble5" --extractionmode nerrel --ensemble 3
+# run "nerrel_tot"       --extractionmode nerrel --tot
 
 echo ""
 echo "All 15 runs completed. Tag: ${RUN_TAG}"
