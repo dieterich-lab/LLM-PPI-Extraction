@@ -97,19 +97,21 @@ def main():
     if args.num_shards > 1:
         print(f"Shard {args.shard_index + 1}/{args.num_shards}")
 
+    # Pre-load already-processed stems for O(1) skip checks
+    processed_stems = set()
+    if not args.force_new and not args.dev:
+        try:
+            with open(triple_jsonl_path, "r") as f:
+                for line in f:
+                    processed_stems.add(Path(json.loads(line)["filename"]).stem)
+            print(f"Pre-loaded {len(processed_stems)} already-processed stems")
+        except FileNotFoundError:
+            pass
+
     for i, doc in enumerate(docs_to_process, start=args.startfromdoc):
         file_path = doc[0].metadata["file_path"]
-        if not args.force_new and not args.dev:
-            try:
-                with open(triple_jsonl_path, "r") as f:
-                    if any(
-                        Path(json.loads(line)["filename"]).stem == file_path.stem
-                        for line in f
-                    ):
-                        print(f"Skipping {file_path.stem}")
-                        continue
-            except FileNotFoundError:
-                pass
+        if file_path.stem in processed_stems:
+            continue
         _prompts = prompts.copy()
         print(f"Doc {i}")
         text = doc[0].page_content
