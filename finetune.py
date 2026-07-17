@@ -169,11 +169,6 @@ if args.save and not args.load:
         tokenizer,
         save_method="lora",
     )
-    model.save_pretrained_gguf(
-        f"{sft_model_path}_{args.target}_GGUF",
-        tokenizer,
-        quantization_method=["q4_k_m"],
-    )
 if args.push and not args.load:
     model.push_to_hub_merged(
         f"phiwi/{sft_model_path.name}_{args.target}_lora",
@@ -181,6 +176,15 @@ if args.push and not args.load:
         save_method="lora",
         token=hf_key,
     )
+if args.save and not args.load:
+    try:
+        model.save_pretrained_gguf(
+            f"{sft_model_path}_{args.target}_GGUF",
+            tokenizer,
+            quantization_method=["q4_k_m"],
+        )
+    except Exception as e:
+        print(f"GGUF conversion failed (non-fatal): {e}")
 
 # Loading
 if args.load:
