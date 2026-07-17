@@ -8,7 +8,7 @@
 #   (written next to the source .jsonl by synonyms.py)
 
 #SBATCH --job-name=regu_ppi_synonyms
-#SBATCH --output=/beegfs/prj/LINDA_LLM/outputs/slurm/regu_ppi_synonyms_%j.log
+#SBATCH --output=${LINDA_LLM_PROJECT_ROOT:-.}/outputs/slurm/regu_ppi_synonyms_%j.log
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:hopper:1
 #SBATCH --nodelist=gpu-g5-1
@@ -16,14 +16,28 @@
 
 set -euo pipefail
 
-OLLAMA_PORT="11437"
-OLLAMA_LOG_DIR="/beegfs/prj/LINDA_LLM/outputs/slurm"
+# ── Load .env configuration ────────────────────────────────────────────
+if [[ -f "${SLURM_SUBMIT_DIR:-.}/.env" ]]; then
+  set -a; source "${SLURM_SUBMIT_DIR:-.}/.env"; set +a
+fi
 
-WORKDIR="/beegfs/prj/LINDA_LLM/scripts"
-if [[ ! -f "$WORKDIR/synonyms.py" ]]; then
-  echo "ERROR: scripts dir not found at $WORKDIR"
+# ── Project root discovery ─────────────────────────────────────────────
+if [[ -n "${LINDA_LLM_PROJECT_ROOT:-}" ]]; then
+  WORKDIR="$LINDA_LLM_PROJECT_ROOT/scripts"
+elif [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+  WORKDIR="$SLURM_SUBMIT_DIR/scripts"
+else
+  echo "ERROR: Set LINDA_LLM_PROJECT_ROOT or submit from project root."
   exit 1
 fi
+
+cd "$WORKDIR"
+VENV="${LINDA_LLM_PYTHON_VENV:-${HOME}/.venvs/test_linda}"
+. "$VENV/bin/activate"
+
+OLLAMA_PORT="11437"
+OLLAMA_LOG_DIR="${LINDA_LLM_SLURM_LOG_DIR:-$WORKDIR/../outputs/slurm}"
+mkdir -p "$OLLAMA_LOG_DIR"
 
 cleanup() {
   if [[ -n "${OLLAMA_PID:-}" ]] && kill -0 "$OLLAMA_PID" >/dev/null 2>&1; then

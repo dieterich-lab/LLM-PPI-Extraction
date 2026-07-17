@@ -1,19 +1,21 @@
 #!/bin/bash
 #
-# Regulatome PPI extraction matrix — new codebase (2026)
+# RegulaTome PPI extraction matrix — fine-tuned Llama 3.1 8B (RegulaTome PPI)
 #
 # Matrix: [direct, nerrel] × [normal, neg, pos, negpos, dynex_k=3, lookup, ensemble=5, tot]
-# = 16 combinations, but direct+lookup is auto-upgraded to nerrel by the parser
-#   (see parser.py), so it is identical to nerrel+lookup → skipped (15 runs total).
+# = 16 combinations, but direct+lookup is auto-upgraded to nerrel → 15 runs.
 #
-# Fixed params: --model llama33 --chattype oneshot --data regulatome --target ppi --doclevel docs
-# --noconfidence is default=True in the current parser.
+# Prerequisites:
+#   - ollama_import_llama31_regu_ppi.sh must have been run first
+#   - Model 'llama3.1:8b-regulatome-ppi' must exist in Ollama
+#
+# Fixed params: --model llama31regu --chattype oneshot --data regulatome --target ppi --doclevel docs
 
-#SBATCH --job-name=regu_ppi_matrix
-#SBATCH --output=${LINDA_LLM_PROJECT_ROOT:-.}/outputs/slurm/regu_ppi_matrix_%j.log
+#SBATCH --job-name=regu_ppi_matrix_regu
+#SBATCH --output=../outputs/slurm/regu_ppi_matrix_regu_%j.log
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:hopper:1
-#SBATCH --nodelist=gpu-g5-1
+#SBATCH --gres=gpu:turing:1
+#SBATCH --nodelist=gpu-g3-1
 #SBATCH --mem=60G
 
 set -euo pipefail
@@ -27,9 +29,9 @@ fi
 if [[ -n "${LINDA_LLM_PROJECT_ROOT:-}" ]]; then
   WORKDIR="$LINDA_LLM_PROJECT_ROOT/scripts"
 elif [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
-  WORKDIR="$SLURM_SUBMIT_DIR/scripts"
+  WORKDIR="$SLURM_SUBMIT_DIR"
 else
-  echo "ERROR: Set LINDA_LLM_PROJECT_ROOT or submit from project root."
+  echo "ERROR: Set LINDA_LLM_PROJECT_ROOT or submit from scripts/."
   exit 1
 fi
 
@@ -37,11 +39,11 @@ cd "$WORKDIR"
 VENV="${LINDA_LLM_PYTHON_VENV:-${HOME}/.venvs/test_linda}"
 . "$VENV/bin/activate"
 
-OLLAMA_PORT="11437"
+OLLAMA_PORT="11440"
 OLLAMA_LOG_DIR="${LINDA_LLM_SLURM_LOG_DIR:-$WORKDIR/../outputs/slurm}"
 mkdir -p "$OLLAMA_LOG_DIR"
 
-RUN_TAG="20260615_${SLURM_JOB_ID:-local}"
+RUN_TAG="${SLURM_JOB_ID:-local}"
 
 cleanup() {
   if [[ -n "${OLLAMA_PID:-}" ]] && kill -0 "$OLLAMA_PID" >/dev/null 2>&1; then
@@ -62,9 +64,6 @@ wait_for_ollama() {
   return 1
 }
 
-. ~/.venvs/test_linda/bin/activate
-cd "$WORKDIR"
-
 export OLLAMA_HOST="127.0.0.1:${OLLAMA_PORT}"
 export OLLAMA_KEEP_ALIVE="4h"
 export OLLAMA_NUM_PARALLEL=1
@@ -72,7 +71,7 @@ export OLLAMA_CONTEXT_LENGTH=80000
 export OLLAMA_DEBUG=1
 unset MAX_CHARS
 
-OLLAMA_LOG="${OLLAMA_LOG_DIR}/ollama_regu_ppi_matrix_${SLURM_JOB_ID:-local}.log"
+OLLAMA_LOG="${OLLAMA_LOG_DIR}/ollama_regu_ppi_matrix_regu_${SLURM_JOB_ID:-local}.log"
 ollama serve > "$OLLAMA_LOG" 2>&1 &
 OLLAMA_PID=$!
 
@@ -83,7 +82,7 @@ fi
 echo "Ollama ready on port ${OLLAMA_PORT}"
 
 # Common flags for all runs
-COMMON="--model llama33 --node local --port 37 --chattype oneshot --data regulatome --target ppi --doclevel docs --loglevel info --force_new --full_corpus"
+COMMON="--model llama31regu --node local --port 40 --chattype oneshot --data regulatome --target ppi --doclevel docs --loglevel info --force_new --full_corpus"
 
 run() {
   local label="$1"; shift
@@ -94,19 +93,16 @@ run() {
   python -u extract.py $COMMON --ext "${label}_${RUN_TAG}" "$@"
 }
 
-# ── DIRECT extractions (7 runs) ───────────────────────────────────────────────
-# Already completed in job 660834 (re-run resumes from direct_dynex3, which
-# failed there due to an embed.py bug — fixed since):
-# run "direct_normal"    --extractionmode direct
-# run "direct_neg"       --extractionmode direct --examples neg
-# run "direct_pos"       --extractionmode direct --examples pos
-# run "direct_negpos"    --extractionmode direct --examples negpos
-# run "direct_dynex3"    --extractionmode direct --dynex_k 3
-# NOTE: direct+lookup is auto-upgraded to nerrel by the parser → covered below
+# ── DIRECT extractions (7 runs) ───────────────────────────────────────
+run "direct_normal"    --extractionmode direct
+run "direct_neg"       --extractionmode direct --examples neg
+run "direct_pos"       --extractionmode direct --examples pos
+run "direct_negpos"    --extractionmode direct --examples negpos
+run "direct_dynex3"    --extractionmode direct --dynex_k 3
 run "direct_ensemble5" --extractionmode direct --ensemble 3
 run "direct_tot"       --extractionmode direct --tot
 
-# ── NERREL extractions (8 runs) ───────────────────────────────────────────────
+# ── NERREL extractions (8 runs) ───────────────────────────────────────
 run "nerrel_normal"    --extractionmode nerrel
 run "nerrel_neg"       --extractionmode nerrel --examples neg
 run "nerrel_pos"       --extractionmode nerrel --examples pos
@@ -118,4 +114,4 @@ run "nerrel_tot"       --extractionmode nerrel --tot
 
 echo ""
 echo "All 15 runs completed. Tag: ${RUN_TAG}"
-echo "Outputs: ${LINDA_LLM_TRIPLES_ROOT:-$WORKDIR/../outputs/triples}/regulatome/ppi/llama33/"
+echo "Outputs: ${LINDA_LLM_TRIPLES_ROOT:-$WORKDIR/../outputs/triples}/regulatome/ppi/llama31regu/"

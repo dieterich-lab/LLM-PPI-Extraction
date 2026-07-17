@@ -19,6 +19,7 @@ from parser import args
 
 args.noconfidence = True
 
+from datasets import concatenate_datasets
 from huggingface_hub import login
 from transformers import TrainingArguments
 from trl import SFTTrainer
@@ -62,7 +63,17 @@ train_dataset, dev_dataset, test_dataset = get_dataset(
     target=args.target, data=args.data, tokenizer=tokenizer, force_new=True
 )
 
-print(f"Len train set: {len(train_dataset)}, len dev set: {len(dev_dataset)}")
+# Combine train+dev for more training data (1591 total → 1279 train, 312 test)
+full_train = concatenate_datasets([train_dataset, dev_dataset])
+# Split off 10% for evaluation during training
+split = full_train.train_test_split(test_size=0.1, seed=42)
+train_dataset = split["train"]
+eval_dataset = split["test"]
+
+print(
+    f"Train: {len(train_dataset)} | Eval: {len(eval_dataset)} "
+    f"| Held-out test: {len(test_dataset)}"
+)
 
 
 # Training
@@ -92,7 +103,7 @@ if args.train:
         model=model,
         tokenizer=tokenizer,
         train_dataset=train_dataset,
-        eval_dataset=dev_dataset,
+        eval_dataset=eval_dataset,
         dataset_text_field="text",
         max_seq_length=max_seq_length,
         dataset_num_proc=2,
@@ -102,9 +113,9 @@ if args.train:
             per_device_train_batch_size=2,
             gradient_accumulation_steps=4,
             warmup_steps=5,
-            # eval_strategy="epoch",
-            do_eval=False,
-            num_train_epochs=2,
+            eval_strategy="epoch",
+            do_eval=True,
+            num_train_epochs=5,
             learning_rate=2e-4,
             fp16=not is_bfloat16_supported(),
             bf16=is_bfloat16_supported(),
@@ -115,6 +126,7 @@ if args.train:
             seed=3407,
             output_dir=sft_model_path,
             report_to="none",
+            save_strategy="no",  # avoid pickle error with Unsloth/TRL version mismatch
         ),
     )
 
@@ -157,11 +169,6 @@ if args.save and not args.load:
         tokenizer,
         save_method="lora",
     )
-    model.save_pretrained_gguf(
-        f"{sft_model_path}_{args.target}_GGUF",
-        tokenizer,
-        quantization_method=["q4_k_m"],
-    )
 if args.push and not args.load:
     model.push_to_hub_merged(
         f"phiwi/{sft_model_path.name}_{args.target}_lora",
@@ -169,6 +176,15 @@ if args.push and not args.load:
         save_method="lora",
         token=hf_key,
     )
+if args.save and not args.load:
+    try:
+        model.save_pretrained_gguf(
+            f"{sft_model_path}_{args.target}_GGUF",
+            tokenizer,
+            quantization_method=["q4_k_m"],
+        )
+    except Exception as e:
+        print(f"GGUF conversion failed (non-fatal): {e}")
 
 # Loading
 if args.load:

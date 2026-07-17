@@ -1,8 +1,8 @@
 # LINDA-LLM Extraction Toolkit
 
-Production-ready scripts for extracting molecular interaction triples — protein–protein interactions (PPI) and transcription factor–target gene (TF) regulations — from biomedical text using large language models.
+Production-ready scripts for extracting protein–protein interactions (PPI) from biomedical text using large language models.
 
-This directory is the `llm_extractions/` component of the public [dieterich-lab/LLM_Relations](https://github.com/dieterich-lab/LLM_Relations) repository.
+This directory is the extraction toolkit of the [dieterich-lab/LLM-PPI-Extraction](https://github.com/dieterich-lab/LLM-PPI-Extraction) repository.
 
 ---
 
@@ -47,13 +47,11 @@ The toolkit wraps any Ollama-hosted LLM (or OpenAI-compatible endpoint) with a c
 4. **Aggregate results** via optional ensemble voting or Tree-of-Thoughts (ToT) multi-path reasoning.
 5. **Save** every extraction as a `.jsonl` file, one record per document, in a fully reproducible hierarchical directory.
 
-The same framework supports three extraction targets out of the box:
+The same framework supports protein–protein interaction extraction out of the box:
 
 | Target | Description |
 |--------|-------------|
 | `ppi`  | Protein–protein interactions (direct physical interactions) |
-| `tf`   | Transcription factor → target gene regulatory relations |
-| `ppitf`| Combined PPI + TF extraction |
 
 ---
 
@@ -82,7 +80,6 @@ scripts/
 ├── slurm/                # Ready-to-submit SLURM batch scripts (examples)
 │   ├── cardio_ppi_cardiac_sharded.sh  # Sharded cardiac PPI extraction
 │   ├── cardio_ppi.sh                  # Simple cardiac PPI extraction
-│   ├── cardio_tf.sh                   # Cardiac TF extraction
 │   ├── regu_ppi_matrix.sh             # Full regulatome PPI experiment matrix
 │   ├── regu_ppi_synonyms.sh           # Synonym generation run
 │   └── finetune_llama33.sh            # LoRA fine-tuning
@@ -126,8 +123,8 @@ Requires **Python 3.11** and [Poetry](https://python-poetry.org/) 1.7+.
 # Install Poetry if not present
 command -v poetry >/dev/null || pipx install poetry
 
-git clone https://github.com/dieterich-lab/LLM_Relations.git
-cd LLM_Relations/llm_extractions
+git clone https://github.com/dieterich-lab/LLM-PPI-Extraction.git
+cd LLM-PPI-Extraction
 
 # Install dependencies
 poetry install
@@ -140,7 +137,18 @@ poetry run baml-cli generate
 
 ## Configuration
 
-All runtime paths can be overridden via environment variables. Defaults are relative to the repository root and require no configuration for a standard clone.
+All runtime paths are configured through a `.env` file (or environment variables).  
+Copy the template and edit it for your setup:
+
+```bash
+cp .env.example .env
+# edit .env with your actual paths
+```
+
+`paths.py` loads `.env` automatically via `python-dotenv` at import time.  
+**SLURM scripts** also source `.env` at startup, so no manual `export` is needed.
+
+### All configuration variables
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
@@ -148,14 +156,23 @@ All runtime paths can be overridden via environment variables. Defaults are rela
 | `LINDA_LLM_OUTPUT_ROOT` | `{PROJECT_ROOT}/outputs/` | Root for all generated artefacts |
 | `LINDA_LLM_TRIPLES_ROOT` | `{OUTPUT_ROOT}/triples/` | Base folder for extracted triples |
 | `LINDA_LLM_REGULATOME_ROOT` | `{PROJECT_ROOT}/RegulaTome/` | RegulaTome corpus and annotations |
-| `LINDA_LLM_RESOURCES_ROOT` | `{PROJECT_ROOT}/resources/` | Shared resources (UniProt tables, etc.) |
+| `LINDA_LLM_RESOURCES_ROOT` | `{PROJECT_ROOT}/resources/` | Shared resources (UniProt, mappings) |
+| `LINDA_LLM_CARDIAC_DATA` | `{PROJECT_ROOT}/Cardiac_Abstracts/src/` | Cardiac abstract documents |
+| `LINDA_LLM_REGULATOME_SRC` | `{REGULATOME_ROOT}/test_ppi_annotations/…/src/` | RegulaTome source corpus, entities, NER |
+| `LINDA_LLM_STRING_PATH` | `{PROJECT_ROOT}/STRING/string_ppi.tsv` | STRING database TSV for `--lookup` |
+| `LINDA_LLM_SPACY_PPI_DIR` | *(empty – must be set manually)* | SciSpaCy NER output for `--spacy_nes_given` |
+| `LINDA_LLM_PYTHON_VENV` | `~/.venvs/test_linda` | Python virtualenv for SLURM jobs |
+| `LINDA_LLM_SLURM_LOG_DIR` | `{OUTPUT_ROOT}/slurm/` | SLURM log output directory |
 
-Copy `.env.example` to `.env` and fill in your paths — `paths.py` loads it automatically via `python-dotenv`:
+### Derived paths (not individually configurable)
 
-```bash
-cp .env.example .env
-# edit .env with your actual paths
-```
+These are computed from the variables above and do not appear in `.env`:
+
+| Internal variable | Derivation | Used by |
+|-------------------|-----------|---------|
+| `PARSED_PAPERS` | `OUTPUT_ROOT / parsed_papers` | `--data regulatomepapers`, `--data 5curated` |
+| `VECTORSTORE_DIR` | `OUTPUT_ROOT / vectorstore` | DynEx embedding index |
+| `DOCS_CACHE_DIR` | `OUTPUT_ROOT / docs` | Document chunk cache |
 
 Alternatively, export variables in your shell before running:
 
@@ -202,7 +219,7 @@ This runs the simplest possible configuration: single-call (oneshot) direct extr
 | Flag | Choices / Default | Description |
 |------|-------------------|-------------|
 | `--data` | `regulatome`* | Corpus to extract from (`regulatome`, `biored`, `cardio`, `5curated`, …) |
-| `--target` | `ppi`* | Relation type to extract (`ppi`, `tf`, `ppitf`) |
+| `--target` | `ppi`* | Relation type to extract (`ppi`) |
 | `--doclevel` | `docs`* | Process full documents (`docs`) or sliding chunks (`chunks`) |
 | `--chunksize` | `2000` | Character length per chunk when using `--doclevel chunks` |
 | `--full_corpus` | flag | Use all corpus documents (not just the test split) |
@@ -283,11 +300,10 @@ A single model call produces the final output. Suitable for most use cases and s
 
 #### `stepwise`
 
-A multi-turn refinement chain. The model first produces a broad extraction, then is guided through two additional filtering prompts to remove false positives (e.g., indirect signalling cascades for PPI, or PTM events for TF). Each turn receives the full conversation history so previous answers inform subsequent decisions.
+A multi-turn refinement chain. The model first produces a broad extraction, then is guided through two additional filtering prompts to remove false positives (e.g., indirect signalling cascades). Each turn receives the full conversation history so previous answers inform subsequent decisions.
 
 The exact sequence of refinement prompts is target-specific:
-- **PPI stepwise**: extract → filter for physical contact evidence → remove TF/gene interactions
-- **TF stepwise**: extract → filter for direct transcriptional regulation → remove PTMs and protein interactions
+- **PPI stepwise**: extract → filter for physical contact evidence → remove non-protein interactions
 
 ---
 
@@ -301,8 +317,8 @@ python extract.py … --examples negpos
 
 | Value | Content |
 |-------|---------|
-| `pos` | Positive examples only (13 PPI / 5 TF) |
-| `neg` | Negative examples only (6 PPI / 5 TF) — what *not* to extract |
+| `pos` | Positive examples only (13 PPI) |
+| `neg` | Negative examples only (6 PPI) — what *not* to extract |
 | `negpos` | Both positive and negative examples |
 
 Positive PPI examples include prototypic interactions such as p53–MDM2 (direct binding), AKT1–AKT1S1 (phosphorylation), and PIAS1–PNKP (SUMOylation). Negative examples show common false positives: co-expression, indirect pathway membership, structural similarity, and co-localisation.
@@ -437,7 +453,7 @@ Each line in the `.jsonl` output is a self-contained JSON object:
 
 - `responses[0]` — entity list from the NER step (only present in `nerrel` mode)
 - `responses[-1]` — final extracted triples after all refinement steps
-- Each triple has `head`, `relation` (`INTERACTS_WITH` for PPI or `REGULATES` for TF), and `tail`
+- Each triple has `head`, `relation` (`INTERACTS_WITH` for PPI), and `tail`
 
 ---
 
@@ -456,7 +472,6 @@ All SLURM scripts in `slurm/` follow the same structure:
 |--------|---------|-------|-----|
 | `cardio_ppi.sh` | Simple single-GPU cardiac PPI extraction | llama33 70B | 1× hopper |
 | `cardio_ppi_cardiac_sharded.sh` | **Sharded** cardiac PPI extraction (2–4 GPUs) | llama33 70B | 2–4× hopper |
-| `cardio_tf.sh` | Cardiac TF extraction | llama33 70B | 1× hopper |
 | `regu_ppi_matrix.sh` | Full RegulaTome experiment matrix (15 configs) | llama33 70B | 1× hopper |
 | `regu_ppi_synonyms.sh` | Generate protein synonym dictionary | llama33 70B | 1× hopper |
 | `finetune_llama33.sh` | LoRA fine-tuning on extraction data | llama33 70B | 1× hopper |
@@ -545,15 +560,49 @@ The script automatically handles both the old (`.json`) and new (`.jsonl`) outpu
 
 ## Fine-Tuning
 
-LoRA-based supervised fine-tuning on extraction data:
+LoRA-based supervised fine-tuning on RegulaTome PPI extraction data.
+
+### Training a model
 
 ```bash
-python finetune.py --model llama31 --data regulatome --target ppi --save
+python finetune.py --model llama31 --data regulatome --target ppi --train --save
+```
+
+Or via SLURM:
+```bash
+sbatch slurm/finetune_llama31.sh   # Llama 3.1 8B (A40, ~7.6 GB VRAM)
+sbatch slurm/finetune_llama33.sh   # Llama 3.3 70B (H100, ~40 GB VRAM)
+```
+
+**Training details:**
+
+| Parameter | 8B | 70B |
+|-----------|-----|-----|
+| Method | LoRA (r=16, α=16) | LoRA (r=16, α=16) |
+| Training data | Train + Devel (1279 samples) | Train + Devel (1279 samples) |
+| Eval split | 10% of train+dev (128 samples) | 10% of train+dev (128 samples) |
+| Held-out test | 312 samples (never seen) | 312 samples (never seen) |
+| Epochs | 5 | 5 |
+| Batch size | 2 × 4 accumulation = 8 | 2 × 4 accumulation = 8 |
+| LR / Optimizer | 2e-4 / AdamW 8-bit | 2e-4 / AdamW 8-bit |
+| Training time | ~50 min (A40) | ~4 h (H100) |
+
+### Available fine-tuned models
+
+| Alias | Base | HuggingFace | Ollama |
+|-------|------|-------------|--------|
+| `llama31regu` | Llama 3.1 8B | [phiwi/…regulatome_ppi_lora](https://huggingface.co/phiwi/Meta-Llama-3.1-8B-Instruct-bnb-4bit_regulatome_ppi_lora) | `llama3.1:8b-regulatome-ppi` |
+| `llama33regu` | Llama 3.3 70B | [phiwi/…regulatome_ppi_lora](https://huggingface.co/phiwi/Llama-3.3-70B-Instruct-bnb-4bit_regulatome_ppi_lora) | `llama3.3:70b-regulatome-ppi` |
+
+**Import into Ollama:**
+```bash
+sbatch slurm/ollama_import_llama31_regu_ppi.sh   # 8B
+sbatch slurm/ollama_import_llama33_regu_ppi.sh   # 70B
 ```
 
 Training conversations are derived from `dataset.py`, which pairs source documents with gold-standard triples formatted as chat turns. Checkpoints are written to `{OUTPUT_ROOT}/finetunedmodels/{model_id}_regulatome/`.
 
-Fine-tuned model variants are registered in `clients.py` under the `*regu` suffix aliases (e.g., `llama33regu`, `llama31regu`) and can be used with any extraction flag combination.
+Fine-tuned model variants are registered in `clients.py` under the `*regu` suffix aliases and can be used with any extraction flag combination.
 
 ---
 
@@ -561,7 +610,7 @@ Fine-tuned model variants are registered in `clients.py` under the `*regu` suffi
 
 | Corpus | Identifier | Description | Source |
 |--------|-----------|-------------|--------|
-| RegulaTome | `regulatome` | 1,591 PubMed abstracts with annotated PPI and TF relations | [Zenodo 10808330](https://zenodo.org/records/10808330) (CC BY 4.0) |
+| RegulaTome | `regulatome` | 1,591 PubMed abstracts with annotated PPI relations | [Zenodo 10808330](https://zenodo.org/records/10808330) (CC BY 4.0) |
 | BioRED | `biored` | Biomedical relation extraction benchmark | [BioRED](https://ftp.ncbi.nlm.nih.gov/pub/lu/BioRED/) |
 | 5 curated papers | `5curated` | Five manually curated cardiac signalling papers | Included under `data/5curated/` |
 | Cardiac manuscripts | `cardio` | Broader collection of cardiac PDFs | Local, not distributed |
@@ -571,7 +620,6 @@ Place the RegulaTome files under `${LINDA_LLM_REGULATOME_ROOT}` (default: `../Re
 ```
 RegulaTome/
 ├── test_ppi_annotations/annotated_ppi_relations_dedup.txt
-├── test_tf_annotations/annotated_tf_relations_dedup_new.txt
 └── BIORED/…
 ```
 
@@ -594,8 +642,8 @@ The framework supports any **OpenAI-compatible** backend. Ollama is the primary 
 | `qwen314` | `qwen3:14b` | — |
 | `qwen330` | `qwen3:30b` | — |
 | `qwen332` | `qwen3:32b` | — |
-| `llama33regu` | `llama3.3:70b-regu_Q4_K_M` | fine-tuned on RegulaTome |
-| `llama31regu` | `llama31regu-ollama` | fine-tuned on RegulaTome |
+| `llama31regu` | `llama3.1:8b-regulatome-ppi` | fine-tuned on RegulaTome PPI |
+| `llama33regu` | `llama3.3:70b-regulatome-ppi` | fine-tuned on RegulaTome PPI |
 
 ### Setting up Ollama
 
@@ -665,7 +713,7 @@ The script waits up to 60–90 seconds for Ollama to become ready. If it times o
 
 ```bash
 # Ensure you're in the scripts directory
-cd /path/to/LLM_Relations/llm_extractions
+cd /path/to/LLM-PPI-Extraction
 
 # Activate the correct venv
 . ~/.venvs/test_linda/bin/activate
