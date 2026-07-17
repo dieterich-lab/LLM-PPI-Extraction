@@ -592,7 +592,7 @@ sbatch slurm/finetune_llama33.sh   # Llama 3.3 70B (H100, ~40 GB VRAM)
 | Alias | Base | HuggingFace | Ollama |
 |-------|------|-------------|--------|
 | `llama31regu` | Llama 3.1 8B | [phiwi/…regulatome_ppi_lora](https://huggingface.co/phiwi/Meta-Llama-3.1-8B-Instruct-bnb-4bit_regulatome_ppi_lora) | `llama3.1:8b-regulatome-ppi` |
-| `llama33regu` | Llama 3.3 70B | (coming soon) | `llama3.3:70b-regulatome-ppi` |
+| `llama33regu` | Llama 3.3 70B | [phiwi/…regulatome_ppi_lora](https://huggingface.co/phiwi/Llama-3.3-70B-Instruct-bnb-4bit_regulatome_ppi_lora) | `llama3.3:70b-regulatome-ppi` |
 
 **Import into Ollama:**
 ```bash
